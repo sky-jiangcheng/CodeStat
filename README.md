@@ -21,8 +21,11 @@
 
 | 特性 | 说明 |
 |------|------|
-| 自动发现仓库 | 设置扫描根目录后递归发现所有 Git 仓库，平台自适应默认规则 |
+| 自动发现仓库 | 设置扫描根目录后递归发现所有 Git 仓库，平台自适应默认规则；扫描仅登记仓库名，不预扫历史 |
 | 可视化仪表盘 | 每日目标进度环突出「我达标了吗」；项目卡片、趋势折线图、提交热力图 |
+| 仓库收藏 | 已收藏仓库展示完整统计卡片；未收藏仓库仅显示名称与收藏按钮，按需关注 |
+| 按需刷新历史 | 已收藏仓库卡片提供「刷新历史记录」按钮，点击后才回填该仓库近 365 天的每日统计数据 |
+| 模糊搜索 | 顶部搜索框支持仓库名称/路径模糊搜索，并在结果中直接切换收藏状态 |
 | 智能项目分组 | 自动识别 Monorepo 与单仓库，支持手动拆分/合并（事务安全，笔记与待办随项目迁移） |
 | 工作日检查 | 自定义每日代码量标准，未达标时面板告警提醒 |
 | 知识库 | 跨项目笔记中心：Markdown 笔记、标签、置顶、分类；全文搜索（排序 + 片段高亮，跨笔记与待办） |
@@ -129,6 +132,9 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 | `GetSummary(date)` | 全局摘要统计 |
 | `GetHeatmapData()` | 近一年提交热力图 |
 | `UpdateProjectLevel(id, direction)` | 拆分（down）/合并（up）项目分组 |
+| `ToggleStar(id)` | 切换仓库收藏状态 |
+| `RefreshProjectHistory(id)` | 按需回填单个已收藏仓库近 365 天的每日统计 |
+| `SearchProjects(query)` | 按仓库名称/路径模糊搜索 |
 | `SearchNotes(query)` / `SearchAll(query)` | 笔记搜索 / 跨笔记与待办搜索（排序 + 片段） |
 | `ListAllNotes()` / `ListAllTags()` | 知识库：全部笔记与标签 |
 | `CreateNoteWithMeta` / `UpdateNoteMeta` / `PinNote` | 笔记元数据（标题/标签/类型/置顶） |
@@ -161,8 +167,8 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 │   └── knowledge/       # 仓库知识挖掘（README / 技术栈 / 语言占比）
 ├── web/                 # React SPA 前端（Vite + PWA）
 │   └── src/
-│       ├── pages/       # Dashboard / ProjectDetail / Knowledge / Settings
-│       ├── components/  # ProjectCard / SummaryBar / GoalRing / Heatmap
+│       ├── pages/       # Dashboard（已收藏/其他仓库分区展示、模糊搜索）/ ProjectDetail / Knowledge / Settings
+│       ├── components/  # ProjectCard（收藏状态切换、按需刷新历史）/ SummaryBar / GoalRing / Heatmap
 │       │                 # / TrendChart / NoteSection / TodoSection / CommandPalette
 │       ├── api/         # 双模式 API 客户端（Wails 绑定 + HTTP 回退）
 │       └── utils/       # 主题、Markdown 渲染
@@ -184,11 +190,19 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 
 ### Q: 仪表盘显示「暂未发现仓库」？
 
-确保 Git 已安装且在 PATH 中，然后在设置页面配置包含 Git 仓库的扫描根目录，点击「重新扫描」。
+确保 Git 已安装且在 PATH 中，然后在设置页面配置包含 Git 仓库的扫描根目录，点击「重新扫描」。首次扫描仅登记仓库名，不会预扫历史提交数据。
+
+### Q: 仓库卡片为什么只显示名称？
+
+GitBoard 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
 
 ### Q: 统计数据显示为零？
 
-确认目标仓库在指定日期有提交记录。自动扫描只统计当天的数据，可通过日历组件切换日期查看历史。
+已收藏仓库的统计数据需要在卡片上点击「刷新历史记录」按钮触发回填（近 365 天）。点击后系统会扫描该仓库的 git log 并写入数据库，完成后卡片自动刷新。未收藏仓库不会扫描历史。
+
+### Q: 如何快速找到某个仓库？
+
+使用顶部的搜索框，支持按仓库名称或路径模糊搜索，搜索结果中可直接点击星标切换收藏状态，无需进入详情页。
 
 ### Q: 如何调整项目分组？
 
