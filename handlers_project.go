@@ -252,6 +252,47 @@ func (a *App) ToggleStar(projectID int64) (bool, error) {
 	return db.ToggleProjectStar(a.db, projectID)
 }
 
+// SearchProjects searches for projects by name or path.
+func (a *App) SearchProjects(query string) []ProjectResponse {
+	projects, err := db.SearchProjects(a.db, query)
+	if err != nil {
+		log.Printf("search projects error: %v", err)
+		return nil
+	}
+
+	date := stats.GetYesterdayDate()
+	codeStdStr, _ := db.GetConfig(a.db, "daily_code_standard")
+	codeStd, _ := strconv.Atoi(codeStdStr)
+	if codeStd == 0 {
+		codeStd = 500
+	}
+	isWorkday := stats.IsWorkday(date)
+
+	var result []ProjectResponse
+	for _, p := range projects {
+		statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
+		repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
+
+		pr := ProjectResponse{
+			Project:   p,
+			RepoCount: len(repos),
+			IsWorkday: isWorkday,
+		}
+		for _, st := range statsList {
+			pr.TotalAdded += st.LinesAdded
+			pr.TotalDeleted += st.LinesDeleted
+			if st.Author == a.gitUser {
+				pr.MyAdded += st.LinesAdded
+				pr.MyDeleted += st.LinesDeleted
+				pr.MyFiles += st.FilesChanged
+			}
+		}
+		pr.BelowStandard = isWorkday && pr.MyAdded < codeStd
+		result = append(result, pr)
+	}
+	return result
+}
+
 // ProjectOverview is the mined-knowledge payload for a project detail page.
 type ProjectOverview struct {
 	ReadmeExcerpt string                  `json:"readme_excerpt"`

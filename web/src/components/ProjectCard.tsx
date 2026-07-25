@@ -19,7 +19,6 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
     ? Math.round((project.my_added / (project.my_added + project.my_deleted)) * 100)
     : 50
 
-  // Goal progress: how much of the daily target this project's additions represent.
   const goalPct = dailyGoal > 0 ? Math.min(Math.round((project.my_added / dailyGoal) * 100), 100) : 0
   const reachedGoal = isWorkday && project.my_added > 0 && project.my_added >= dailyGoal
 
@@ -27,6 +26,25 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
     e.preventDefault()
     e.stopPropagation()
     onToggleStar?.(project.id)
+  }
+
+  if (!project.is_starred) {
+    return (
+      <div className={`project-card project-card-minimal ${project.is_starred ? 'starred' : ''}`}>
+        <button
+          className={`card-star ${project.is_starred ? 'starred' : ''}`}
+          onClick={handleStarClick}
+          title={project.is_starred ? '取消关注' : '关注项目'}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill={project.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+          </svg>
+        </button>
+        <Link to={to} className="card-name-link">
+          <span className="card-name">{project.name}</span>
+        </Link>
+      </div>
+    )
   }
 
   return (

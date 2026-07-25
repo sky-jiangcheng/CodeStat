@@ -1968,6 +1968,33 @@ body {
   box-shadow: 0 0 0 1px var(--accent-soft), var(--shadow-sm);
 }
 
+.project-card-minimal {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.project-card-minimal:hover {
+  background: var(--bg-tertiary);
+}
+
+.card-name-link {
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  min-width: 0;
+}
+
+.card-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* --- Knowledge hub page --- */
 .knowledge h1 {
   font-size: 26px;
@@ -2695,6 +2722,44 @@ body {
   font-weight: 600;
   color: var(--text-primary);
   margin-bottom: 2px;
+}
+
+.search-group {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.search-group:first-child {
+  border-top: none;
+}
+
+.search-group-header {
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.search-result-project-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-result-project-item .card-star {
+  position: static;
+  padding: 2px;
+}
+
+.search-project-name {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Responsive --- */

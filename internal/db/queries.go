@@ -309,6 +309,27 @@ func GetStarredProjects(db *sql.DB) ([]Project, error) {
 	return scanProjects(rows)
 }
 
+// SearchProjects returns projects whose name or root_path matches the query.
+func SearchProjects(db *sql.DB, query string) ([]Project, error) {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return nil, nil
+	}
+	if len(q) > searchMaxQuery {
+		q = q[:searchMaxQuery]
+	}
+	like := "%" + q + "%"
+	rows, err := db.Query(
+		"SELECT id, name, root_path, level_override, is_auto_grouped, is_starred, created_at FROM projects WHERE name LIKE ? OR root_path LIKE ? ORDER BY name",
+		like, like,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return scanProjects(rows)
+}
+
 func scanProjects(rows *sql.Rows) ([]Project, error) {
 	var projects []Project
 	for rows.Next() {

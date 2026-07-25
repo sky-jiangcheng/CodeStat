@@ -471,6 +471,11 @@ export function searchAll(query: string): Promise<SearchHit[]> {
   return http<SearchHit[]>(`/search?q=${encodeURIComponent(query)}`).then(d => d ?? [])
 }
 
+export function searchProjects(query: string): Promise<Project[]> {
+  if (isWails()) return wail<Project[]>('SearchProjects', query).then(d => d ?? [])
+  return http<Project[]>(`/projects/search?q=${encodeURIComponent(query)}`).then(d => d ?? [])
+}
+
 export function getStatusBar(): Promise<StatusBarData> {
   if (isWails()) return wail<StatusBarData>('GetStatusBar').then(d => d ?? {
     current_time: '', last_commit_time: '', last_commit_repo: '',

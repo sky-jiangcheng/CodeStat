@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
-  getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, searchAll,
+  getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, searchAll, searchProjects,
   getScanStatus, toggleStar, getConfig, Project, Summary, TodoCount, NoteCount, SearchHit,
 } from '../api/client'
 import SummaryBar from '../components/SummaryBar'
@@ -41,7 +41,9 @@ function Dashboard() {
   const [showStarredOnly, setShowStarredOnly] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchHit[] | null>(null)
+  const [searchProjectsResults, setSearchProjectsResults] = useState<Project[] | null>(null)
   const [searching, setSearching] = useState(false)
+  const [searchingProjects, setSearchingProjects] = useState(false)
   const pollTimer = useRef<number | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
 
@@ -132,6 +134,9 @@ function Dashboard() {
     try {
       const newStarred = await toggleStar(projectId)
       setProjects(prev => prev.map(p => p.id === projectId ? { ...p, is_starred: newStarred } : p))
+      if (searchProjectsResults) {
+        setSearchProjectsResults(prev => prev?.map(p => p.id === projectId ? { ...p, is_starred: newStarred } : p) ?? null)
+      }
       if (showStarredOnly && !newStarred) {
         setProjects(prev => prev.filter(p => p.id !== projectId))
       }
@@ -153,17 +158,38 @@ function Dashboard() {
     }
   }, [])
 
+  const handleSearchProjects = useCallback(async (query: string) => {
+    if (!query.trim()) { setSearchProjectsResults(null); setSearchingProjects(false); return }
+    setSearchingProjects(true)
+    try {
+      const results = await searchProjects(query)
+      setSearchProjectsResults(results)
+    } catch {
+      setSearchProjectsResults([])
+    } finally {
+      setSearchingProjects(false)
+    }
+  }, [])
+
   // Debounced search wrapper with proper cleanup
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const handleSearchDebounced = useCallback((query: string) => {
     setSearchQuery(query)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim()) { setSearchResults(null); setSearching(false); return }
+    if (!query.trim()) { 
+      setSearchResults(null)
+      setSearchProjectsResults(null)
+      setSearching(false)
+      setSearchingProjects(false)
+      return 
+    }
     setSearching(true)
+    setSearchingProjects(true)
     debounceRef.current = setTimeout(() => {
       handleSearch(query)
+      handleSearchProjects(query)
     }, 300)
-  }, [handleSearch])
+  }, [handleSearch, handleSearchProjects])
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -251,26 +277,54 @@ function Dashboard() {
                 type="text"
                 value={searchQuery}
                     onChange={e => handleSearchDebounced(e.target.value)}
-                placeholder="搜索笔记与待办…"
+                placeholder="搜索仓库、笔记与待办…"
                 className="form-input search-input"
               />
               {searchResults !== null && (
                 <div className="search-dropdown">
-                  {searching ? (
+                  {searching || searchingProjects ? (
                     <div className="search-loading">搜索中...</div>
-                  ) : searchResults.length === 0 ? (
+                  ) : searchResults.length === 0 && (!searchProjectsResults || searchProjectsResults.length === 0) ? (
                     <div className="search-empty">未找到匹配内容</div>
                   ) : (
-                    searchResults.map(h => (
-                      <a key={`${h.type}-${h.id}`} href={`/#/project/${h.project_id}`} className="search-result-item">
-                        <div className="search-result-header">
-                          <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
-                          <span className="search-result-project">{h.project_name}</span>
+                    <>
+                      {searchProjectsResults && searchProjectsResults.length > 0 && (
+                        <div className="search-group">
+                          <div className="search-group-header">仓库</div>
+                          {searchProjectsResults.map(p => (
+                            <div key={`project-${p.id}`} className="search-result-item search-result-project-item">
+                              <button
+                                className={`card-star ${p.is_starred ? 'starred' : ''}`}
+                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleStar(p.id) }}
+                                title={p.is_starred ? '取消关注' : '关注项目'}
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill={p.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                </svg>
+                              </button>
+                              <a href={`/#/project/${p.id}`} className="search-project-name">
+                                {p.name}
+                              </a>
+                            </div>
+                          ))}
                         </div>
-                        <div className="search-result-title">{h.title}</div>
-                        <div className="search-result-preview">{h.snippet}</div>
-                      </a>
-                    ))
+                      )}
+                      {searchResults.length > 0 && (
+                        <div className="search-group">
+                          <div className="search-group-header">笔记与待办</div>
+                          {searchResults.map(h => (
+                            <a key={`${h.type}-${h.id}`} href={`/#/project/${h.project_id}`} className="search-result-item">
+                              <div className="search-result-header">
+                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
+                                <span className="search-result-project">{h.project_name}</span>
+                              </div>
+                              <div className="search-result-title">{h.title}</div>
+                              <div className="search-result-preview">{h.snippet}</div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               )}
