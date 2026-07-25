@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Project } from '../api/client'
 
@@ -9,9 +10,11 @@ interface Props {
   dailyGoal?: number
   isWorkday?: boolean
   onToggleStar?: (id: number) => void
+  onRefreshHistory?: (id: number) => Promise<void>
 }
 
-function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWorkday = true, onToggleStar }: Props) {
+function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWorkday = true, onToggleStar, onRefreshHistory }: Props) {
+  const [refreshing, setRefreshing] = useState(false)
   const netAdded = project.my_added - project.my_deleted
   const to = date ? `/project/${project.id}?date=${date}` : `/project/${project.id}`
 
@@ -26,6 +29,18 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
     e.preventDefault()
     e.stopPropagation()
     onToggleStar?.(project.id)
+  }
+
+  const handleRefreshClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (refreshing || !onRefreshHistory) return
+    setRefreshing(true)
+    try {
+      await onRefreshHistory(project.id)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   if (!project.is_starred) {
@@ -57,6 +72,23 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
         <svg width="16" height="16" viewBox="0 0 24 24" fill={project.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
+      </button>
+      <button
+        className="card-refresh-btn"
+        onClick={handleRefreshClick}
+        disabled={refreshing}
+        title={refreshing ? '正在刷新历史记录…' : '刷新历史记录'}
+      >
+        {refreshing ? (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            <polyline points="21 3 21 9 15 9" />
+          </svg>
+        )}
       </button>
       <div className="card-header">
         <h3>{project.name}</h3>

@@ -252,6 +252,17 @@ func (a *App) ToggleStar(projectID int64) (bool, error) {
 	return db.ToggleProjectStar(a.db, projectID)
 }
 
+// RefreshProjectHistory triggers a full 365-day stats backfill for a single
+// project's repositories. Only called on explicit user action (button click)
+// so we don't scan history for unstarred repos.
+func (a *App) RefreshProjectHistory(projectID int64) (map[string]interface{}, error) {
+	if err := a.refreshProjectHistory(projectID); err != nil {
+		log.Printf("refresh project history error: %v", err)
+		return nil, err
+	}
+	return map[string]interface{}{"success": true}, nil
+}
+
 // SearchProjects searches for projects by name or path.
 func (a *App) SearchProjects(query string) []ProjectResponse {
 	projects, err := db.SearchProjects(a.db, query)
@@ -295,12 +306,12 @@ func (a *App) SearchProjects(query string) []ProjectResponse {
 
 // ProjectOverview is the mined-knowledge payload for a project detail page.
 type ProjectOverview struct {
-	ReadmeExcerpt string                  `json:"readme_excerpt"`
-	TechStack     []knowledge.Tech        `json:"tech_stack"`
+	ReadmeExcerpt string                   `json:"readme_excerpt"`
+	TechStack     []knowledge.Tech         `json:"tech_stack"`
 	Languages     []knowledge.LanguageStat `json:"languages"`
-	RecentCommits []stats.RecentCommit    `json:"recent_commits"`
-	Cached        bool                    `json:"cached"`
-	Mining        bool                    `json:"mining,omitempty"`
+	RecentCommits []stats.RecentCommit     `json:"recent_commits"`
+	Cached        bool                     `json:"cached"`
+	Mining        bool                     `json:"mining,omitempty"`
 }
 
 // GetProjectOverview returns mined knowledge for a project: README excerpt,

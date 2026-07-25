@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -125,4 +126,46 @@ func (a *App) refreshProjectStats(projectID int64, date string) {
 			}
 		}
 	}
+}
+
+// refreshProjectHistory backfills a full year of daily stats for all repos
+// belonging to a single project. This is the per-project equivalent of
+// refreshAllStatsWithCancel, triggered on demand from the dashboard.
+func (a *App) refreshProjectHistory(projectID int64) error {
+	repos, err := db.GetRepositoriesByProjectID(a.db, projectID)
+	if err != nil {
+		return fmt.Errorf("failed to load repos: %w", err)
+	}
+	if len(repos) == 0 {
+		return fmt.Errorf("project has no repositories")
+	}
+
+	startDate := time.Now().AddDate(0, 0, -365).Format("2006-01-02")
+	endDate := stats.GetTodayDate()
+
+	for _, repo := range repos {
+		allEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, "")
+		if err == nil && allEntries != nil {
+			for _, e := range allEntries {
+				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+					_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
+						e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+				}
+			}
+		}
+
+		if a.gitUser != "" {
+			myEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, a.gitUser)
+			if err == nil && myEntries != nil {
+				for _, e := range myEntries {
+					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+					}
+				}
+			}
+		}
+		_ = db.UpdateRepositoryLastScanned(a.db, repo.ID)
+	}
+	return nil
 }

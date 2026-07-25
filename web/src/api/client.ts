@@ -239,6 +239,11 @@ export function toggleStar(id: number): Promise<boolean> {
   return http<{ starred: boolean }>(`/projects/${id}/star`, { method: 'POST' }).then(r => r.starred)
 }
 
+export function refreshProjectHistory(id: number): Promise<{ success: boolean }> {
+  if (isWails()) return wail<{ success: boolean }>('RefreshProjectHistory', id)
+  return http<{ success: boolean }>(`/projects/${id}/refresh-history`, { method: 'POST' })
+}
+
 export function updateProjectLevel(
   id: number,
   direction: 'up' | 'down'

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import {
   getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, searchAll, searchProjects,
-  getScanStatus, toggleStar, getConfig, Project, Summary, TodoCount, NoteCount, SearchHit,
+  getScanStatus, toggleStar, refreshProjectHistory, getConfig, Project, Summary, TodoCount, NoteCount, SearchHit,
 } from '../api/client'
 import SummaryBar from '../components/SummaryBar'
 import GoalRing from '../components/GoalRing'
@@ -145,6 +145,15 @@ function Dashboard() {
     }
   }
 
+  const handleRefreshHistory = useCallback(async (projectId: number) => {
+    try {
+      await refreshProjectHistory(projectId)
+      await fetchData(date, showStarredOnly)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : '刷新历史记录失败')
+    }
+  }, [date, showStarredOnly])
+
   const handleSearch = useCallback(async (query: string) => {
     if (!query.trim()) { setSearchResults(null); setSearching(false); return }
     setSearching(true)
@@ -220,6 +229,9 @@ function Dashboard() {
     })
     return list
   }, [projects, sortKey])
+
+  const starredProjects = useMemo(() => sorted.filter(p => p.is_starred), [sorted])
+  const unstarredProjects = useMemo(() => sorted.filter(p => !p.is_starred), [sorted])
 
   const todoMap = useMemo(() => {
     const map = new Map<number, number>()
@@ -401,20 +413,50 @@ function Dashboard() {
             </div>
           </div>
         ) : (
-          <div className="project-grid">
-            {sorted.map(p => (
-              <ProjectCard
-                key={p.id}
-                project={p}
-                date={date}
-                todoCount={todoMap.get(p.id)}
-                noteCount={noteMap.get(p.id)}
-                dailyGoal={isWorkday ? dailyGoal : 0}
-                isWorkday={isWorkday}
-                onToggleStar={handleToggleStar}
-              />
-            ))}
-          </div>
+          <>
+            {starredProjects.length > 0 && (
+              <div className="project-section">
+                <div className="project-section-header">
+                  <h2 className="project-section-title">已收藏仓库</h2>
+                  <span className="project-section-count">{starredProjects.length}</span>
+                </div>
+                <div className="project-grid">
+                  {starredProjects.map(p => (
+                    <ProjectCard
+                      key={p.id}
+                      project={p}
+                      date={date}
+                      todoCount={todoMap.get(p.id)}
+                      noteCount={noteMap.get(p.id)}
+                      dailyGoal={isWorkday ? dailyGoal : 0}
+                      isWorkday={isWorkday}
+                      onToggleStar={handleToggleStar}
+                      onRefreshHistory={handleRefreshHistory}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {unstarredProjects.length > 0 && (
+              <div className="project-section">
+                <div className="project-section-header">
+                  <h2 className="project-section-title">其他仓库</h2>
+                  <span className="project-section-count">{unstarredProjects.length}</span>
+                </div>
+                <div className="project-grid project-grid-minimal">
+                  {unstarredProjects.map(p => (
+                    <ProjectCard
+                      key={p.id}
+                      project={p}
+                      date={date}
+                      onToggleStar={handleToggleStar}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
