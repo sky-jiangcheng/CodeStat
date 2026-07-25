@@ -161,17 +161,47 @@ def draw_heatmap(draw, x, y, w):
     return 90
 
 
-def draw_project_card(draw, x, y, w, name, added, deleted, files, goal_pct, reached, below):
+def draw_star_icon(draw, x, y, size, filled, color):
+    # Simple 5-point star
+    cx, cy = x + size / 2, y + size / 2
+    r_outer = size / 2
+    r_inner = r_outer * 0.4
+    pts = []
+    for i in range(10):
+        ang = -math.pi / 2 + i * math.pi / 5
+        r = r_outer if i % 2 == 0 else r_inner
+        pts.append((cx + r * math.cos(ang), cy + r * math.sin(ang)))
+    if filled:
+        draw.polygon(pts, fill=color)
+    else:
+        draw.line(pts + [pts[0]], fill=color, width=1)
+
+
+def draw_refresh_icon(draw, x, y, size, color):
+    # Circular arrow indicating refresh
+    cx, cy = x + size / 2, y + size / 2
+    r = size / 2 - 1
+    draw.arc([(cx - r, cy - r), (cx + r, cy + r)], -30, 220, fill=color, width=2)
+    # Arrow head
+    ax = cx + r * math.cos(math.radians(220))
+    ay = cy + r * math.sin(math.radians(220))
+    draw.polygon([(ax, ay), (ax - 4, ay - 2), (ax - 2, ay + 4)], fill=color)
+
+
+def draw_project_card_starred(draw, x, y, w, name, added, deleted, files, goal_pct, reached, below):
     h = 168
     fill = CARD
     outline = ACCENT if reached else BORDER
     rrect(draw, [(x, y), (x + w, y + h)], 10, fill=fill, outline=outline, width=(2 if reached else 1))
+    # star (top-left) + refresh (top-right)
+    draw_star_icon(draw, x + 12, y + 12, 16, True, WARNING)
+    draw_refresh_icon(draw, x + w - 30, y + 14, 16, TEXT_TER)
     # name + badges
-    text(draw, (x + 14, y + 14), name, TEXT, get_font(14, bold=True))
-    bx = x + w - 14
+    text(draw, (x + 36, y + 14), name, TEXT, get_font(14, bold=True))
+    bx = x + w - 44
     if reached:
-        bw = chip(draw, bx - 50, y + 12, "达标", ACCENT, ACCENT_SOFT, get_font(10))
-        bx -= 50 + 4
+        chip(draw, bx - 50, y + 12, "达标", ACCENT, ACCENT_SOFT, get_font(10))
+        bx -= 54
     if below:
         chip(draw, bx - 50, y + 12, "未达标", WARNING, WARNING_SOFT, get_font(10))
     # hero number
@@ -194,8 +224,36 @@ def draw_project_card(draw, x, y, w, name, added, deleted, files, goal_pct, reac
     return h
 
 
+def draw_project_card_minimal(draw, x, y, w, name):
+    h = 44
+    rrect(draw, [(x, y), (x + w, y + h)], 8, fill=CARD, outline=BORDER)
+    draw_star_icon(draw, x + 12, y + 14, 16, False, TEXT_TER)
+    text(draw, (x + 36, y + 14), name, TEXT_SEC, get_font(13))
+    return h
+
+
+def draw_section_header(draw, x, y, w, title, count):
+    text(draw, (x, y), title, TEXT, get_font(13, bold=True))
+    cw = text_w(draw, str(count), get_font(11)) + 16
+    rrect(draw, [(x + text_w(draw, title, get_font(13, bold=True)) + 10, y - 1), (x + text_w(draw, title, get_font(13, bold=True)) + 10 + cw, y + 20)], 10, fill=TERTIARY)
+    text(draw, (x + text_w(draw, title, get_font(13, bold=True)) + 18, y + 2), str(count), TEXT_TER, get_font(11))
+    draw.line([(x, y + 28), (x + w, y + 28)], fill=BORDER, width=1)
+    return 36
+
+
+def draw_search_box(draw, x, y, w):
+    h = 36
+    rrect(draw, [(x, y), (x + w, y + h)], 8, fill=CARD, outline=BORDER)
+    # magnifier icon
+    cx, cy = x + 16, y + 18
+    draw.ellipse([(cx - 5, cy - 5), (cx + 5, cy + 5)], outline=TEXT_TER, width=1)
+    draw.line([(cx + 4, cy + 4), (cx + 8, cy + 8)], fill=TEXT_TER, width=1)
+    text(draw, (x + 32, y + 11), "搜索仓库、笔记与待办…", TEXT_TER, get_font(12))
+    return h
+
+
 def draw_dashboard():
-    H = 840
+    H = 920
     img = Image.new("RGB", (WIDTH, H), BG)
     d = ImageDraw.Draw(img)
     draw_navbar(d, "仪表盘")
@@ -215,26 +273,47 @@ def draw_dashboard():
     # Heatmap
     draw_heatmap(d, 24, 212, WIDTH - 48)
 
-    # Cards grid (4 cols x 2 rows)
-    projects = [
+    # Controls row: search box + sort + rescan
+    cy = 318
+    draw_search_box(d, 24, cy, 420)
+    # sort
+    rrect(d, [(456, cy), (620, cy + 36)], 8, fill=CARD, outline=BORDER)
+    text(d, (468, cy + 11), "排序：新增行数", TEXT_SEC, get_font(12))
+    # rescan
+    rrect(d, [(WIDTH - 180, cy), (WIDTH - 24, cy + 36)], 8, fill=TEXT)
+    text(d, (WIDTH - 168, cy + 11), "重新扫描", CARD, get_font(12, bold=True))
+
+    # Starred section
+    sy = 372
+    sy += draw_section_header(d, 24, sy, WIDTH - 48, "已收藏仓库", 4)
+    starred = [
         ("business-toolkit", 420, 85, 12, 84, True, False),
         ("GitBoard", 180, 30, 5, 36, True, False),
-        ("user-service", 0, 0, 0, 0, False, True),
-        ("api-gateway", 95, 12, 3, 19, False, False),
-        ("data-platform", 0, 0, 0, 0, False, True),
         ("frontend-app", 310, 45, 8, 62, True, False),
-        ("infra-tools", 0, 0, 0, 0, False, True),
-        ("monorepo-root", 156, 28, 4, 31, False, False),
+        ("api-gateway", 95, 12, 3, 19, False, False),
     ]
     gap = 14
     cw = (WIDTH - 48 - 3 * gap) / 4
-    sx, sy = 24, 322
-    for i, (name, a, dl, f, gp, reached, below) in enumerate(projects):
-        col = i % 4
-        row = i // 4
-        x = sx + col * (cw + gap)
-        y = sy + row * (168 + gap)
-        draw_project_card(d, int(x), int(y), int(cw), name, a, dl, f, gp, reached, below)
+    sx = 24
+    for i, (name, a, dl, f, gp, reached, below) in enumerate(starred):
+        x = int(sx + i * (cw + gap))
+        draw_project_card_starred(d, x, int(sy), int(cw), name, a, dl, f, gp, reached, below)
+    sy += 168 + 20
+
+    # Other repos section (minimal cards)
+    sy += draw_section_header(d, 24, sy, WIDTH - 48, "其他仓库", 6)
+    others = ["user-service", "data-platform", "infra-tools", "monorepo-root", "auth-module", "docs-site"]
+    mgap = 8
+    mcw = (WIDTH - 48 - 5 * mgap) / 6
+    for i, name in enumerate(others):
+        x = int(sx + i * (mcw + mgap))
+        draw_project_card_minimal(d, x, int(sy), int(mcw), name)
+    sy += 44 + 8
+    # second row of minimal cards
+    others2 = ["config-loader", "test-utils", "release-bot", "ci-runner", "metrics-agent", "log-parser"]
+    for i, name in enumerate(others2):
+        x = int(sx + i * (mcw + mgap))
+        draw_project_card_minimal(d, x, int(sy), int(mcw), name)
 
     img.save(os.path.join(OUTPUT_DIR, "dashboard.png"), "PNG")
     print("Generated dashboard.png")
