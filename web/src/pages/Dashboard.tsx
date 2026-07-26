@@ -120,7 +120,7 @@ function Dashboard() {
           pollTimer.current = null
           setScanning(false)
           setScanMsg('')
-          fetchData(date)
+          fetchData(date, showStarredOnly)
         } else {
           setScanMsg(s.message)
         }
@@ -139,6 +139,14 @@ function Dashboard() {
       }
       if (showStarredOnly && !newStarred) {
         setProjects(prev => prev.filter(p => p.id !== projectId))
+      }
+      if (newStarred) {
+        setProjects(prev => {
+          if (prev.some(p => p.id === projectId)) return prev
+          const found = searchProjectsResults?.find(p => p.id === projectId)
+          if (!found) return prev
+          return [...prev, found as Project]
+        })
       }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : '操作失败')
@@ -208,8 +216,12 @@ function Dashboard() {
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        if (debounceRef.current) clearTimeout(debounceRef.current)
         setSearchResults(null)
+        setSearchProjectsResults(null)
         setSearchQuery('')
+        setSearching(false)
+        setSearchingProjects(false)
       }
     }
     document.addEventListener('mousedown', handleClick)
@@ -288,7 +300,7 @@ function Dashboard() {
               <input
                 type="text"
                 value={searchQuery}
-                    onChange={e => handleSearchDebounced(e.target.value)}
+                onChange={e => handleSearchDebounced(e.target.value)}
                 placeholder="搜索仓库、笔记与待办…"
                 className="form-input search-input"
               />

@@ -45,13 +45,14 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
 
   if (!project.is_starred) {
     return (
-      <div className={`project-card project-card-minimal ${project.is_starred ? 'starred' : ''}`}>
+      <div className="project-card project-card-minimal">
         <button
-          className={`card-star ${project.is_starred ? 'starred' : ''}`}
+          className="card-star"
           onClick={handleStarClick}
-          title={project.is_starred ? '取消关注' : '关注项目'}
+          title="关注项目"
+          aria-label="关注项目"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill={project.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
         </button>
@@ -65,11 +66,12 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
   return (
     <Link to={to} className={`project-card ${reachedGoal ? 'card-goal-reached' : ''}`}>
       <button
-        className={`card-star ${project.is_starred ? 'starred' : ''}`}
+        className={`card-star starred`}
         onClick={handleStarClick}
-        title={project.is_starred ? '取消关注' : '关注项目'}
+        title="取消关注"
+        aria-label="取消关注"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill={project.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       </button>
@@ -78,6 +80,7 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
         onClick={handleRefreshClick}
         disabled={refreshing}
         title={refreshing ? '正在刷新历史记录…' : '刷新历史记录'}
+        aria-label={refreshing ? '正在刷新历史记录…' : '刷新历史记录'}
       >
         {refreshing ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin">

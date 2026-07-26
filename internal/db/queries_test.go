@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"fmt"
 	"testing"
 )
 
@@ -646,7 +647,7 @@ func TestCleanupStaleDataTx_PreservesProjectsWithNotes(t *testing.T) {
 	tx, _ := db.Begin()
 	defer tx.Rollback() //nolint:errcheck
 
-	// Empty scanned paths - all repos are stale
+	// Non-matching scanned paths - all repos are stale
 	err := CleanupStaleDataTx(tx, []string{"/nonexistent"})
 	if err != nil {
 		t.Fatalf("CleanupStaleDataTx failed: %v", err)
@@ -674,9 +675,133 @@ func TestCleanupStaleDataTx_EmptyPaths(t *testing.T) {
 	tx, _ := db.Begin()
 	defer tx.Rollback() //nolint:errcheck
 
-	// Should be a no-op with empty paths
-	err := CleanupStaleDataTx(tx, []string{})
+	// Create an orphaned project (no repos, notes, todos)
+	_, err := tx.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('orphan', '/orphan', 1)")
+	if err != nil {
+		t.Fatalf("failed to insert orphan project: %v", err)
+	}
+
+	// Empty paths should still clean up orphaned projects
+	err = CleanupStaleDataTx(tx, []string{})
 	if err != nil {
 		t.Fatalf("CleanupStaleDataTx with empty paths should not error: %v", err)
+	}
+
+	var count int
+	tx.QueryRow("SELECT COUNT(*) FROM projects WHERE name = 'orphan'").Scan(&count)
+	if count != 0 {
+		t.Error("orphaned project should be deleted even with empty scanned paths")
+	}
+}
+
+func TestSearchProjects_Basic(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES (?, ?, 1)",
+		"my-app", "/workspace/my-app")
+	if err != nil {
+		t.Fatalf("insert project: %v", err)
+	}
+	_, err = db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES (?, ?, 1)",
+		"other-tool", "/home/user/other-tool")
+	if err != nil {
+		t.Fatalf("insert project: %v", err)
+	}
+
+	results, err := SearchProjects(db, "my")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("expected 1 result for 'my', got %d", len(results))
+	}
+	if results[0].Name != "my-app" {
+		t.Errorf("expected 'my-app', got '%s'", results[0].Name)
+	}
+}
+
+func TestSearchProjects_ByPath(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('alpha', '/code/alpha', 1)")
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('beta', '/workspace/beta', 1)")
+
+	results, err := SearchProjects(db, "workspace")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if len(results) != 1 || results[0].Name != "beta" {
+		t.Fatalf("expected 1 result (beta) for 'workspace', got %d", len(results))
+	}
+}
+
+func TestSearchProjects_EscapedWildcards(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('test_2024', '/p/test_2024', 1)")
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('test2024', '/p/test2024', 1)")
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('100%done', '/p/100pct-done', 1)")
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('100_percent', '/p/100_percent', 1)")
+
+	// Underscore should be literal, not a single-char wildcard
+	results, err := SearchProjects(db, "test_")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if len(results) != 1 || results[0].Name != "test_2024" {
+		t.Fatalf("underscore should be literal: expected 1 result (test_2024), got %d", len(results))
+	}
+
+	// Percent should be literal, not a multi-char wildcard
+	results, err = SearchProjects(db, "100%")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if len(results) != 1 || results[0].Name != "100%done" {
+		t.Fatalf("percent should be literal: expected 1 result (100%%done), got %d", len(results))
+	}
+}
+
+func TestSearchProjects_EmptyQuery(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES ('a', '/a', 1)")
+
+	results, err := SearchProjects(db, "")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if results != nil {
+		t.Error("empty query should return nil results")
+	}
+
+	results, err = SearchProjects(db, "   ")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if results != nil {
+		t.Error("whitespace-only query should return nil results")
+	}
+}
+
+func TestSearchProjects_Limit(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+
+	for i := 0; i < 60; i++ {
+		name := fmt.Sprintf("proj-%02d", i)
+		db.Exec("INSERT INTO projects (name, root_path, is_auto_grouped) VALUES (?, ?, 1)", name, "/p/"+name)
+	}
+
+	results, err := SearchProjects(db, "proj")
+	if err != nil {
+		t.Fatalf("SearchProjects failed: %v", err)
+	}
+	if len(results) > searchProjectsLimit {
+		t.Errorf("results should be limited to %d, got %d", searchProjectsLimit, len(results))
 	}
 }

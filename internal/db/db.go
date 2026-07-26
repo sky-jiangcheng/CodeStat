@@ -167,6 +167,38 @@ func upgradeSchema(db *sql.DB) error {
 				"updated_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
 				"FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE CASCADE)",
 		}},
+		// v4: add UNIQUE constraint on projects.root_path to prevent duplicates
+		{id: 4, sql: []string{
+			// Temporarily disable FKs since we drop and recreate the projects table
+			"PRAGMA foreign_keys = OFF",
+			// 1. create new table with UNIQUE(root_path)
+			"CREATE TABLE IF NOT EXISTS projects_new (" +
+				"id INTEGER PRIMARY KEY AUTOINCREMENT," +
+				"name TEXT NOT NULL," +
+				"root_path TEXT NOT NULL UNIQUE," +
+				"level_override INTEGER DEFAULT 0," +
+				"is_auto_grouped BOOLEAN DEFAULT 1," +
+				"is_starred INTEGER DEFAULT 0," +
+				"created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
+			// 2. copy data, keeping the lowest id when duplicates exist
+			"INSERT OR IGNORE INTO projects_new (id, name, root_path, level_override, is_auto_grouped, is_starred, created_at)" +
+				" SELECT id, name, root_path, level_override, is_auto_grouped, is_starred, created_at FROM projects ORDER BY id ASC",
+			// 3. reassign repos/notes/todos to the surviving project id for each root_path
+			"UPDATE repositories SET project_id = COALESCE((SELECT MIN(p2.id) FROM projects p2 WHERE p2.root_path = " +
+				"(SELECT p1.root_path FROM projects p1 WHERE p1.id = repositories.project_id)), project_id)" +
+				" WHERE project_id IS NOT NULL",
+			"UPDATE project_notes SET project_id = (SELECT MIN(p2.id) FROM projects p2 WHERE p2.root_path = " +
+				"(SELECT p1.root_path FROM projects p1 WHERE p1.id = project_notes.project_id))",
+			"UPDATE project_todos SET project_id = (SELECT MIN(p2.id) FROM projects p2 WHERE p2.root_path = " +
+				"(SELECT p1.root_path FROM projects p1 WHERE p1.id = project_todos.project_id))",
+			// 4. replace old table
+			"DROP TABLE projects",
+			"ALTER TABLE projects_new RENAME TO projects",
+			// 5. recreate indexes
+			"CREATE INDEX IF NOT EXISTS idx_projects_starred ON projects(is_starred)",
+			// Restore FKs
+			"PRAGMA foreign_keys = ON",
+		}},
 	}
 
 	for _, m := range migrations {

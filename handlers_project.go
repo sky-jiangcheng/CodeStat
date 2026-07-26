@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strconv"
@@ -256,7 +257,11 @@ func (a *App) ToggleStar(projectID int64) (bool, error) {
 // project's repositories. Only called on explicit user action (button click)
 // so we don't scan history for unstarred repos.
 func (a *App) RefreshProjectHistory(projectID int64) (map[string]interface{}, error) {
-	if err := a.refreshProjectHistory(projectID); err != nil {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := a.refreshProjectHistory(ctx, projectID); err != nil {
 		log.Printf("refresh project history error: %v", err)
 		return nil, err
 	}

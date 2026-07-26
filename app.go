@@ -15,15 +15,16 @@ import (
 // App is the main application struct whose public methods are exposed to the
 // frontend via Wails Bind. The ctx is set during OnStartup.
 type App struct {
-	ctx          context.Context
-	db           *sql.DB
-	gitUser      string
-	scanMu       sync.Mutex
-	scanning     bool
-	backfilling  bool
-	scanCancel   context.CancelFunc
-	scanProgress int
-	scanTotal    int
+	ctx             context.Context
+	db              *sql.DB
+	gitUser         string
+	scanMu          sync.Mutex
+	scanning        bool
+	backfilling     bool
+	scanCancel      context.CancelFunc
+	backfillCancel  context.CancelFunc
+	scanProgress    int
+	scanTotal       int
 }
 
 // NewApp creates a new App instance with dependencies injected.
@@ -42,9 +43,14 @@ func (a *App) startup(ctx context.Context) {
 
 // shutdown is called when the application exits.
 func (a *App) shutdown(ctx context.Context) {
+	a.scanMu.Lock()
 	if a.scanCancel != nil {
 		a.scanCancel()
 	}
+	if a.backfillCancel != nil {
+		a.backfillCancel()
+	}
+	a.scanMu.Unlock()
 	if a.db != nil {
 		a.db.Close()
 	}
@@ -131,7 +137,8 @@ func (a *App) refreshProjectStats(projectID int64, date string) {
 // refreshProjectHistory backfills a full year of daily stats for all repos
 // belonging to a single project. This is the per-project equivalent of
 // refreshAllStatsWithCancel, triggered on demand from the dashboard.
-func (a *App) refreshProjectHistory(projectID int64) error {
+// Respects context cancellation and logs errors encountered during upsert.
+func (a *App) refreshProjectHistory(ctx context.Context, projectID int64) error {
 	repos, err := db.GetRepositoriesByProjectID(a.db, projectID)
 	if err != nil {
 		return fmt.Errorf("failed to load repos: %w", err)
@@ -144,28 +151,48 @@ func (a *App) refreshProjectHistory(projectID int64) error {
 	endDate := stats.GetTodayDate()
 
 	for _, repo := range repos {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
 		allEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, "")
-		if err == nil && allEntries != nil {
+		if err != nil {
+			log.Printf("refresh history query error (repo %s, all): %v", repo.Path, err)
+			continue
+		}
+		if allEntries != nil {
 			for _, e := range allEntries {
 				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-					_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
-						e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+					if err := db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
+						e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
+						log.Printf("refresh history upsert error (repo %s, %s): %v", repo.Path, e.Date, err)
+					}
 				}
 			}
 		}
 
 		if a.gitUser != "" {
 			myEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, a.gitUser)
-			if err == nil && myEntries != nil {
+			if err != nil {
+				log.Printf("refresh history query error (repo %s, mine): %v", repo.Path, err)
+				continue
+			}
+			if myEntries != nil {
 				for _, e := range myEntries {
 					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
-							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+						if err := db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+							e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
+							log.Printf("refresh history upsert error (repo %s, %s, mine): %v", repo.Path, e.Date, err)
+						}
 					}
 				}
 			}
 		}
-		_ = db.UpdateRepositoryLastScanned(a.db, repo.ID)
+		if err := db.UpdateRepositoryLastScanned(a.db, repo.ID); err != nil {
+			log.Printf("refresh history update last_scanned error (repo %d): %v", repo.ID, err)
+		}
 	}
 	return nil
 }

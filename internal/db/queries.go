@@ -230,13 +230,31 @@ func SyncProjectTx(tx *sql.Tx, name, rootPath string, levelOverride int, isAutoG
 // CleanupStaleDataTx removes repositories not in scannedPaths (along with their
 // stats and meta), then deletes projects that have no repos, notes, or todos.
 // User-created notes and todos are always preserved.
+// When scannedPaths is empty, only orphaned project cleanup is performed
+// (empty scan is treated as a no-op for repo-level deletions to avoid
+// accidental data loss when scan roots are temporarily unavailable).
 func CleanupStaleDataTx(tx *sql.Tx, scannedPaths []string) error {
+	// Always clean up orphaned projects, even when scannedPaths is empty.
+	// Projects with no repos AND no notes AND no todos are safe to delete.
+	if _, err := tx.Exec(`
+		DELETE FROM projects WHERE
+			id NOT IN (SELECT DISTINCT project_id FROM repositories WHERE project_id IS NOT NULL)
+			AND id NOT IN (SELECT DISTINCT project_id FROM project_notes)
+			AND id NOT IN (SELECT DISTINCT project_id FROM project_todos)
+	`); err != nil {
+		return fmt.Errorf("failed to cleanup orphaned projects: %w", err)
+	}
+
 	if len(scannedPaths) == 0 {
 		return nil
 	}
 
-	// Create a temporary table to hold scanned paths (avoids SQL parameter limits)
-	if _, err := tx.Exec("CREATE TEMP TABLE IF NOT EXISTS _scanned_paths (path TEXT NOT NULL UNIQUE)"); err != nil {
+	// Recreate temp table to guarantee no stale data from a previous transaction
+	// on the same connection (temp tables are connection-scoped in SQLite).
+	if _, err := tx.Exec("DROP TABLE IF EXISTS _scanned_paths"); err != nil {
+		return fmt.Errorf("failed to drop temp table: %w", err)
+	}
+	if _, err := tx.Exec("CREATE TEMP TABLE _scanned_paths (path TEXT NOT NULL UNIQUE)"); err != nil {
 		return fmt.Errorf("failed to create temp table: %w", err)
 	}
 	defer func() { _, _ = tx.Exec("DROP TABLE IF EXISTS _scanned_paths") }() //nolint:errcheck
@@ -310,6 +328,18 @@ func GetStarredProjects(db *sql.DB) ([]Project, error) {
 }
 
 // SearchProjects returns projects whose name or root_path matches the query.
+// escapeLike escapes LIKE wildcards (% _ and the escape character itself)
+// using backslash as the escape character.
+func escapeLike(s string) string {
+	s = strings.ReplaceAll(s, "\\", "\\\\")
+	s = strings.ReplaceAll(s, "%", "\\%")
+	s = strings.ReplaceAll(s, "_", "\\_")
+	return s
+}
+
+// searchProjectsLimit caps the number of results returned by project search.
+const searchProjectsLimit = 50
+
 func SearchProjects(db *sql.DB, query string) ([]Project, error) {
 	q := strings.TrimSpace(query)
 	if q == "" {
@@ -318,10 +348,10 @@ func SearchProjects(db *sql.DB, query string) ([]Project, error) {
 	if len(q) > searchMaxQuery {
 		q = q[:searchMaxQuery]
 	}
-	like := "%" + q + "%"
+	like := "%" + escapeLike(q) + "%"
 	rows, err := db.Query(
-		"SELECT id, name, root_path, level_override, is_auto_grouped, is_starred, created_at FROM projects WHERE name LIKE ? OR root_path LIKE ? ORDER BY name",
-		like, like,
+		"SELECT id, name, root_path, level_override, is_auto_grouped, is_starred, created_at FROM projects WHERE name LIKE ? ESCAPE '\\' OR root_path LIKE ? ESCAPE '\\' ORDER BY name LIMIT ?",
+		like, like, searchProjectsLimit,
 	)
 	if err != nil {
 		return nil, err

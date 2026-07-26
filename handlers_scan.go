@@ -86,6 +86,12 @@ func (a *App) GetScanStatus() *ScanStatus {
 // Uses a merge strategy: existing projects/repos are preserved (including
 // their notes, todos, and starred status). Only truly orphaned data is removed.
 func (a *App) runFullScan(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("panic in full scan: %v", r)
+		}
+	}()
+
 	depthStr, _ := db.GetConfig(a.db, "scan_depth")
 	maxDepth, _ := strconv.Atoi(depthStr)
 	if maxDepth <= 0 || maxDepth > 10 {
@@ -194,7 +200,7 @@ func (a *App) ensureHistoryBackfilled() {
 	a.scanMu.Lock()
 	a.backfilling = true
 	ctx, cancel := context.WithTimeout(context.Background(), backfillTimeout)
-	a.scanCancel = cancel
+	a.backfillCancel = cancel
 	a.scanMu.Unlock()
 
 	// Ensure cancel is always called to release context resources
@@ -202,7 +208,7 @@ func (a *App) ensureHistoryBackfilled() {
 		cancel()
 		a.scanMu.Lock()
 		a.backfilling = false
-		a.scanCancel = nil
+		a.backfillCancel = nil
 		a.scanMu.Unlock()
 	}()
 
