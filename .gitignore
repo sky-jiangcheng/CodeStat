@@ -22,3 +22,7 @@ git-dashboard
 # Node
 web/node_modules/
 web/dist/
+
+# Generated icon assets (regenerated from build/icon.svg by scripts/generate-icons.mjs)
+build/icons/
+build/appicon.png
