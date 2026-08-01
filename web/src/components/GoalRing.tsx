@@ -7,9 +7,6 @@ interface Props {
   sublabel?: string
 }
 
-// GoalRing renders a circular progress indicator toward a daily code-line goal.
-// It is the visual anchor of the dashboard hero, making "did I hit my goal
-// today?" the first thing the user sees.
 export default function GoalRing({ value, goal, size = 96, stroke = 9, label, sublabel }: Props) {
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
@@ -18,7 +15,7 @@ export default function GoalRing({ value, goal, size = 96, stroke = 9, label, su
   const pct = Math.round(ratio * 100)
   const reached = value >= goal && goal > 0
 
-  const color = reached ? 'var(--accent)' : ratio >= 0.5 ? 'var(--accent-light)' : 'var(--warning)'
+  const color = reached ? '#10b981' : ratio >= 0.5 ? '#4f46e5' : '#f59e0b'
 
   return (
     <div className="goal-ring" style={{ width: size, height: size }}>
@@ -28,7 +25,7 @@ export default function GoalRing({ value, goal, size = 96, stroke = 9, label, su
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="var(--bg-tertiary)"
+          stroke="#e5e7eb"
           strokeWidth={stroke}
         />
         <circle
