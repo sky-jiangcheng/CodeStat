@@ -1,8 +1,17 @@
 import { Line } from 'react-chartjs-2'
-import { Line as ChartLine } from 'chart.js'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Tooltip,
+  Legend,
+  Title,
+} from 'chart.js'
 import { useEffect, useState } from 'react'
 
-ChartLine.register(ChartLine)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Title)
 
 export interface TrendDataset {
   label: string
@@ -43,7 +52,7 @@ function TrendChart({ labels, datasets }: Props) {
     }
     
     setLoading(false)
-  }
+  }, [labels])
 
   if (loading) {
     return <div className="chart-skeleton">加载中...</div>
@@ -70,7 +79,7 @@ function TrendChart({ labels, datasets }: Props) {
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top',
+        position: 'top' as const,
         labels: {
           color: '#666',
           font: { size: 12 }
@@ -115,7 +124,7 @@ function TrendChart({ labels, datasets }: Props) {
 
   return (
     <div className="chart-container" style={{ height: 200 }}>
-      <ChartLine
+      <Line
         data={data}
         options={options}
         className="chart-simple"
