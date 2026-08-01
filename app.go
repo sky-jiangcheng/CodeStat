@@ -63,7 +63,7 @@ func (a *App) Health() map[string]interface{} {
 	if err := a.db.Ping(); err != nil {
 		return map[string]interface{}{"status": "error", "message": "database unavailable"}
 	}
-	return map[string]interface{}{"status": "ok", "version": "1.5.0"}
+	return map[string]interface{}{"status": "ok", "version": "1.5.3"}
 }
 
 // refreshAllStatsWithCancel refreshes stats for all repos, respecting cancellation.
