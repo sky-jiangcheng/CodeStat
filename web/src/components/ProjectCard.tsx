@@ -15,15 +15,17 @@ interface Props {
 
 function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWorkday = true, onToggleStar, onRefreshHistory }: Props) {
   const [refreshing, setRefreshing] = useState(false)
-  const netAdded = project.my_added - project.my_deleted
+  const myAdded = project.my_added || 0
+  const myDeleted = project.my_deleted || 0
+  const netAdded = myAdded - myDeleted
   const to = date ? `/project/${project.id}?date=${date}` : `/project/${project.id}`
 
-  const contributionRatio = project.my_added + project.my_deleted > 0
-    ? Math.round((project.my_added / (project.my_added + project.my_deleted)) * 100)
+  const contributionRatio = (myAdded + myDeleted) > 0
+    ? Math.round((myAdded / (myAdded + myDeleted)) * 100)
     : 50
 
-  const goalPct = dailyGoal > 0 ? Math.min(Math.round((project.my_added / dailyGoal) * 100), 100) : 0
-  const reachedGoal = isWorkday && project.my_added > 0 && project.my_added >= dailyGoal
+  const goalPct = dailyGoal > 0 ? Math.min(Math.round((myAdded / dailyGoal) * 100), 100) : 0
+  const reachedGoal = isWorkday && myAdded > 0 && myAdded >= dailyGoal
 
   const handleStarClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -110,10 +112,10 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
 
       <div className="card-hero-num">
         <span className="card-hero-label">今日新增</span>
-        <span className={`card-hero-value ${project.my_added > 0 ? 'green' : ''}`}>+{project.my_added}</span>
+        <span className={`card-hero-value ${myAdded > 0 ? 'green' : ''}`}>+{myAdded}</span>
       </div>
 
-      {isWorkday && dailyGoal > 0 && project.my_added > 0 && (
+      {isWorkday && dailyGoal > 0 && myAdded > 0 && (
         <div className="card-goal-bar">
           <div className="card-goal-track">
             <div className="card-goal-fill" style={{ width: `${goalPct}%` }} />
@@ -125,19 +127,19 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
       <div className="card-grid">
         <div className="card-stat">
           <span className="stat-label">仓库</span>
-          <span className="stat-value">{project.repo_count}</span>
+          <span className="stat-value">{project.repo_count || 0}</span>
         </div>
         <div className="card-stat">
           <span className="stat-label">文件</span>
-          <span className="stat-value">{project.my_files}</span>
+          <span className="stat-value">{project.my_files || 0}</span>
         </div>
         <div className="card-stat">
           <span className="stat-label">新增</span>
-          <span className="stat-value green">+{project.my_added}</span>
+          <span className="stat-value green">+{myAdded}</span>
         </div>
         <div className="card-stat">
           <span className="stat-label">删除</span>
-          <span className="stat-value red">-{project.my_deleted}</span>
+          <span className="stat-value red">-{myDeleted}</span>
         </div>
       </div>
 
@@ -155,7 +157,7 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
       </div>
 
       <div className="card-footer">
-        {project.total_added > 0 && (
+        {(project.total_added || 0) > 0 && (
           <span className="stat-tag team">团队 +{project.total_added}</span>
         )}
       </div>

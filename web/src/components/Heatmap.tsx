@@ -10,7 +10,7 @@ interface Props {
 
 function getLevel(day: HeatmapDay | null): number {
   if (!day) return 0
-  const total = day.lines_added + day.lines_deleted
+  const total = (day.lines_added || 0) + (day.lines_deleted || 0)
   if (total === 0) return 0
   if (total < 100) return 1
   if (total < 300) return 2
@@ -61,10 +61,10 @@ export default function Heatmap({ onDayClick }: Props) {
 
   const grid = generateGrid(days)
   const stats = {
-    active: days.filter(d => d.lines_added + d.lines_deleted > 0).length,
-    commits: days.reduce((sum, d) => sum + d.commits, 0),
-    added: days.reduce((sum, d) => sum + d.lines_added, 0),
-    deleted: days.reduce((sum, d) => sum + d.lines_deleted, 0),
+    active: days.filter(d => (d.lines_added || 0) + (d.lines_deleted || 0) > 0).length,
+    commits: days.reduce((sum, d) => sum + (d.commits || 0), 0),
+    added: days.reduce((sum, d) => sum + (d.lines_added || 0), 0),
+    deleted: days.reduce((sum, d) => sum + (d.lines_deleted || 0), 0),
   }
 
   if (loading) {
