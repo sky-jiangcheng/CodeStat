@@ -63,6 +63,8 @@ func createTables(db *sql.DB) error {
 		root_path TEXT NOT NULL,
 		level_override INTEGER DEFAULT 0,
 		is_auto_grouped BOOLEAN DEFAULT 1,
+		collected BOOLEAN DEFAULT FALSE,
+		collected_at DATETIME,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 
@@ -173,12 +175,12 @@ func upgradeSchema(db *sql.DB) error {
 			"PRAGMA foreign_keys = OFF",
 			// 1. create new table with UNIQUE(root_path)
 			"CREATE TABLE IF NOT EXISTS projects_new (" +
-				"id INTEGER PRIMARY KEY AUTOINCREMENT," +
-				"name TEXT NOT NULL," +
-				"root_path TEXT NOT NULL UNIQUE," +
-				"level_override INTEGER DEFAULT 0," +
-				"is_auto_grouped BOOLEAN DEFAULT 1," +
-				"is_starred INTEGER DEFAULT 0," +
+				"id INTEGER PRIMARY KEY AUTOINCREMENT,"
+				"name TEXT NOT NULL,"
+				"root_path TEXT NOT NULL UNIQUE,"
+				"level_override INTEGER DEFAULT 0,"
+				"is_auto_grouped BOOLEAN DEFAULT 1,"
+				"is_starred INTEGER DEFAULT 0,"
 				"created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
 			// 2. copy data, keeping the lowest id when duplicates exist
 			"INSERT OR IGNORE INTO projects_new (id, name, root_path, level_override, is_auto_grouped, is_starred, created_at)" +
@@ -198,6 +200,17 @@ func upgradeSchema(db *sql.DB) error {
 			"CREATE INDEX IF NOT EXISTS idx_projects_starred ON projects(is_starred)",
 			// Restore FKs
 			"PRAGMA foreign_keys = ON",
+		}},
+		// v5: add collected flag to projects for controlled scan flow
+		{id: 5, sql: []string{
+			"ALTER TABLE projects ADD COLUMN collected BOOLEAN NOT NULL DEFAULT FALSE",
+			"ALTER TABLE projects ADD COLUMN collected_at DATETIME",
+			"CREATE INDEX IF NOT EXISTS idx_projects_collected ON projects(collected)",
+		}},
+		// v6: add indexes for performance
+		{id: 6, sql: []string{
+			"CREATE INDEX IF NOT EXISTS idx_projects_collected ON projects(collected)",
+			"CREATE INDEX IF NOT EXISTS idx_projects_collected_at ON projects(collected_at)",
 		}},
 	}
 

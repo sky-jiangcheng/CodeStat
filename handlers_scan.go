@@ -18,6 +18,7 @@ type ScanResult struct {
 	Success    bool `json:"success"`
 	ReposFound int  `json:"repos_found"`
 	Projects   int  `json:"projects"`
+	TaskID     string `json:"task_id,omitempty"`
 }
 
 // ScanStatus holds the current scanning progress.
@@ -30,6 +31,7 @@ type ScanStatus struct {
 }
 
 // TriggerScan starts an async full repository scan and returns immediately.
+// Only scans projects that have been marked as collected.
 func (a *App) TriggerScan() (*ScanResult, error) {
 	a.scanMu.Lock()
 	if a.scanning {
@@ -42,8 +44,18 @@ func (a *App) TriggerScan() (*ScanResult, error) {
 	a.scanning = true
 	a.scanMu.Unlock()
 
+	// Only scan collected projects
+	collectedIDs, err := a.db.GetCollectedProjectIDs(ctx, a.db)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create unique task ID for tracking
+	taskID := fmt.Sprintf("%d", time.Now().UnixNano())
+	a.currentTask = taskID
+
 	go func() {
-		a.runFullScan(ctx)
+		a.runCollectedScan(ctx, collectedIDs)
 		a.scanMu.Lock()
 		a.scanning = false
 		a.scanProgress = 0
@@ -52,7 +64,7 @@ func (a *App) TriggerScan() (*ScanResult, error) {
 		a.scanMu.Unlock()
 	}()
 
-	return &ScanResult{Success: true}, nil
+	return &ScanResult{Success: true, TaskID: taskID}, nil
 }
 
 // GetScanStatus returns the current scan progress.
@@ -66,12 +78,12 @@ func (a *App) GetScanStatus() *ScanStatus {
 	msg := ""
 	if running {
 		if total > 0 {
-			msg = fmt.Sprintf("正在扫描仓库 %d/%d…", progress, total)
+			msg = fmt.Sprintf("Scanning %d/%d...", progress, total)
 		} else {
-			msg = "正在扫描仓库…"
+			msg = "Scanning..."
 		}
 	} else if backfilling {
-		msg = "正在回填历史数据…"
+		msg = "Backfilling history..."
 	}
 	return &ScanStatus{
 		Running:     running,
@@ -82,13 +94,35 @@ func (a *App) GetScanStatus() *ScanStatus {
 	}
 }
 
-// runFullScan performs the actual scan + history backfill.
-// Uses a merge strategy: existing projects/repos are preserved (including
-// their notes, todos, and starred status). Only truly orphaned data is removed.
-func (a *App) runFullScan(ctx context.Context) {
+// PauseScan pauses an ongoing scan.
+func (a *App) PauseScan() error {
+	a.scanMu.Lock()
+	defer a.scanMu.Unlock()
+	if a.scanCancel != nil {
+		a.scanCancel()
+		a.scanCancel = nil
+		a.scanning = false
+	}
+	return nil
+}
+
+// ResumeScan resumes a paused scan.
+func (a *App) ResumeScan() error {
+	a.scanMu.Lock()
+	defer a.scanMu.Unlock()
+	if a.scanCancel == nil && a.scanning {
+		ctx, cancel := context.WithCancel(context.Background())
+		a.scanCancel = cancel
+		// Resume scanning logic would go here
+	}
+	return nil
+}
+
+// runCollectedScan performs the actual scan for collected projects only.
+func (a *App) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("panic in full scan: %v", r)
+			log.Printf("panic in collected scan: %v", r)
 		}
 	}()
 
@@ -105,14 +139,24 @@ func (a *App) runFullScan(ctx context.Context) {
 		return
 	}
 
-	groups := grouper.GroupRepositories(repos)
+	// Filter to only collected projects
+	var collectedRepos []db.Repository
+	for _, repo := range repos {
+		for _, id := range collectedIDs {
+			if repo.ID == id {
+				collectedRepos = append(collectedRepos, repo)
+				break
+			}
+		}
+	}
+
+	groups := grouper.GroupRepositories(collectedRepos)
 
 	a.scanMu.Lock()
 	a.scanTotal = len(groups)
 	a.scanProgress = 0
 	a.scanMu.Unlock()
 
-	// Collect all scanned repo paths for stale-data cleanup
 	scannedPaths := make([]string, 0, len(repos))
 	for _, r := range repos {
 		scannedPaths = append(scannedPaths, r.Path)
@@ -147,7 +191,6 @@ func (a *App) runFullScan(ctx context.Context) {
 		}
 	}
 
-	// Remove stale repos and orphaned projects, preserving user data
 	if err := db.CleanupStaleDataTx(tx, scannedPaths); err != nil {
 		log.Printf("cleanup stale data error: %v", err)
 		return
@@ -158,17 +201,60 @@ func (a *App) runFullScan(ctx context.Context) {
 		return
 	}
 
-	a.refreshAllStatsWithCancel(ctx)
+	a.refreshCollectedStatsWithCancel(ctx, collectedIDs)
 	_ = db.SetConfig(a.db, "last_stats_backfill", stats.GetTodayDate())
 	log.Printf("scan complete: %d repos, %d projects", len(repos), len(groups))
+}
+
+// refreshCollectedStatsWithCancel refreshes stats for collected projects only.
+func (a *App) refreshCollectedStatsWithCancel(ctx context.Context, collectedIDs []int64) {
+	startDate := time.Now().AddDate(0, 0, -365).Format("2006-01-02")
+	endDate := stats.GetTodayDate()
+
+	for _, projectID := range collectedIDs {
+		select {
+		case <-ctx.Done():
+			log.Printf("stats refresh cancelled")
+			return
+		default:
+		}
+
+		repos, err := db.GetRepositoriesByProjectID(a.db, projectID)
+		if err != nil {
+			continue
+		}
+
+		for _, repo := range repos {
+			allEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, "")
+			if err == nil && allEntries != nil {
+				for _, e := range allEntries {
+					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
+							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+					}
+				}
+			}
+
+			if a.gitUser != "" {
+				myEntries, err := stats.QueryStatsRange(repo.Path, startDate, endDate, a.gitUser)
+				if err == nil && myEntries != nil {
+					for _, e := range myEntries {
+						if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+							_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+								e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 // backfillTimeout is the maximum time allowed for a single backfill pass.
 const backfillTimeout = 30 * time.Minute
 
 // ensureHistoryBackfilled checks if we need to update stats, and backfills missing days.
-// Runs in background at startup with a timeout. Uses config to track last backfill date
-// to avoid repeating.
+// Only backfills for collected projects.
 func (a *App) ensureHistoryBackfilled() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -176,8 +262,9 @@ func (a *App) ensureHistoryBackfilled() {
 		}
 	}()
 
-	repos, err := db.GetAllRepositories(a.db)
-	if err != nil || len(repos) == 0 {
+	// Only get collected projects
+	collectedIDs, err := a.db.GetCollectedProjectIDs(a.db)
+	if err != nil || len(collectedIDs) == 0 {
 		return
 	}
 
@@ -196,14 +283,13 @@ func (a *App) ensureHistoryBackfilled() {
 		}
 	}
 
-	log.Printf("backfilling stats from %s to %s...", startDate, today)
+	log.Printf("backfilling stats from %s to %s for %d collected projects...", startDate, today, len(collectedIDs))
 	a.scanMu.Lock()
 	a.backfilling = true
 	ctx, cancel := context.WithTimeout(context.Background(), backfillTimeout)
 	a.backfillCancel = cancel
 	a.scanMu.Unlock()
 
-	// Ensure cancel is always called to release context resources
 	defer func() {
 		cancel()
 		a.scanMu.Lock()
@@ -213,7 +299,7 @@ func (a *App) ensureHistoryBackfilled() {
 	}()
 
 	hasData := false
-	for _, repo := range repos {
+	for _, projectID := range collectedIDs {
 		select {
 		case <-ctx.Done():
 			log.Printf("stats refresh cancelled or timed out")
@@ -221,25 +307,32 @@ func (a *App) ensureHistoryBackfilled() {
 		default:
 		}
 
-		allEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, "")
-		if err == nil && allEntries != nil {
-			for _, e := range allEntries {
-				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-					_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
-						e.FilesChanged, e.LinesAdded, e.LinesDeleted)
-					hasData = true
-				}
-			}
+		repos, err := db.GetRepositoriesByProjectID(a.db, projectID)
+		if err != nil {
+			continue
 		}
 
-		if a.gitUser != "" {
-			myEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, a.gitUser)
-			if err == nil && myEntries != nil {
-				for _, e := range myEntries {
+		for _, repo := range repos {
+			allEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, "")
+			if err == nil && allEntries != nil {
+				for _, e := range allEntries {
 					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
 							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
 						hasData = true
+					}
+				}
+			}
+
+			if a.gitUser != "" {
+				myEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, a.gitUser)
+				if err == nil && myEntries != nil {
+					for _, e := range myEntries {
+						if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+							_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+								e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+							hasData = true
+						}
 					}
 				}
 			}

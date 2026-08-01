@@ -25,6 +25,7 @@ type App struct {
 	backfillCancel  context.CancelFunc
 	scanProgress    int
 	scanTotal       int
+	currentTask     string // tracks the current scan task ID
 }
 
 // NewApp creates a new App instance with dependencies injected.
@@ -38,6 +39,7 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Only backfill for collected projects, not all projects
 	go a.ensureHistoryBackfilled()
 }
 
