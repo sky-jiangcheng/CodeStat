@@ -12,6 +12,11 @@ import (
 	"gitboard/internal/stats"
 )
 
+// version is the application version. Overridable at build time via:
+//   wails build -ldflags "-X main.version=1.5.3"
+// Kept in sync with wails.json -> info.productVersion by scripts/bump-version.sh.
+var version = "1.5.3"
+
 // App is the main application struct whose public methods are exposed to the
 // frontend via Wails Bind. The ctx is set during OnStartup.
 type App struct {
@@ -63,7 +68,7 @@ func (a *App) Health() map[string]interface{} {
 	if err := a.db.Ping(); err != nil {
 		return map[string]interface{}{"status": "error", "message": "database unavailable"}
 	}
-	return map[string]interface{}{"status": "ok", "version": "1.5.3"}
+	return map[string]interface{}{"status": "ok", "version": version}
 }
 
 // refreshAllStatsWithCancel refreshes stats for all repos, respecting cancellation.
