@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"gitboard/internal/db"
@@ -245,8 +246,15 @@ func (a *App) refreshCollectedStatsWithCancel(ctx context.Context, collectedIDs 
 // backfillTimeout is the maximum time allowed for a single backfill pass.
 const backfillTimeout = 30 * time.Minute
 
+// maxInitialBackfillDays limits first-run backfill to avoid long startup delays.
+const maxInitialBackfillDays = 90
+
+// maxConcurrentQueries limits simultaneous git log queries to avoid I/O storms.
+const maxConcurrentQueries = 2
+
 // ensureHistoryBackfilled checks if we need to update stats, and backfills missing days.
-// Only backfills for collected projects.
+// Only backfills for collected projects. Limits initial backfill to 90 days and
+// uses a semaphore to bound concurrent git operations.
 func (a *App) ensureHistoryBackfilled() {
 	defer func() {
 		if r := recover(); r != nil {
@@ -254,7 +262,6 @@ func (a *App) ensureHistoryBackfilled() {
 		}
 	}()
 
-	// Only get collected projects
 	collectedIDs, err := db.GetCollectedProjectIDs(context.Background(), a.db)
 	if err != nil || len(collectedIDs) == 0 {
 		return
@@ -267,7 +274,8 @@ func (a *App) ensureHistoryBackfilled() {
 	startDate := today
 
 	if lastBackfill.IsZero() {
-		startDate = time.Now().AddDate(0, 0, -365).Format("2006-01-02")
+		startDate = time.Now().AddDate(0, 0, -maxInitialBackfillDays).Format("2006-01-02")
+		log.Printf("initial backfill limited to %d days: %s to %s", maxInitialBackfillDays, startDate, today)
 	} else {
 		startDate = lastBackfill.AddDate(0, 0, 1).Format("2006-01-02")
 		if startDate > today {
@@ -290,7 +298,11 @@ func (a *App) ensureHistoryBackfilled() {
 		a.scanMu.Unlock()
 	}()
 
+	var wg sync.WaitGroup
+	var mu sync.Mutex
 	hasData := false
+	sem := make(chan struct{}, maxConcurrentQueries)
+
 	for _, projectID := range collectedIDs {
 		select {
 		case <-ctx.Done():
@@ -305,31 +317,44 @@ func (a *App) ensureHistoryBackfilled() {
 		}
 
 		for _, repo := range repos {
-			allEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, "")
-			if err == nil && allEntries != nil {
-				for _, e := range allEntries {
-					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, "all",
-							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
-						hasData = true
-					}
-				}
-			}
+			wg.Add(1)
+			sem <- struct{}{}
+			go func(repoPath string, repoID int64) {
+				defer wg.Done()
+				defer func() { <-sem }()
 
-			if a.gitUser != "" {
-				myEntries, err := stats.QueryStatsRange(repo.Path, startDate, today, a.gitUser)
-				if err == nil && myEntries != nil {
-					for _, e := range myEntries {
+				allEntries, err := stats.QueryStatsRange(repoPath, startDate, today, "")
+				if err == nil && allEntries != nil {
+					for _, e := range allEntries {
 						if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-							_ = db.UpsertDailyStat(a.db, repo.ID, e.Date, a.gitUser,
+							_ = db.UpsertDailyStat(a.db, repoID, e.Date, "all",
 								e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+							mu.Lock()
 							hasData = true
+							mu.Unlock()
 						}
 					}
 				}
-			}
+
+				if a.gitUser != "" {
+					myEntries, err := stats.QueryStatsRange(repoPath, startDate, today, a.gitUser)
+					if err == nil && myEntries != nil {
+						for _, e := range myEntries {
+							if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+								_ = db.UpsertDailyStat(a.db, repoID, e.Date, a.gitUser,
+									e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+								mu.Lock()
+								hasData = true
+								mu.Unlock()
+							}
+						}
+					}
+				}
+			}(repo.Path, repo.ID)
 		}
 	}
+
+	wg.Wait()
 
 	_ = db.SetConfig(a.db, "last_stats_backfill", today)
 	log.Printf("stats backfill %s, has data: %v", today, hasData)

@@ -31,6 +31,11 @@ type App struct {
 	scanProgress    int
 	scanTotal       int
 	currentTask     string // tracks the current scan task ID
+
+	// Status bar cache to avoid repeated git log queries on every render
+	statusCacheMu   sync.Mutex
+	statusCache      *StatusBarData
+	statusCacheTime  time.Time
 }
 
 // NewApp creates a new App instance with dependencies injected.
@@ -44,8 +49,11 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Only backfill for collected projects, not all projects
-	go a.ensureHistoryBackfilled()
+	// Delay history backfill by 30 seconds to avoid competing with frontend load
+	go func() {
+		time.Sleep(30 * time.Second)
+		a.ensureHistoryBackfilled()
+	}()
 }
 
 // shutdown is called when the application exits.
