@@ -45,7 +45,7 @@ func (a *App) TriggerScan() (*ScanResult, error) {
 	a.scanMu.Unlock()
 
 	// Only scan collected projects
-	collectedIDs, err := a.db.GetCollectedProjectIDs(ctx, a.db)
+	collectedIDs, err := db.GetCollectedProjectIDs(ctx, a.db)
 	if err != nil {
 		return nil, err
 	}
@@ -111,7 +111,7 @@ func (a *App) ResumeScan() error {
 	a.scanMu.Lock()
 	defer a.scanMu.Unlock()
 	if a.scanCancel == nil && a.scanning {
-		ctx, cancel := context.WithCancel(context.Background())
+		_, cancel := context.WithCancel(context.Background())
 		a.scanCancel = cancel
 		// Resume scanning logic would go here
 	}
@@ -139,18 +139,10 @@ func (a *App) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 		return
 	}
 
-	// Filter to only collected projects
-	var collectedRepos []db.Repository
-	for _, repo := range repos {
-		for _, id := range collectedIDs {
-			if repo.ID == id {
-				collectedRepos = append(collectedRepos, repo)
-				break
-			}
-		}
-	}
-
-	groups := grouper.GroupRepositories(collectedRepos)
+	// Group discovered repositories into projects. Repositories returned by the
+	// scanner are filesystem paths without a DB id, so they are all grouped and
+	// then synced; collectedIDs is used below to refresh stats only for those.
+	groups := grouper.GroupRepositories(repos)
 
 	a.scanMu.Lock()
 	a.scanTotal = len(groups)
@@ -263,7 +255,7 @@ func (a *App) ensureHistoryBackfilled() {
 	}()
 
 	// Only get collected projects
-	collectedIDs, err := a.db.GetCollectedProjectIDs(a.db)
+	collectedIDs, err := db.GetCollectedProjectIDs(context.Background(), a.db)
 	if err != nil || len(collectedIDs) == 0 {
 		return
 	}

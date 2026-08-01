@@ -175,12 +175,12 @@ func upgradeSchema(db *sql.DB) error {
 			"PRAGMA foreign_keys = OFF",
 			// 1. create new table with UNIQUE(root_path)
 			"CREATE TABLE IF NOT EXISTS projects_new (" +
-				"id INTEGER PRIMARY KEY AUTOINCREMENT,"
-				"name TEXT NOT NULL,"
-				"root_path TEXT NOT NULL UNIQUE,"
-				"level_override INTEGER DEFAULT 0,"
-				"is_auto_grouped BOOLEAN DEFAULT 1,"
-				"is_starred INTEGER DEFAULT 0,"
+				"id INTEGER PRIMARY KEY AUTOINCREMENT," +
+				"name TEXT NOT NULL," +
+				"root_path TEXT NOT NULL UNIQUE," +
+				"level_override INTEGER DEFAULT 0," +
+				"is_auto_grouped BOOLEAN DEFAULT 1," +
+				"is_starred INTEGER DEFAULT 0," +
 				"created_at DATETIME DEFAULT CURRENT_TIMESTAMP)",
 			// 2. copy data, keeping the lowest id when duplicates exist
 			"INSERT OR IGNORE INTO projects_new (id, name, root_path, level_override, is_auto_grouped, is_starred, created_at)" +
