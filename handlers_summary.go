@@ -84,8 +84,20 @@ type StatusBarData struct {
 	LastCommitMsg    string `json:"last_commit_msg"`
 }
 
-// GetStatusBar returns current status bar information.
+// statusCacheTTL is how long the status bar cache lasts before refreshing.
+const statusCacheTTL = 30 * time.Second
+
+// GetStatusBar returns current status bar information with 30-second caching
+// to avoid running git log on every UI render.
 func (a *App) GetStatusBar() *StatusBarData {
+	a.statusCacheMu.Lock()
+	defer a.statusCacheMu.Unlock()
+
+	now := time.Now()
+	if a.statusCache != nil && now.Sub(a.statusCacheTime) < statusCacheTTL {
+		return a.statusCache
+	}
+
 	repos, _ := db.GetAllRepositories(a.db)
 	repoPaths := make([]string, 0, len(repos))
 	for _, r := range repos {
@@ -93,7 +105,7 @@ func (a *App) GetStatusBar() *StatusBarData {
 	}
 
 	data := &StatusBarData{
-		CurrentTime: time.Now().Format("2006-01-02 15:04:05"),
+		CurrentTime: now.Format("2006-01-02 15:04:05"),
 	}
 
 	recent, err := stats.GetRecentCommit(repoPaths, a.gitUser)
@@ -104,6 +116,8 @@ func (a *App) GetStatusBar() *StatusBarData {
 		data.LastCommitMsg = recent.Message
 	}
 
+	a.statusCache = data
+	a.statusCacheTime = now
 	return data
 }
 

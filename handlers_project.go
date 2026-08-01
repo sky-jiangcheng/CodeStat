@@ -25,6 +25,7 @@ type ProjectResponse struct {
 }
 
 // GetProjects returns enriched project summaries, optionally filtered by date.
+// Only triggers on-demand stats refresh for today/yesterday to avoid slow startup.
 func (a *App) GetProjects(date string, starredOnly bool) []ProjectResponse {
 	if date == "" {
 		date = stats.GetYesterdayDate()
@@ -53,10 +54,15 @@ func (a *App) GetProjects(date string, starredOnly bool) []ProjectResponse {
 	}
 	isWorkday := stats.IsWorkday(date)
 
+	// Only auto-refresh for today or yesterday to avoid triggering git scans on historical dates
+	today := stats.GetTodayDate()
+	yesterday := stats.GetYesterdayDate()
+	shouldRefresh := (date == today || date == yesterday)
+
 	var result []ProjectResponse
 	for _, p := range projects {
 		statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
-		if len(statsList) == 0 {
+		if len(statsList) == 0 && shouldRefresh {
 			repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
 			if len(repos) > 0 {
 				a.refreshProjectStats(p.ID, date)
