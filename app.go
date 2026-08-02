@@ -49,11 +49,6 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
-	// Delay history backfill by 30 seconds to avoid competing with frontend load
-	go func() {
-		time.Sleep(30 * time.Second)
-		a.ensureHistoryBackfilled()
-	}()
 }
 
 // shutdown is called when the application exits.

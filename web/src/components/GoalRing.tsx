@@ -7,7 +7,7 @@ interface Props {
   sublabel?: string
 }
 
-export default function GoalRing({ value, goal, size = 96, stroke = 9, label, sublabel }: Props) {
+export default function GoalRing({ value, goal, size = 80, stroke = 7, label, sublabel }: Props) {
   const v = value || 0
   const g = goal || 0
   const radius = (size - stroke) / 2
@@ -17,7 +17,7 @@ export default function GoalRing({ value, goal, size = 96, stroke = 9, label, su
   const pct = Math.round(ratio * 100)
   const reached = v >= g && g > 0
 
-  const color = reached ? '#10b981' : ratio >= 0.5 ? '#4f46e5' : '#f59e0b'
+  const color = reached ? '#1a1a1a' : ratio >= 0.5 ? '#3a3a3a' : '#888888'
 
   return (
     <div className="goal-ring" style={{ width: size, height: size }}>
@@ -27,7 +27,7 @@ export default function GoalRing({ value, goal, size = 96, stroke = 9, label, su
           cy={size / 2}
           r={radius}
           fill="none"
-          stroke="#e5e7eb"
+          stroke="#e8e8e6"
           strokeWidth={stroke}
         />
         <circle
@@ -45,7 +45,7 @@ export default function GoalRing({ value, goal, size = 96, stroke = 9, label, su
         />
       </svg>
       <div className="goal-ring-center">
-        <span className="goal-ring-value">{pct}%</span>
+        <span className="goal-ring-value" style={{ fontSize: Math.round(size * 0.24) }}>{pct}%</span>
         {label && <span className="goal-ring-label">{label}</span>}
       </div>
       {sublabel && <span className="goal-ring-sub">{sublabel}</span>}
