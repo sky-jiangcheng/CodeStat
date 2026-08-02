@@ -38,7 +38,7 @@ function Dashboard() {
   const [confirmScan, setConfirmScan] = useState(false)
   const [todoCounts, setTodoCounts] = useState<TodoCount[]>([])
   const [noteCounts, setNoteCounts] = useState<NoteCount[]>([])
-  const [showStarredOnly, setShowStarredOnly] = useState(false)
+  const [showStarredOnly, setShowStarredOnly] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<SearchHit[] | null>(null)
   const [searchProjectsResults, setSearchProjectsResults] = useState<Project[] | null>(null)

@@ -303,7 +303,7 @@ func logMigrationError(id int, err error) {
 func insertDefaults(db *sql.DB) error {
 	defaults := map[string]string{
 		"daily_code_standard": "500",
-		"scan_depth":          "5",
+		"scan_depth":          "2",
 	}
 
 	for key, value := range defaults {
