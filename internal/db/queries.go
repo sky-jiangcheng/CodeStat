@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"strings"
+	"time"
 
 	_ "modernc.org/sqlite"
 )
@@ -195,6 +196,8 @@ func SearchProjects(db *sql.DB, query string) ([]Project, error) {
 }
 
 // ToggleProjectStar flips the starred flag of a project and returns the new value.
+// Also keeps the collected flag in sync: starring a project marks it collected so
+// that scan stats refresh and backfill will cover it.
 func ToggleProjectStar(db *sql.DB, projectID int64) (bool, error) {
 	var starred bool
 	err := db.QueryRow("SELECT is_starred FROM projects WHERE id = ?", projectID).Scan(&starred)
@@ -202,8 +205,18 @@ func ToggleProjectStar(db *sql.DB, projectID int64) (bool, error) {
 		return false, err
 	}
 	newStarred := !starred
-	if _, err := db.Exec("UPDATE projects SET is_starred = ? WHERE id = ?", newStarred, projectID); err != nil {
-		return false, err
+	if newStarred {
+		if _, err := db.Exec(
+			"UPDATE projects SET is_starred = 1, collected = 1, collected_at = ? WHERE id = ?",
+			time.Now().Format("2006-01-02 15:04:05"), projectID); err != nil {
+			return false, err
+		}
+	} else {
+		if _, err := db.Exec(
+			"UPDATE projects SET is_starred = 0, collected = 0 WHERE id = ?",
+			projectID); err != nil {
+			return false, err
+		}
 	}
 	return newStarred, nil
 }

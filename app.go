@@ -49,6 +49,10 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Kick off incremental history backfill asynchronously.
+	// ensureHistoryBackfilled is idempotent and returns quickly if nothing
+	// needs backfilling.
+	go a.ensureHistoryBackfilled()
 }
 
 // shutdown is called when the application exits.
