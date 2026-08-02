@@ -99,17 +99,22 @@ export default function Heatmap({ onDayClick }: Props) {
         </div>
       </div>
 
-      <div className="heatmap-grid-simple">
+      <div className="heatmap-grid-simple" role="grid" aria-label="提交热力图">
         {grid.map((week, wi) => (
-          <div key={wi} className="heatmap-week-simple">
-            {week.map((day, di) => (
-              <div
-                key={di}
-                className={`heatmap-cell-simple level-${getLevel(day)}`}
-                title={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : ''}
-                onClick={day && onDayClick ? () => onDayClick(day.date) : undefined}
-              />
-            ))}
+          <div key={wi} className="heatmap-week-simple" role="gridcolumn">
+            {week.map((day, di) => {
+              const clickable = day && onDayClick
+              return (
+                <div
+                  key={di}
+                  className={`heatmap-cell-simple level-${getLevel(day)}`}
+                  role={clickable ? 'button' : undefined}
+                  aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : '无数据'}
+                  title={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : ''}
+                  onClick={clickable ? () => onDayClick!(day!.date) : undefined}
+                />
+              )
+            })}
           </div>
         ))}
       </div>

@@ -234,9 +234,8 @@ function Dashboard() {
         if (showStarredOnly) return p.is_starred
         const hasActivity = p.my_added > 0 || p.my_deleted > 0 || p.my_files > 0
         const hasTeamActivity = p.total_added > 0 || p.total_deleted > 0
-        const hasRepos = p.repo_count > 0
         const isStarred = p.is_starred
-        return hasActivity || hasTeamActivity || hasRepos || isStarred
+        return hasActivity || hasTeamActivity || isStarred
       })
       .sort((a, b) => {
         switch (sortKey) {
