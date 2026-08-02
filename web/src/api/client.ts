@@ -441,8 +441,20 @@ export function getProjectOverview(projectId: number): Promise<ProjectOverview> 
   const empty: ProjectOverview = {
     readme_excerpt: '', tech_stack: [], languages: [], recent_commits: [], cached: false,
   }
-  if (isWails()) return wail<ProjectOverview>('GetProjectOverview', projectId).then(d => d ?? empty)
-  return http<ProjectOverview>(`/projects/${projectId}/overview`).then(d => d ?? empty)
+  // Backend may serialize nil slices as null; normalize so callers can safely
+  // treat every array field as an array.
+  const normalize = (d: ProjectOverview | null | undefined): ProjectOverview => {
+    if (!d) return empty
+    return {
+      readme_excerpt: d.readme_excerpt ?? '',
+      tech_stack: d.tech_stack ?? [],
+      languages: d.languages ?? [],
+      recent_commits: d.recent_commits ?? [],
+      cached: d.cached ?? false,
+    }
+  }
+  if (isWails()) return wail<ProjectOverview>('GetProjectOverview', projectId).then(normalize)
+  return http<ProjectOverview>(`/projects/${projectId}/overview`).then(normalize)
 }
 
 export function importClaudeMemory(): Promise<ImportResult> {
