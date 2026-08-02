@@ -29,7 +29,7 @@ function Settings() {
   const [saving, setSaving] = useState(false)
   const [newRoot, setNewRoot] = useState('')
   const [codeStandard, setCodeStandard] = useState('500')
-  const [scanDepth, setScanDepth] = useState('5')
+  const [scanDepth, setScanDepth] = useState('2')
   const [authorName, setAuthorName] = useState('')
   const [themeMode, setThemeMode] = useState<ThemeMode>('system')
   const [message, setMessage] = useState('')
@@ -49,7 +49,7 @@ function Settings() {
       .then((d) => {
         setData(d)
         setCodeStandard(d.config.daily_code_standard || '500')
-        setScanDepth(d.config.scan_depth || '5')
+        setScanDepth(d.config.scan_depth || '2')
         setAuthorName(d.config.git_author || '')
       })
       .finally(() => setLoading(false))
@@ -63,8 +63,8 @@ function Settings() {
       return
     }
     const depth = parseInt(scanDepth, 10)
-    if (isNaN(depth) || depth < 1 || depth > 10) {
-      showMessage('扫描深度应在 1-10 之间')
+    if (isNaN(depth) || depth < 1 || depth > 2) {
+      showMessage('扫描深度应在 1-2 之间')
       return
     }
     setSaving(true)
@@ -253,9 +253,9 @@ function Settings() {
               onChange={(e) => setScanDepth(e.target.value)}
               className="form-input"
               min={1}
-              max={10}
+              max={2}
             />
-            <span className="form-hint">范围: 1-10</span>
+            <span className="form-hint">范围: 1-2</span>
           </div>
           <button className="btn btn-primary" onClick={handleSaveConfig} disabled={saving}>
             保存配置

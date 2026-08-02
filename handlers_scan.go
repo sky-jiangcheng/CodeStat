@@ -129,8 +129,8 @@ func (a *App) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 
 	depthStr, _ := db.GetConfig(a.db, "scan_depth")
 	maxDepth, _ := strconv.Atoi(depthStr)
-	if maxDepth <= 0 || maxDepth > 10 {
-		maxDepth = 5
+	if maxDepth <= 0 || maxDepth > 2 {
+		maxDepth = 2
 	}
 
 	roots, _ := db.GetScanRoots(a.db)
