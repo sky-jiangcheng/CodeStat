@@ -8,12 +8,14 @@ interface Props {
 }
 
 export default function GoalRing({ value, goal, size = 96, stroke = 9, label, sublabel }: Props) {
+  const v = value || 0
+  const g = goal || 0
   const radius = (size - stroke) / 2
   const circumference = 2 * Math.PI * radius
-  const ratio = goal > 0 ? Math.min(value / goal, 1) : 0
+  const ratio = g > 0 ? Math.min(v / g, 1) : 0
   const offset = circumference * (1 - ratio)
   const pct = Math.round(ratio * 100)
-  const reached = value >= goal && goal > 0
+  const reached = v >= g && g > 0
 
   const color = reached ? '#10b981' : ratio >= 0.5 ? '#4f46e5' : '#f59e0b'
 

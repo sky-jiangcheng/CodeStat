@@ -16,106 +16,106 @@ const (
 
 // Project represents a row in the projects table.
 type Project struct {
-	ID            int64  `db:"id"`
-	Name          string `db:"name"`
-	RootPath      string `db:"root_path"`
-	LevelOverride int    `db:"level_override"`
-	IsAutoGrouped bool   `db:"is_auto_grouped"`
-	IsStarred     bool   `db:"is_starred"`
-	Collected     bool   `db:"collected"`
-	CollectedAt   string `db:"collected_at"`
-	CreatedAt     string `db:"created_at"`
+	ID            int64  `db:"id" json:"id"`
+	Name          string `db:"name" json:"name"`
+	RootPath      string `db:"root_path" json:"root_path"`
+	LevelOverride int    `db:"level_override" json:"level_override"`
+	IsAutoGrouped bool   `db:"is_auto_grouped" json:"is_auto_grouped"`
+	IsStarred     bool   `db:"is_starred" json:"is_starred"`
+	Collected     bool   `db:"collected" json:"collected"`
+	CollectedAt   string `db:"collected_at" json:"collected_at"`
+	CreatedAt     string `db:"created_at" json:"created_at"`
 }
 
 // Repository represents a row in the repositories table.
 type Repository struct {
-	ID            int64
-	Path          string
-	ProjectID     *int64
-	LastScannedAt *string
+	ID            int64  `json:"id"`
+	Path          string `json:"path"`
+	ProjectID     *int64 `json:"project_id"`
+	LastScannedAt *string `json:"last_scanned_at"`
 }
 
 // Todo represents a row in the project_todos table.
 type Todo struct {
-	ID        int64
-	ProjectID int64
-	Title     string
-	Completed bool
-	Priority  int
-	SortOrder int
-	CreatedAt string
-	UpdatedAt string
+	ID        int64  `json:"id"`
+	ProjectID int64  `json:"project_id"`
+	Title     string `json:"title"`
+	Completed bool   `json:"completed"`
+	Priority  int    `json:"priority"`
+	SortOrder int    `json:"sort_order"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // Note represents a row in the project_notes table.
 type Note struct {
-	ID        int64
-	ProjectID int64
-	Title     string
-	Content   string
-	Tags      string
-	Kind      string
-	Pinned    bool
-	Source    string
-	SortOrder int
-	CreatedAt string
-	UpdatedAt string
+	ID        int64  `json:"id"`
+	ProjectID int64  `json:"project_id"`
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	Tags      string `json:"tags"`
+	Kind      string `json:"kind"`
+	Pinned    bool   `json:"pinned"`
+	Source    string `json:"source"`
+	SortOrder int    `json:"sort_order"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // NoteWithProject is a note joined with its parent project.
 type NoteWithProject struct {
 	Note
-	ProjectName string
+	ProjectName string `json:"project_name"`
 }
 
 // TodoCount holds incomplete and total todo counts for a project.
 type TodoCount struct {
-	ProjectID int64
-	Count     int
-	Total     int
+	ProjectID int64 `json:"project_id"`
+	Count     int   `json:"count"`
+	Total     int   `json:"total"`
 }
 
 // NoteCount holds the note count for a project.
 type NoteCount struct {
-	ProjectID int64
-	Count     int
+	ProjectID int64 `json:"project_id"`
+	Count     int   `json:"count"`
 }
 
 // DailyStat represents a row in the daily_stats table.
 type DailyStat struct {
-	ID           int64
-	RepositoryID int64
-	StatDate     string
-	Author       string
-	FilesChanged int
-	LinesAdded   int
-	LinesDeleted int
+	ID           int64  `json:"id"`
+	RepositoryID int64  `json:"repository_id"`
+	StatDate     string `json:"stat_date"`
+	Author       string `json:"author"`
+	FilesChanged int    `json:"files_changed"`
+	LinesAdded   int    `json:"lines_added"`
+	LinesDeleted int    `json:"lines_deleted"`
 }
 
 // HeatmapDay holds aggregated stats for a single day.
 type HeatmapDay struct {
-	Date         string
-	LinesAdded   int
-	LinesDeleted int
-	Commits      int
+	Date         string `json:"date"`
+	LinesAdded   int    `json:"lines_added"`
+	LinesDeleted int    `json:"lines_deleted"`
+	Commits      int    `json:"commits"`
 }
 
 // SearchHit is a unified search result from notes and todos.
 type SearchHit struct {
-	Type      string
-	ID        int64
-	ProjectID int64
-	Title     string
-	Snippet   string
+	Type      string `json:"type"`
+	ID        int64  `json:"id"`
+	ProjectID int64  `json:"project_id"`
+	Title     string `json:"title"`
+	Snippet   string `json:"snippet"`
 }
 
 // RepoMeta represents a row in the repo_meta table.
 type RepoMeta struct {
-	RepositoryID  int64
-	TechStack     string
-	ReadmeExcerpt string
-	Languages     string
-	UpdatedAt     string
+	RepositoryID  int64  `json:"repository_id"`
+	TechStack     string `json:"tech_stack"`
+	ReadmeExcerpt string `json:"readme_excerpt"`
+	Languages     string `json:"languages"`
+	UpdatedAt     string `json:"updated_at"`
 }
 
 const projectColumns = "id, name, root_path, level_override, is_auto_grouped, is_starred, created_at"

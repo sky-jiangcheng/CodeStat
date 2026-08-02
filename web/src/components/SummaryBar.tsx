@@ -32,23 +32,23 @@ function SummaryBar({ summary, globalTodoCount }: Props) {
     <div className="summary-bar">
       <div className="summary-item">
         <span className="summary-label">仓库</span>
-        <span className="summary-value">{summary.repo_count}</span>
+        <span className="summary-value">{summary.repo_count || 0}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">团队新增</span>
-        <span className="summary-value green">+{summary.total_added}</span>
+        <span className="summary-value green">+{summary.total_added || 0}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">团队删除</span>
-        <span className="summary-value red">-{summary.total_deleted}</span>
+        <span className="summary-value red">-{summary.total_deleted || 0}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">个人新增</span>
-        <span className="summary-value green">{summary.my_added > 0 ? '+' : ''}{summary.my_added}</span>
+        <span className="summary-value green">{(summary.my_added || 0) > 0 ? '+' : ''}{summary.my_added || 0}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">个人文件</span>
-        <span className="summary-value">{summary.my_files}</span>
+        <span className="summary-value">{summary.my_files || 0}</span>
       </div>
       <div className="summary-item">
         <span className="summary-label">日期</span>

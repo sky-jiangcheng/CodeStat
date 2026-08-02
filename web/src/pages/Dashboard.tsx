@@ -229,18 +229,26 @@ function Dashboard() {
   }, [])
 
   const sorted = useMemo(() => {
-    const list = [...projects]
-    list.sort((a, b) => {
-      switch (sortKey) {
-        case 'name': return a.name.localeCompare(b.name)
-        case 'my_added': return b.my_added - a.my_added
-        case 'my_files': return b.my_files - a.my_files
-        case 'repo_count': return b.repo_count - a.repo_count
-        default: return 0
-      }
-    })
+    const list = projects
+      .filter(p => {
+        if (showStarredOnly) return p.is_starred
+        const hasActivity = p.my_added > 0 || p.my_deleted > 0 || p.my_files > 0
+        const hasTeamActivity = p.total_added > 0 || p.total_deleted > 0
+        const hasRepos = p.repo_count > 0
+        const isStarred = p.is_starred
+        return hasActivity || hasTeamActivity || hasRepos || isStarred
+      })
+      .sort((a, b) => {
+        switch (sortKey) {
+          case 'name': return a.name.localeCompare(b.name)
+          case 'my_added': return b.my_added - a.my_added
+          case 'my_files': return b.my_files - a.my_files
+          case 'repo_count': return b.repo_count - a.repo_count
+          default: return 0
+        }
+      })
     return list
-  }, [projects, sortKey])
+  }, [projects, sortKey, showStarredOnly])
 
   const starredProjects = useMemo(() => sorted.filter(p => p.is_starred), [sorted])
   const unstarredProjects = useMemo(() => sorted.filter(p => !p.is_starred), [sorted])
@@ -259,7 +267,7 @@ function Dashboard() {
 
   const globalTodoCount = useMemo(() => todoCounts.reduce((sum, c) => sum + c.count, 0), [todoCounts])
 
-  const myAdded = summary?.my_added ?? 0
+  const myAdded = summary?.my_added || 0
   const isWorkday = summary?.is_workday ?? false
 
   return (
@@ -282,8 +290,8 @@ function Dashboard() {
               </div>
               <div className="hero-sub">
                 个人新增 <strong className="green">+{myAdded}</strong> ·
-                文件 <strong>{summary?.my_files ?? 0}</strong> ·
-                涉及 <strong>{summary?.repo_count ?? 0}</strong> 个仓库
+                文件 <strong>{summary?.my_files || 0}</strong> ·
+                涉及 <strong>{summary?.repo_count || 0}</strong> 个仓库
               </div>
             </div>
           </div>
