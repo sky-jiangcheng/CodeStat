@@ -272,34 +272,6 @@ function Dashboard() {
   return (
     <div className="dashboard">
       <div className="dashboard-fixed">
-        <div className="hero-row">
-          <div className="hero-card">
-            <GoalRing
-              value={myAdded}
-              goal={isWorkday ? dailyGoal : 0}
-              label={isWorkday ? '今日目标' : '非工作日'}
-              sublabel={isWorkday ? `${myAdded} / ${dailyGoal} 行` : `${myAdded} 行`}
-            />
-            <div className="hero-text">
-              <div className="hero-eyebrow">{date} · {isWorkday ? '工作日' : '周末'}</div>
-              <div className="hero-title">
-                {isWorkday
-                  ? (myAdded >= dailyGoal ? '今日目标已达成 🎉' : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
-                  : '周末愉快，无达标要求'}
-              </div>
-              <div className="hero-sub">
-                个人新增 <strong className="green">+{myAdded}</strong> ·
-                文件 <strong>{summary?.my_files || 0}</strong> ·
-                涉及 <strong>{summary?.repo_count || 0}</strong> 个仓库
-              </div>
-            </div>
-          </div>
-
-          <SummaryBar summary={summary} globalTodoCount={globalTodoCount} />
-        </div>
-
-        <Heatmap onDayClick={setDate} />
-
         <div className="dashboard-controls">
           <DatePicker value={date} onChange={setDate} />
           <div className="dashboard-actions">
@@ -393,6 +365,34 @@ function Dashboard() {
       </div>
 
       <div className="dashboard-scroll">
+        <div className="hero-row">
+          <div className="hero-card">
+            <GoalRing
+              value={myAdded}
+              goal={isWorkday ? dailyGoal : 0}
+              label={isWorkday ? '今日目标' : '非工作日'}
+              sublabel={isWorkday ? `${myAdded} / ${dailyGoal} 行` : `${myAdded} 行`}
+            />
+            <div className="hero-text">
+              <div className="hero-eyebrow">{date} · {isWorkday ? '工作日' : '周末'}</div>
+              <div className="hero-title">
+                {isWorkday
+                  ? (myAdded >= dailyGoal ? '今日目标已达成 🎉' : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
+                  : '周末愉快，无达标要求'}
+              </div>
+              <div className="hero-sub">
+                个人新增 <strong className="green">+{myAdded}</strong> ·
+                文件 <strong>{summary?.my_files || 0}</strong> ·
+                涉及 <strong>{summary?.repo_count || 0}</strong> 个仓库
+              </div>
+            </div>
+          </div>
+
+          <SummaryBar summary={summary} globalTodoCount={globalTodoCount} />
+        </div>
+
+        <Heatmap onDayClick={setDate} />
+
         {loading ? (
           <div className="project-grid">
             {Array.from({ length: 6 }).map((_, i) => (

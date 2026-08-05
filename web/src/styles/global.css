@@ -262,6 +262,7 @@ body {
 
 .dashboard-fixed {
   flex-shrink: 0;
+  padding-bottom: 4px;
 }
 
 .dashboard-scroll {
@@ -275,15 +276,15 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
 .dashboard-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   flex-wrap: wrap;
   flex: 1;
   justify-content: flex-end;
@@ -296,11 +297,11 @@ body {
 }
 
 .search-input {
-  width: 180px;
-  padding: 7px 12px 7px 32px;
+  width: 140px;
+  padding: 6px 10px 6px 28px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   background: var(--bg-secondary);
   color: var(--text-primary);
   transition: all 0.15s;
@@ -310,7 +311,7 @@ body {
   outline: none;
   border-color: var(--accent-light);
   box-shadow: 0 0 0 2px var(--accent-soft);
-  width: 240px;
+  width: 200px;
 }
 
 .search-input::placeholder {
@@ -375,23 +376,23 @@ body {
 .sort-control {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
 }
 
 .sort-select {
-  padding: 7px 10px;
+  padding: 5px 8px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  font-size: 13px;
+  font-size: 12px;
   background: var(--bg-secondary);
   cursor: pointer;
   color: var(--text-primary);
   font-family: inherit;
   transition: border-color var(--transition-fast);
-  max-width: 140px;
+  max-width: 120px;
 }
 
 .filter-toggle {
@@ -404,11 +405,11 @@ body {
 }
 
 .filter-btn {
-  padding: 5px 14px;
+  padding: 4px 12px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -451,12 +452,14 @@ body {
 .date-picker {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
 .date-input {
-  width: 150px;
+  width: 130px;
+  padding: 5px 8px;
+  font-size: 12px;
 }
 
 /* --- Buttons --- */
@@ -464,11 +467,11 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -522,8 +525,8 @@ body {
 }
 
 .btn-sm {
-  padding: 5px 12px;
-  font-size: 12px;
+  padding: 4px 10px;
+  font-size: 11px;
   border-radius: var(--radius-sm);
 }
 
@@ -1594,8 +1597,8 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
-  padding: 14px 18px;
-  margin-bottom: 16px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
 }
 
 .heatmap-simple .heatmap-header {
@@ -1850,14 +1853,14 @@ body {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 12px 20px;
+  gap: 8px;
+  padding: 8px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   border-radius: var(--radius-lg);
-  font-size: 12px;
-  margin-top: 24px;
+  font-size: 11px;
+  margin-top: 12px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -2031,17 +2034,17 @@ body {
 /* --- Dashboard hero (daily goal) --- */
 .hero-row {
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) 1.4fr;
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: minmax(240px, 1fr) 1.4fr;
+  gap: 10px;
+  margin-bottom: 10px;
   align-items: stretch;
 }
 
 .hero-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
+  gap: 14px;
+  padding: 12px 16px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -2968,11 +2971,11 @@ body {
 /* --- Responsive --- */
 @media (max-width: 768px) {
   .main-content {
-    padding: 20px;
+    padding: 16px;
   }
 
   .navbar {
-    padding: 0 20px;
+    padding: 0 16px;
   }
 
   .project-grid {
@@ -2980,13 +2983,18 @@ body {
   }
 
   .summary-bar {
-    gap: 16px 20px;
-    padding: 20px;
+    gap: 12px 16px;
+    padding: 14px 16px;
   }
 
   .dashboard-controls {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .dashboard-actions {
+    justify-content: flex-start;
   }
 
   .project-layout {
@@ -3017,7 +3025,8 @@ body {
   }
 
   .hero-card {
-    gap: 16px;
+    gap: 12px;
+    padding: 10px 14px;
   }
 
   .knowledge-search-input {
@@ -3026,5 +3035,13 @@ body {
 
   .lang-row {
     grid-template-columns: 80px 1fr 36px;
+  }
+
+  .search-input {
+    width: 120px;
+  }
+
+  .search-input:focus {
+    width: 160px;
   }
 }
