@@ -15,7 +15,7 @@ import (
 // version is the application version. Overridable at build time via:
 //   wails build -ldflags "-X main.version=1.5.3"
 // Kept in sync with wails.json -> info.productVersion by scripts/bump-version.sh.
-var version = "1.5.4"
+var version = "1.6.1"
 
 // App is the main application struct whose public methods are exposed to the
 // frontend via Wails Bind. The ctx is set during OnStartup.
