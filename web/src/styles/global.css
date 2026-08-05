@@ -283,15 +283,20 @@ body {
 .dashboard-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .search-box {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .search-input {
-  width: 200px;
+  width: 180px;
   padding: 7px 12px 7px 32px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -305,7 +310,7 @@ body {
   outline: none;
   border-color: var(--accent-light);
   box-shadow: 0 0 0 2px var(--accent-soft);
-  width: 260px;
+  width: 240px;
 }
 
 .search-input::placeholder {
@@ -316,15 +321,14 @@ body {
   position: absolute;
   top: calc(100% + 4px);
   left: 0;
-  right: 0;
-  min-width: 320px;
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
   z-index: 100;
   max-height: 400px;
   overflow-y: auto;
+  min-width: min(480px, 90vw);
 }
 
 .search-loading,
@@ -374,10 +378,11 @@ body {
   gap: 6px;
   font-size: 13px;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .sort-select {
-  padding: 7px 12px;
+  padding: 7px 10px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   font-size: 13px;
@@ -386,6 +391,7 @@ body {
   color: var(--text-primary);
   font-family: inherit;
   transition: border-color var(--transition-fast);
+  max-width: 140px;
 }
 
 .filter-toggle {
@@ -445,7 +451,8 @@ body {
 .date-picker {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .date-input {
@@ -836,10 +843,22 @@ body {
   border-color: var(--border-default);
 }
 
+/* Minimal card — unstarred projects */
+.project-card-minimal {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.project-card-minimal:hover {
+  background: var(--bg-tertiary);
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
 .card-star {
-  position: absolute;
-  top: 10px;
-  right: 10px;
+  position: static;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -850,7 +869,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  z-index: 2;
+  flex-shrink: 0;
 }
 
 .card-star:hover {
@@ -864,9 +883,7 @@ body {
 }
 
 .card-refresh-btn {
-  position: absolute;
-  top: 10px;
-  right: 36px;
+  position: static;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -877,7 +894,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  z-index: 2;
+  flex-shrink: 0;
 }
 
 .card-refresh-btn:hover:not(:disabled) {
@@ -903,7 +920,8 @@ body {
 .card-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 12px;
   margin-bottom: 10px;
 }
 
@@ -914,6 +932,24 @@ body {
   text-overflow: ellipsis;
   white-space: nowrap;
   letter-spacing: -0.01em;
+  flex: 1;
+  min-width: 0;
+  margin-right: 0;
+}
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .card-badges {
@@ -921,6 +957,7 @@ body {
   gap: 6px;
   align-items: center;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .badge {
@@ -932,16 +969,19 @@ body {
   font-size: 10px;
   font-weight: 500;
   line-height: 1.4;
+  letter-spacing: 0.01em;
 }
 
 .badge-warning {
   background: var(--warning-soft);
   color: var(--warning);
+  border: 1px solid transparent;
 }
 
 .badge-info {
   background: var(--info-soft);
   color: var(--info);
+  border: 1px solid transparent;
 }
 
 .badge-todo {
@@ -959,6 +999,20 @@ body {
   border-radius: 20px;
   padding: 2px 9px;
   font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-goal {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.badge-warning[title],
+.badge-info[title] {
   font-weight: 600;
 }
 
@@ -1992,6 +2046,7 @@ body {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .hero-text {
@@ -2122,31 +2177,9 @@ body {
   white-space: nowrap;
 }
 
-.badge-goal {
-  background: var(--accent-soft);
-  color: var(--text-primary);
-  border-radius: 20px;
-  padding: 2px 9px;
-  font-size: 11px;
-  font-weight: 600;
-}
-
 .project-card.card-goal-reached {
   border-color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--accent-soft), var(--shadow-sm);
-}
-
-.project-card-minimal {
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-}
-
-.project-card-minimal:hover {
-  background: var(--bg-tertiary);
-  transform: none;
-  box-shadow: var(--shadow-sm);
 }
 
 .card-name-link {
