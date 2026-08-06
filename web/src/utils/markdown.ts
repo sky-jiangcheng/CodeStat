@@ -1,5 +1,25 @@
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
+import hljs from 'highlight.js'
+
+// Register highlight.js with marked for syntax-highlighted code blocks.
+// marked's `highlight` option receives the raw code and language tag; we let
+// hljs auto-detect when no language is specified.
+marked.use({
+  renderer: {
+    code({ text, lang }: { text: string; lang?: string }) {
+      const language = lang && hljs.getLanguage(lang) ? lang : ''
+      let highlighted: string
+      if (language) {
+        highlighted = hljs.highlight(text, { language }).value
+      } else {
+        highlighted = hljs.highlightAuto(text).value
+      }
+      const langLabel = language || 'code'
+      return `<pre><code class="hljs language-${langLabel}">${highlighted}</code></pre>`
+    },
+  },
+})
 
 // marked.parse is synchronous by default, but its type union includes a Promise
 // form. Pin the options so we always get a string, then sanitize for safe HTML.

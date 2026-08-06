@@ -1,0 +1,74 @@
+/* ============================================
+   Design Tokens - Claude-inspired minimal style
+   ============================================ */
+
+:root {
+  --bg-primary: #fafaf9;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f5f5f3;
+  --bg-hover: #f2f2f0;
+  --bg-active: #ebebe8;
+
+  --border-subtle: #ececea;
+  --border-default: #e4e3df;
+
+  --text-primary: #1a1a1a;
+  --text-secondary: #555555;
+  --text-tertiary: #888888;
+  --text-muted: #aaaaaa;
+
+  --accent: #1a1a1a;
+  --accent-light: #333333;
+  --accent-soft: #f0f0ee;
+  --danger: #8b4a4a;
+  --danger-soft: #f5ecec;
+  --warning: #8b6f3a;
+  --warning-soft: #f5efe6;
+  --info: #4a6b8b;
+  --info-soft: #eceef5;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.06);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+
+  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-mono: 'SF Mono', 'Menlo', 'Monaco', 'Consolas', monospace;
+
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.25s ease;
+}
+
+[data-theme="dark"] {
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #222222;
+  --bg-tertiary: #2a2a2a;
+  --bg-hover: #2e2e2e;
+  --bg-active: #353535;
+
+  --border-subtle: #333333;
+  --border-default: #3a3a3a;
+
+  --text-primary: #e8e8e8;
+  --text-secondary: #a0a0a0;
+  --text-tertiary: #707070;
+  --text-muted: #555555;
+
+  --accent: #e8e8e8;
+  --accent-light: #ffffff;
+  --accent-soft: #2a2a2a;
+  --danger: #d97373;
+  --danger-soft: #3a2a2a;
+  --warning: #d9b373;
+  --warning-soft: #3a332a;
+  --info: #7a9ab8;
+  --info-soft: #2a303a;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.3);
+}

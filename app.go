@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"gitbuddy/internal/db"
+	"gitbuddy/internal/gitwatch"
 	"gitbuddy/internal/stats"
 )
 
@@ -32,6 +33,10 @@ type App struct {
 	scanTotal       int
 	currentTask     string // tracks the current scan task ID
 
+	// gitwatch monitors tracked repos for new commits and refreshes stats
+	// automatically so the dashboard stays current without a manual rescan.
+	watcher         *gitwatch.Watcher
+
 	// Status bar cache to avoid repeated git log queries on every render
 	statusCacheMu   sync.Mutex
 	statusCache      *StatusBarData
@@ -49,10 +54,17 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Start background git monitoring: polls tracked repos every 5 minutes
+	// for new commits and refreshes today's stats incrementally.
+	a.watcher = gitwatch.New(a.db, a.gitUser, 5*time.Minute)
+	a.watcher.Start(ctx)
 }
 
 // shutdown is called when the application exits.
 func (a *App) shutdown(ctx context.Context) {
+	if a.watcher != nil {
+		a.watcher.Stop()
+	}
 	a.scanMu.Lock()
 	if a.scanCancel != nil {
 		a.scanCancel()

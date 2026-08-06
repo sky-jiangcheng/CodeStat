@@ -1,0 +1,322 @@
+/* --- Knowledge hub page --- */
+.knowledge h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.page-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.page-sub {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.page-head-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.knowledge-search {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.knowledge-search-input {
+  width: 100%;
+  max-width: 560px;
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+.search-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.knowledge-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.knowledge-filters .filter-btn.pinned-active {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.tag-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.tag-chip:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.tag-chip-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.project-jump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.project-jump-label {
+  color: var(--text-tertiary);
+}
+
+.project-jump-item {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  transition: background var(--transition-fast);
+}
+
+.project-jump-item:hover {
+  background: var(--accent-light);
+  color: white;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.knowledge-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all var(--transition-base);
+}
+
+.knowledge-card:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.knowledge-card.pinned {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 1px var(--warning-soft);
+}
+
+.knowledge-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kind-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.kind-badge.kind-knowledge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.kind-badge.kind-idea {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.kind-badge.kind-log {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pin-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.pin-btn:hover {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.pin-btn.pinned {
+  color: var(--warning);
+}
+
+.knowledge-card-body {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.knowledge-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-card-snippet {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.knowledge-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: auto;
+}
+
+.knowledge-project-name {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.knowledge-time {
+  font-family: var(--font-mono);
+}
+
+.knowledge-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.knowledge-tag {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+.knowledge-tag:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.hit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hit-item {
+  display: block;
+  padding: 12px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  background: var(--bg-secondary);
+  transition: all var(--transition-fast);
+}
+
+.hit-item:hover {
+  border-color: var(--accent-light);
+  background: var(--bg-hover);
+}
+
+.hit-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.hit-type {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.hit-type-note { background: var(--accent-soft); color: var(--accent); }
+.hit-type-todo { background: var(--warning-soft); color: var(--warning); }
+
+.hit-project {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.hit-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.hit-snippet {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.empty-state.small {
+  padding: 32px 20px;
+}
+
+.empty-state.small .empty-icon {
+  font-size: 32px;
+  margin-bottom: 10px;
+}

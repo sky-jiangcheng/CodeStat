@@ -1,0 +1,80 @@
+/* --- Responsive (all @media queries consolidated) --- */
+
+@media (max-width: 900px) {
+  .project-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .nav-kbd, .nav-palette-btn span:not(.nav-kbd) { display: none; }
+}
+
+@media (max-width: 640px) {
+  .note-editor-split {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding: 20px;
+  }
+
+  .navbar {
+    padding: 0 20px;
+  }
+
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-bar {
+    gap: 16px 20px;
+    padding: 20px;
+  }
+
+  .dashboard-controls {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .project-layout {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .side-panel {
+    position: static;
+  }
+
+  .heatmap-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .status-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .settings-section {
+    padding: 20px;
+  }
+
+  .hero-row {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-card {
+    gap: 16px;
+  }
+
+  .knowledge-search-input {
+    font-size: 13px;
+  }
+
+  .lang-row {
+    grid-template-columns: 80px 1fr 36px;
+  }
+}

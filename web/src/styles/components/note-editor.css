@@ -1,0 +1,92 @@
+/* --- Note editor (split pane + meta) --- */
+.note-editor-block {
+  margin-bottom: 14px;
+}
+
+.note-meta-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.note-title-input {
+  flex: 1;
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.note-kind-select {
+  width: auto;
+  max-width: 100px;
+}
+
+.note-tags-input {
+  width: 100%;
+  max-width: none;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.note-editor-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.note-editor-split .note-textarea {
+  margin-bottom: 0;
+}
+
+.note-editor-split .note-preview {
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.draft-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.note-title-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.badge-source {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.note-tags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.note-tag-chip {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  color: var(--text-tertiary);
+}
+
+.note-card.pinned {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.note-pin-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}

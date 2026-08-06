@@ -19,7 +19,10 @@ type Tech struct {
 	Category string `json:"category"` // "language" | "framework" | "tool"
 }
 
-// LanguageStat is a language with its file count, used for the breakdown list.
+// LanguageStat is a language with its code line count, used for the breakdown
+// list. Counting lines (not files) gives a more accurate picture of the actual
+// codebase composition, so a repo with 200 JSON config files and 5 large .go
+// files is not misreported as "mostly JSON".
 type LanguageStat struct {
 	Language string `json:"language"`
 	Count    int    `json:"count"`
@@ -185,8 +188,15 @@ func DetectTechStack(repoPath string) ([]Tech, error) {
 	return techs, nil
 }
 
-// DetectLanguages walks the repo counting files per language extension, skipping
-// dependency/build directories. Returns the top languages by file count.
+// maxLinesPerFile bounds how many lines we scan per file so a single huge
+// generated file does not dominate the language breakdown.
+const maxLinesPerFile = 5000
+
+// DetectLanguages walks the repo counting code lines per language, skipping
+// dependency/build directories. A "code line" is a non-empty line that is not
+// a single-character delimiter (e.g. a lone `{` or `}`). Blank lines and
+// pure-delimiter lines are excluded, giving a more accurate picture than raw
+// file counts.
 func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 	counts := make(map[string]int)
 	scanned := 0
@@ -209,9 +219,12 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 			return filepath.SkipAll
 		}
 		ext := strings.ToLower(filepath.Ext(path))
-		if lang, ok := extLanguage[ext]; ok {
-			counts[lang]++
+		lang, ok := extLanguage[ext]
+		if !ok {
+			return nil
 		}
+		n := countCodeLines(path)
+		counts[lang] += n
 		return nil
 	})
 	if err != nil {
@@ -220,6 +233,10 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 
 	stats := make([]LanguageStat, 0, len(counts))
 	for lang, n := range counts {
+		// Skip languages with zero code lines (e.g. empty files only).
+		if n == 0 {
+			continue
+		}
 		stats = append(stats, LanguageStat{Language: lang, Count: n})
 	}
 	sort.Slice(stats, func(i, j int) bool {
@@ -234,6 +251,39 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 		stats = stats[:8]
 	}
 	return stats, nil
+}
+
+// countCodeLines counts non-empty, non-delimiter-only lines in a file.
+// Returns 0 on read error or if the file is empty.
+func countCodeLines(path string) int {
+	f, err := os.Open(path)
+	if err != nil {
+		return 0
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	// Allow long lines (e.g. minified JS) without crashing.
+	scanner.Buffer(make([]byte, 64*1024), 1024*1024)
+
+	count := 0
+	lineNo := 0
+	for scanner.Scan() {
+		lineNo++
+		if lineNo > maxLinesPerFile {
+			break
+		}
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			continue
+		}
+		// Skip lone delimiters that carry no semantic weight.
+		if len(line) == 1 && (line == "{" || line == "}" || line == "(" || line == ")" || line == "[" || line == "]") {
+			continue
+		}
+		count++
+	}
+	return count
 }
 
 // Mine aggregates README, tech stack, and language breakdown for a repository.
