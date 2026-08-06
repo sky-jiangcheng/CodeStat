@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
+import { renderSnippet } from '../utils/markdown'
 
 interface Props {
   open: boolean
@@ -15,6 +17,7 @@ export default function CommandPalette({ open, onClose }: Props) {
   const [projects, setProjects] = useState<Project[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
 
   useEffect(() => {
     if (open) {
@@ -54,10 +57,10 @@ export default function CommandPalette({ open, onClose }: Props) {
       e.preventDefault()
       if (activeIndex < hits.length) {
         const h = hits[activeIndex]
-        if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
+        if (h) { navigate(`/project/${h.project_id}`); onClose() }
       } else {
         const p = filteredProjects[activeIndex - hits.length]
-        if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
+        if (p) { navigate(`/project/${p.id}`); onClose() }
       }
     } else if (e.key === 'Escape') { e.preventDefault(); onClose() }
   }
@@ -84,7 +87,7 @@ export default function CommandPalette({ open, onClose }: Props) {
           {hits.map((h, i) => (
             <a
               key={`${h.type}-${h.id}`}
-              href={`/#/project/${h.project_id}`}
+              href={`/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
@@ -92,7 +95,7 @@ export default function CommandPalette({ open, onClose }: Props) {
               <span className={`cmdk-type cmdk-type-${h.type}`}>{h.type === 'note' ? '笔' : '办'}</span>
               <div className="cmdk-item-body">
                 <div className="cmdk-item-title">{h.title}</div>
-                <div className="cmdk-item-sub">{h.project_name} · {h.snippet.slice(0, 60)}</div>
+                <div className="cmdk-item-sub">{h.project_name} · <span dangerouslySetInnerHTML={{ __html: renderSnippet(h.snippet.slice(0, 80)) }} /></div>
               </div>
             </a>
           ))}
@@ -100,7 +103,7 @@ export default function CommandPalette({ open, onClose }: Props) {
           {filteredProjects.map((p, i) => (
             <a
               key={p.id}
-              href={`/#/project/${p.id}`}
+              href={`/project/${p.id}`}
               className={`cmdk-item ${activeIndex === hits.length + i ? 'cmdk-item-active' : ''}`}
               onMouseEnter={() => setActiveIndex(hits.length + i)}
               onClick={onClose}

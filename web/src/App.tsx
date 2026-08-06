@@ -1,5 +1,5 @@
 import { Component, ReactNode, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
@@ -29,7 +29,7 @@ class ErrorBoundary extends Component<
 
   handleReset = () => {
     this.setState({ hasError: false, error: null })
-    window.location.hash = '#/'
+    window.location.href = '/'
   }
 
   render() {
@@ -106,7 +106,7 @@ function App() {
   }, [])
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="app">
         <NavBar onOpenPalette={() => setPaletteOpen(true)} />
         <main className="main-content">
@@ -114,7 +114,7 @@ function App() {
         </main>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
       </div>
-    </HashRouter>
+    </BrowserRouter>
   )
 }
 

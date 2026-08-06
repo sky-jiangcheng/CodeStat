@@ -325,7 +325,7 @@ function Settings() {
             <button className="btn btn-primary" onClick={handleImport} disabled={importing}>
               {importing ? '导入中…' : '导入 Claude 记忆'}
             </button>
-            <a href="/#/knowledge" className="btn btn-secondary">前往知识库查看</a>
+            <a href="/knowledge" className="btn btn-secondary">前往知识库查看</a>
           </div>
         </div>
       )}

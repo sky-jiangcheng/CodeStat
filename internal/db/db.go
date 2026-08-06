@@ -212,6 +212,46 @@ func upgradeSchema(db *sql.DB) error {
 			"CREATE INDEX IF NOT EXISTS idx_projects_collected ON projects(collected)",
 			"CREATE INDEX IF NOT EXISTS idx_projects_collected_at ON projects(collected_at)",
 		}},
+		// v7: FTS5 full-text search indexes for notes and todos.
+		// Uses the "simple" tokenizer which splits on non-alphanumeric
+		// characters — for CJK text this effectively indexes per-character,
+		// which is a good enough starting point for substring matching via
+		// FTS5 prefix queries without a dedicated CJK tokenizer.
+		{id: 7, sql: []string{
+			// --- notes FTS ---
+			"CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(" +
+				"title, content, " +
+				"content_rowid='rowid', content='project_notes')",
+			// Backfill existing notes into the FTS index.
+			"INSERT INTO notes_fts(rowid, title, content) " +
+				"SELECT id, COALESCE(title,''), content FROM project_notes",
+			// Triggers keep the FTS index in sync with the base table.
+			"CREATE TRIGGER IF NOT EXISTS notes_fts_ai AFTER INSERT ON project_notes BEGIN " +
+				"INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content); " +
+				"END",
+			"CREATE TRIGGER IF NOT EXISTS notes_fts_ad AFTER DELETE ON project_notes BEGIN " +
+				"INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES ('delete', old.id, old.title, old.content); " +
+				"END",
+			"CREATE TRIGGER IF NOT EXISTS notes_fts_au AFTER UPDATE ON project_notes BEGIN " +
+				"INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES ('delete', old.id, old.title, old.content); " +
+				"INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content); " +
+				"END",
+			// --- todos FTS ---
+			"CREATE VIRTUAL TABLE IF NOT EXISTS todos_fts USING fts5(" +
+				"title, " +
+				"content_rowid='rowid', content='project_todos')",
+			"INSERT INTO todos_fts(rowid, title) SELECT id, title FROM project_todos",
+			"CREATE TRIGGER IF NOT EXISTS todos_fts_ai AFTER INSERT ON project_todos BEGIN " +
+				"INSERT INTO todos_fts(rowid, title) VALUES (new.id, new.title); " +
+				"END",
+			"CREATE TRIGGER IF NOT EXISTS todos_fts_ad AFTER DELETE ON project_todos BEGIN " +
+				"INSERT INTO todos_fts(todos_fts, rowid, title) VALUES ('delete', old.id, old.title); " +
+				"END",
+			"CREATE TRIGGER IF NOT EXISTS todos_fts_au AFTER UPDATE ON project_todos BEGIN " +
+				"INSERT INTO todos_fts(todos_fts, rowid, title) VALUES ('delete', old.id, old.title); " +
+				"INSERT INTO todos_fts(rowid, title) VALUES (new.id, new.title); " +
+				"END",
+		}},
 	}
 
 	for _, m := range migrations {

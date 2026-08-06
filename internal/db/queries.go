@@ -8,6 +8,32 @@ import (
 	_ "modernc.org/sqlite"
 )
 
+// ftsEscape converts a raw user query into a safe FTS5 MATCH expression.
+// FTS5 treats whitespace-separated tokens as AND-joined terms; we append a
+// prefix wildcard ("*") to each so partial matches work (e.g. "arch" matches
+// "architecture"). Double quotes and other FTS5 syntax characters are removed.
+func ftsEscape(query string) string {
+	q := strings.TrimSpace(query)
+	if q == "" {
+		return ""
+	}
+	// Remove FTS5 special characters that could break MATCH syntax.
+	for _, ch := range []string{`"`, `'`, `*`, `(`, `)`, `:`, `^`, `+`, `-`} {
+		q = strings.ReplaceAll(q, ch, " ")
+	}
+	fields := strings.Fields(q)
+	if len(fields) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(fields))
+	for _, f := range fields {
+		// Wrap each term in double quotes (a quoted string is a single FTS5
+		// token) then append * for prefix matching.
+		parts = append(parts, "\""+f+"\"*")
+	}
+	return strings.Join(parts, " ")
+}
+
 const (
 	searchProjectsLimit = 50
 	searchResultLimit   = 20
@@ -827,16 +853,24 @@ func CleanupStaleDataTx(tx *sql.Tx, scannedPaths []string) error {
 
 // -- Search --
 
-// SearchNotes searches note title and content, returning ranked hits.
+// SearchNotes searches note title and content via FTS5 full-text search,
+// returning hits ranked by relevance with highlighted snippets.
 func SearchNotes(db *sql.DB, query string) ([]SearchHit, error) {
-	q := strings.TrimSpace(query)
-	if q == "" {
+	match := ftsEscape(query)
+	if match == "" {
 		return nil, nil
 	}
-	pattern := "%" + escapeLike(q) + "%"
+	// snippet(notes_fts, -1, '<mark>', '</mark>', '…', 12) generates a context
+	// window around the match with <mark> highlighting, scanning all columns.
+	// bm25() provides relevance ranking (lower = better, so we ORDER BY it ASC).
 	rows, err := db.Query(
-		"SELECT id, project_id, title, content FROM project_notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' ORDER BY pinned DESC, updated_at DESC LIMIT ?",
-		pattern, pattern, searchResultLimit)
+		"SELECT n.id, n.project_id, COALESCE(n.title,''), " +
+			"snippet(notes_fts, -1, '<mark>', '</mark>', '…', 12) " +
+			"FROM project_notes n " +
+			"JOIN notes_fts f ON f.rowid = n.id " +
+			"WHERE notes_fts MATCH ? " +
+			"ORDER BY n.pinned DESC, bm25(notes_fts) ASC LIMIT ?",
+		match, searchResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -844,42 +878,51 @@ func SearchNotes(db *sql.DB, query string) ([]SearchHit, error) {
 	var hits []SearchHit
 	for rows.Next() {
 		var h SearchHit
-		var content string
-		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &content); err != nil {
+		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &h.Snippet); err != nil {
 			return nil, err
 		}
 		h.Type = "note"
-		h.Snippet = makeSnippet(content, q)
+		// If the match was in the title only, snippet may return the title;
+		// prefer the title as snippet when content snippet is empty.
+		if h.Snippet == "" {
+			h.Snippet = h.Title
+		}
 		hits = append(hits, h)
 	}
 	return hits, rows.Err()
 }
 
-// SearchAll searches notes and todos, returning unified ranked hits.
+// SearchAll searches notes and todos via FTS5, returning unified ranked hits.
 func SearchAll(db *sql.DB, query string) ([]SearchHit, error) {
 	hits, err := SearchNotes(db, query)
 	if err != nil {
 		return nil, err
 	}
-	q := strings.TrimSpace(query)
-	if q == "" {
+	match := ftsEscape(query)
+	if match == "" {
 		return hits, nil
 	}
-	pattern := "%" + escapeLike(q) + "%"
 	rows, err := db.Query(
-		"SELECT id, project_id, title FROM project_todos WHERE title LIKE ? ESCAPE '\\' ORDER BY sort_order ASC, id ASC LIMIT ?",
-		pattern, searchResultLimit)
+		"SELECT t.id, t.project_id, t.title, " +
+			"snippet(todos_fts, -1, '<mark>', '</mark>', '…', 12) " +
+			"FROM project_todos t " +
+			"JOIN todos_fts f ON f.rowid = t.id " +
+			"WHERE todos_fts MATCH ? " +
+			"ORDER BY bm25(todos_fts) ASC LIMIT ?",
+		match, searchResultLimit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var h SearchHit
-		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title); err != nil {
+		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &h.Snippet); err != nil {
 			return nil, err
 		}
 		h.Type = "todo"
-		h.Snippet = h.Title
+		if h.Snippet == "" {
+			h.Snippet = h.Title
+		}
 		hits = append(hits, h)
 	}
 	if err := rows.Err(); err != nil {
@@ -888,28 +931,10 @@ func SearchAll(db *sql.DB, query string) ([]SearchHit, error) {
 	return hits, nil
 }
 
+// escapeLike escapes LIKE-pattern wildcards so a user query is treated literally.
 func escapeLike(s string) string {
 	s = strings.ReplaceAll(s, `\`, `\\`)
 	s = strings.ReplaceAll(s, `%`, `\%`)
 	s = strings.ReplaceAll(s, `_`, `\_`)
 	return s
-}
-
-func makeSnippet(content, query string) string {
-	if len(content) <= searchSnippetWindow {
-		return content
-	}
-	idx := strings.Index(strings.ToLower(content), strings.ToLower(query))
-	if idx < 0 {
-		return content[:searchSnippetWindow]
-	}
-	start := idx - searchSnippetWindow/2
-	if start < 0 {
-		start = 0
-	}
-	end := start + searchSnippetWindow
-	if end > len(content) {
-		end = len(content)
-	}
-	return content[start:end]
 }

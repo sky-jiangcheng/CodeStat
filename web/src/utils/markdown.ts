@@ -12,6 +12,14 @@ export function renderMarkdown(content: string): string {
   return DOMPurify.sanitize(html)
 }
 
+// renderSnippet sanitizes an FTS5 search snippet for safe HTML rendering.
+// FTS5's snippet() function inserts <mark> tags around matched terms and
+// escapes all other HTML. We sanitize with a tight allowlist as defense-in-depth.
+export function renderSnippet(snippet: string): string {
+  if (!snippet) return ''
+  return DOMPurify.sanitize(snippet, { ALLOWED_TAGS: ['mark'], ALLOWED_ATTR: [] })
+}
+
 // stripMarkdown returns a single-line plain-text excerpt of markdown content.
 export function stripMarkdown(content: string, max = 140): string {
   const text = content

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -82,6 +83,36 @@ func setupTestDB(t *testing.T) *sql.DB {
 	`
 	if _, err := db.Exec(schema); err != nil {
 		t.Fatalf("failed to create tables: %v", err)
+	}
+	// Create FTS5 virtual tables and sync triggers (mirrors migration v7).
+	ftsSchema := `
+	CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(
+		title, content, content_rowid='rowid', content='project_notes');
+	CREATE TRIGGER IF NOT EXISTS notes_fts_ai AFTER INSERT ON project_notes BEGIN
+		INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+	END;
+	CREATE TRIGGER IF NOT EXISTS notes_fts_ad AFTER DELETE ON project_notes BEGIN
+		INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES ('delete', old.id, old.title, old.content);
+	END;
+	CREATE TRIGGER IF NOT EXISTS notes_fts_au AFTER UPDATE ON project_notes BEGIN
+		INSERT INTO notes_fts(notes_fts, rowid, title, content) VALUES ('delete', old.id, old.title, old.content);
+		INSERT INTO notes_fts(rowid, title, content) VALUES (new.id, new.title, new.content);
+	END;
+	CREATE VIRTUAL TABLE IF NOT EXISTS todos_fts USING fts5(
+		title, content_rowid='rowid', content='project_todos');
+	CREATE TRIGGER IF NOT EXISTS todos_fts_ai AFTER INSERT ON project_todos BEGIN
+		INSERT INTO todos_fts(rowid, title) VALUES (new.id, new.title);
+	END;
+	CREATE TRIGGER IF NOT EXISTS todos_fts_ad AFTER DELETE ON project_todos BEGIN
+		INSERT INTO todos_fts(todos_fts, rowid, title) VALUES ('delete', old.id, old.title);
+	END;
+	CREATE TRIGGER IF NOT EXISTS todos_fts_au AFTER UPDATE ON project_todos BEGIN
+		INSERT INTO todos_fts(todos_fts, rowid, title) VALUES ('delete', old.id, old.title);
+		INSERT INTO todos_fts(rowid, title) VALUES (new.id, new.title);
+	END;
+	`
+	if _, err := db.Exec(ftsSchema); err != nil {
+		t.Fatalf("failed to create FTS tables: %v", err)
 	}
 	return db
 }
@@ -803,5 +834,157 @@ func TestSearchProjects_Limit(t *testing.T) {
 	}
 	if len(results) > searchProjectsLimit {
 		t.Errorf("results should be limited to %d, got %d", searchProjectsLimit, len(results))
+	}
+}
+
+// -- FTS5 search tests --
+
+func TestSearchNotes_FTS_MatchContent(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "fts-note-test")
+
+	_, err := CreateNote(db, pid, "## Architecture\nThe system uses a layered architecture with React frontend.")
+	if err != nil {
+		t.Fatalf("CreateNote failed: %v", err)
+	}
+	_, err = CreateNote(db, pid, "## Deploy\nDocker compose setup for production.")
+	if err != nil {
+		t.Fatalf("CreateNote failed: %v", err)
+	}
+
+	hits, err := SearchNotes(db, "architecture")
+	if err != nil {
+		t.Fatalf("SearchNotes failed: %v", err)
+	}
+	if len(hits) != 1 {
+		t.Fatalf("expected 1 hit for 'architecture', got %d", len(hits))
+	}
+	if hits[0].Type != "note" {
+		t.Errorf("expected type 'note', got '%s'", hits[0].Type)
+	}
+	if !strings.Contains(hits[0].Snippet, "<mark>") {
+		t.Errorf("snippet should contain <mark> highlighting, got: %s", hits[0].Snippet)
+	}
+}
+
+func TestSearchNotes_FTS_PrefixMatch(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "prefix-test")
+
+	CreateNote(db, pid, "Refactoring the authentication module") //nolint:errcheck
+	CreateNote(db, pid, "Database connection pooling")          //nolint:errcheck
+
+	// "auth" should match "authentication" via prefix wildcard
+	hits, err := SearchNotes(db, "auth")
+	if err != nil {
+		t.Fatalf("SearchNotes failed: %v", err)
+	}
+	if len(hits) != 1 {
+		t.Fatalf("expected 1 hit for prefix 'auth', got %d", len(hits))
+	}
+}
+
+func TestSearchNotes_FTS_MultiToken(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "multi-token-test")
+
+	CreateNote(db, pid, "React frontend with TypeScript") //nolint:errcheck
+	CreateNote(db, pid, "React backend API")              //nolint:errcheck
+	CreateNote(db, pid, "Vue frontend only")              //nolint:errcheck
+
+	// Multiple tokens are AND-joined: "react frontend" matches only the first note
+	hits, err := SearchNotes(db, "react frontend")
+	if err != nil {
+		t.Fatalf("SearchNotes failed: %v", err)
+	}
+	if len(hits) != 1 {
+		t.Fatalf("expected 1 hit for 'react frontend', got %d", len(hits))
+	}
+}
+
+func TestSearchNotes_FTS_EmptyQuery(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "empty-query-test")
+	CreateNote(db, pid, "some content") //nolint:errcheck
+
+	hits, err := SearchNotes(db, "")
+	if err != nil {
+		t.Fatalf("SearchNotes failed: %v", err)
+	}
+	if hits != nil {
+		t.Error("empty query should return nil")
+	}
+}
+
+func TestSearchNotes_FTS_SpecialCharsEscaped(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "special-chars-test")
+	CreateNote(db, pid, "Fix bug (critical) in parser") //nolint:errcheck
+
+	// Parentheses are FTS5 syntax chars and should be stripped, not cause errors
+	hits, err := SearchNotes(db, "(critical)")
+	if err != nil {
+		t.Fatalf("SearchNotes with special chars failed: %v", err)
+	}
+	if len(hits) != 1 {
+		t.Fatalf("expected 1 hit after escaping special chars, got %d", len(hits))
+	}
+}
+
+func TestSearchAll_FTS_CoversNotesAndTodos(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "search-all-test")
+
+	CreateNote(db, pid, "Setup CI pipeline")        //nolint:errcheck
+	CreateTodo(db, pid, "Configure CI runner")     //nolint:errcheck
+	CreateTodo(db, pid, "Unrelated task")          //nolint:errcheck
+
+	hits, err := SearchAll(db, "CI")
+	if err != nil {
+		t.Fatalf("SearchAll failed: %v", err)
+	}
+	// Should match the note "Setup CI pipeline" and todo "Configure CI runner"
+	if len(hits) != 2 {
+		t.Fatalf("expected 2 hits (1 note + 1 todo) for 'CI', got %d", len(hits))
+	}
+	hasNote := false
+	hasTodo := false
+	for _, h := range hits {
+		if h.Type == "note" {
+			hasNote = true
+		}
+		if h.Type == "todo" {
+			hasTodo = true
+		}
+	}
+	if !hasNote {
+		t.Error("expected at least one note hit")
+	}
+	if !hasTodo {
+		t.Error("expected at least one todo hit")
+	}
+}
+
+func TestSearchNotes_FTS_CJKMatch(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "cjk-test")
+
+	CreateNote(db, pid, "## 架构设计\n系统采用分层架构，前端使用 React。") //nolint:errcheck
+	CreateNote(db, pid, "## 部署文档\nDocker 部署配置。")                  //nolint:errcheck
+
+	// CJK: "架构" should match the first note (simple tokenizer indexes per-char)
+	hits, err := SearchNotes(db, "架构")
+	if err != nil {
+		t.Fatalf("SearchNotes CJK failed: %v", err)
+	}
+	if len(hits) < 1 {
+		t.Fatalf("expected at least 1 hit for CJK '架构', got %d", len(hits))
 	}
 }

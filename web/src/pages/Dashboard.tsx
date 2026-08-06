@@ -1,241 +1,34 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
-import {
-  getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, searchAll, searchProjects,
-  getScanStatus, toggleStar, refreshProjectHistory, getConfig, Project, Summary, TodoCount, NoteCount, SearchHit,
-} from '../api/client'
+import { useState, useMemo } from 'react'
+import { useDashboardData } from '../hooks/useDashboardData'
+import { useRepoSearch } from '../hooks/useRepoSearch'
 import SummaryBar from '../components/SummaryBar'
 import GoalRing from '../components/GoalRing'
 import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
-import DatePicker from '../components/DatePicker'
 import ProjectCard from '../components/ProjectCard'
-
-function getYesterday(): string {
-  const d = new Date()
-  d.setDate(d.getDate() - 1)
-  return d.toISOString().split('T')[0]
-}
-
-type SortKey = 'name' | 'my_added' | 'my_files' | 'repo_count'
-
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: '名称' },
-  { key: 'my_added', label: '新增行数' },
-  { key: 'my_files', label: '文件变更' },
-  { key: 'repo_count', label: '仓库数' },
-]
+import DashboardControls from '../components/DashboardControls'
+import ProjectGridSkeleton from '../components/ProjectGridSkeleton'
+import DashboardEmptyState from '../components/DashboardEmptyState'
 
 function Dashboard() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [summary, setSummary] = useState<Summary | null>(null)
-  const [dailyGoal, setDailyGoal] = useState(500)
-  const [date, setDate] = useState(getYesterday())
-  const [loading, setLoading] = useState(true)
-  const [scanning, setScanning] = useState(false)
-  const [scanMsg, setScanMsg] = useState('')
-  const [error, setError] = useState('')
-  const [sortKey, setSortKey] = useState<SortKey>('my_added')
+  const {
+    projects, summary, todoCounts, noteCounts, dailyGoal,
+    loading, scanning, scanMsg, error,
+    date, showStarredOnly, sortKey,
+    setDate, setShowStarredOnly, setSortKey,
+    handleScan, handleToggleStar, handleRefreshHistory, retry,
+  } = useDashboardData()
+
   const [confirmScan, setConfirmScan] = useState(false)
-  const [todoCounts, setTodoCounts] = useState<TodoCount[]>([])
-  const [noteCounts, setNoteCounts] = useState<NoteCount[]>([])
-  const [showStarredOnly, setShowStarredOnly] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchResults, setSearchResults] = useState<SearchHit[] | null>(null)
-  const [searchProjectsResults, setSearchProjectsResults] = useState<Project[] | null>(null)
-  const [searching, setSearching] = useState(false)
-  const [searchingProjects, setSearchingProjects] = useState(false)
-  const pollTimer = useRef<number | null>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
-
-  const fetchData = async (selectedDate: string, starredOnly = showStarredOnly) => {
-    setLoading(true)
-    setError('')
-    try {
-      const [projData, sumData, counts, noteCountsData] = await Promise.all([
-        getProjects(selectedDate, starredOnly),
-        getSummary(selectedDate),
-        getTodoCounts(),
-        getNoteCounts(),
-      ])
-      setProjects(projData)
-      setSummary(sumData)
-      setTodoCounts(counts)
-      setNoteCounts(noteCountsData)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '加载失败')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const checkScanStatus = useCallback(async () => {
-    try {
-      const status = await getScanStatus()
-      if (status.running || status.backfilling) {
-        setScanning(true)
-        setScanMsg(status.message)
-        if (!pollTimer.current) {
-          pollTimer.current = window.setInterval(async () => {
-            const s = await getScanStatus()
-            if (!s.running && !s.backfilling) {
-              if (pollTimer.current) clearInterval(pollTimer.current)
-              pollTimer.current = null
-              setScanning(false)
-              setScanMsg('')
-              fetchData(date, showStarredOnly)
-            } else {
-              setScanMsg(s.message)
-            }
-          }, 2000)
-        }
-      }
-    } catch { /* ignore */ }
-  }, [date, showStarredOnly])
-
-  useEffect(() => {
-    getConfig()
-      .then(c => {
-        const v = parseInt(c.config.daily_code_standard || '500', 10)
-        if (!isNaN(v) && v > 0) setDailyGoal(v)
-      })
-      .catch(() => {})
-    fetchData(date, showStarredOnly)
-    checkScanStatus()
-    return () => { if (pollTimer.current) clearInterval(pollTimer.current) }
-  }, [date, showStarredOnly, checkScanStatus])
-
-  const handleScan = async () => {
-    setConfirmScan(false)
-    setError('')
-    try {
-      await triggerScan()
-      setScanning(true)
-      setScanMsg('正在扫描仓库…')
-      if (pollTimer.current) clearInterval(pollTimer.current)
-      pollTimer.current = window.setInterval(async () => {
-        const s = await getScanStatus()
-        if (!s.running && !s.backfilling) {
-          if (pollTimer.current) clearInterval(pollTimer.current)
-          pollTimer.current = null
-          setScanning(false)
-          setScanMsg('')
-          fetchData(date, showStarredOnly)
-        } else {
-          setScanMsg(s.message)
-        }
-      }, 2000)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '扫描失败')
-    }
-  }
-
-  const handleToggleStar = async (projectId: number) => {
-    try {
-      const newStarred = await toggleStar(projectId)
-      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, is_starred: newStarred } : p))
-      if (searchProjectsResults) {
-        setSearchProjectsResults(prev => prev?.map(p => p.id === projectId ? { ...p, is_starred: newStarred } : p) ?? null)
-      }
-      if (showStarredOnly && !newStarred) {
-        setProjects(prev => prev.filter(p => p.id !== projectId))
-      }
-      if (newStarred) {
-        setProjects(prev => {
-          if (prev.some(p => p.id === projectId)) return prev
-          const found = searchProjectsResults?.find(p => p.id === projectId)
-          if (!found) return prev
-          return [...prev, found as Project]
-        })
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '操作失败')
-    }
-  }
-
-  const handleRefreshHistory = useCallback(async (projectId: number) => {
-    try {
-      await refreshProjectHistory(projectId)
-      await fetchData(date, showStarredOnly)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '刷新历史记录失败')
-    }
-  }, [date, showStarredOnly])
-
-  const handleSearch = useCallback(async (query: string) => {
-    if (!query.trim()) { setSearchResults(null); setSearching(false); return }
-    setSearching(true)
-    try {
-      const results = await searchAll(query)
-      setSearchResults(results)
-    } catch {
-      setSearchResults([])
-    } finally {
-      setSearching(false)
-    }
-  }, [])
-
-  const handleSearchProjects = useCallback(async (query: string) => {
-    if (!query.trim()) { setSearchProjectsResults(null); setSearchingProjects(false); return }
-    setSearchingProjects(true)
-    try {
-      const results = await searchProjects(query)
-      setSearchProjectsResults(results)
-    } catch {
-      setSearchProjectsResults([])
-    } finally {
-      setSearchingProjects(false)
-    }
-  }, [])
-
-  // Debounced search wrapper with proper cleanup
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
-  const handleSearchDebounced = useCallback((query: string) => {
-    setSearchQuery(query)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (!query.trim()) { 
-      setSearchResults(null)
-      setSearchProjectsResults(null)
-      setSearching(false)
-      setSearchingProjects(false)
-      return 
-    }
-    setSearching(true)
-    setSearchingProjects(true)
-    debounceRef.current = setTimeout(() => {
-      handleSearch(query)
-      handleSearchProjects(query)
-    }, 300)
-  }, [handleSearch, handleSearchProjects])
-
-  // Cleanup debounce timer on unmount
-  useEffect(() => {
-    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [])
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
-        if (debounceRef.current) clearTimeout(debounceRef.current)
-        setSearchResults(null)
-        setSearchProjectsResults(null)
-        setSearchQuery('')
-        setSearching(false)
-        setSearchingProjects(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
+  const search = useRepoSearch()
 
   const sorted = useMemo(() => {
-    const list = projects
+    return projects
       .filter(p => {
         if (showStarredOnly) return p.is_starred
         const hasActivity = p.my_added > 0 || p.my_deleted > 0 || p.my_files > 0
         const hasTeamActivity = p.total_added > 0 || p.total_deleted > 0
-        const isStarred = p.is_starred
-        return hasActivity || hasTeamActivity || isStarred
+        return hasActivity || hasTeamActivity || p.is_starred
       })
       .sort((a, b) => {
         switch (sortKey) {
@@ -246,7 +39,6 @@ function Dashboard() {
           default: return 0
         }
       })
-    return list
   }, [projects, sortKey, showStarredOnly])
 
   const starredProjects = useMemo(() => sorted.filter(p => p.is_starred), [sorted])
@@ -268,6 +60,11 @@ function Dashboard() {
 
   const myAdded = summary?.my_added || 0
   const isWorkday = summary?.is_workday ?? false
+
+  const onScan = () => {
+    setConfirmScan(false)
+    handleScan()
+  }
 
   return (
     <div className="dashboard">
@@ -300,137 +97,43 @@ function Dashboard() {
 
         <Heatmap onDayClick={setDate} />
 
-        <div className="dashboard-controls">
-          <DatePicker value={date} onChange={setDate} />
-          <div className="dashboard-actions">
-            <div className="search-box" ref={searchRef}>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={e => handleSearchDebounced(e.target.value)}
-                placeholder="搜索仓库、笔记与待办…"
-                className="form-input search-input"
-              />
-              {searchResults !== null && (
-                <div className="search-dropdown">
-                  {searching || searchingProjects ? (
-                    <div className="search-loading">搜索中...</div>
-                  ) : searchResults.length === 0 && (!searchProjectsResults || searchProjectsResults.length === 0) ? (
-                    <div className="search-empty">未找到匹配内容</div>
-                  ) : (
-                    <>
-                      {searchProjectsResults && searchProjectsResults.length > 0 && (
-                        <div className="search-group">
-                          <div className="search-group-header">仓库</div>
-                          {searchProjectsResults.map(p => (
-                            <div key={`project-${p.id}`} className="search-result-item search-result-project-item">
-                              <button
-                                className={`card-star ${p.is_starred ? 'starred' : ''}`}
-                                onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleStar(p.id) }}
-                                title={p.is_starred ? '取消关注' : '关注项目'}
-                              >
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill={p.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                </svg>
-                              </button>
-                              <a href={`/#/project/${p.id}`} className="search-project-name">
-                                {p.name}
-                              </a>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {searchResults.length > 0 && (
-                        <div className="search-group">
-                          <div className="search-group-header">笔记与待办</div>
-                          {searchResults.map(h => (
-                            <a key={`${h.type}-${h.id}`} href={`/#/project/${h.project_id}`} className="search-result-item">
-                              <div className="search-result-header">
-                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
-                                <span className="search-result-project">{h.project_name}</span>
-                              </div>
-                              <div className="search-result-title">{h.title}</div>
-                              <div className="search-result-preview">{h.snippet}</div>
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            <div className="filter-toggle">
-              <button className={`filter-btn ${!showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(false)}>全部</button>
-              <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>关注</button>
-            </div>
-            <div className="sort-control">
-              <label>排序：</label>
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
-                {SORT_OPTIONS.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
-              </select>
-            </div>
-            {confirmScan ? (
-              <div className="confirm-group">
-                <span className="confirm-text">确定重新扫描？</span>
-                <button className="btn btn-primary btn-sm" onClick={handleScan} disabled={scanning}>确认</button>
-                <button className="btn btn-sm" onClick={() => setConfirmScan(false)}>取消</button>
-              </div>
-            ) : (
-              <button className="btn btn-primary" onClick={() => setConfirmScan(true)} disabled={scanning}>
-                {scanning ? (scanMsg || '处理中...') : '重新扫描'}
-              </button>
-            )}
-          </div>
-        </div>
+        <DashboardControls
+          date={date}
+          onDateChange={setDate}
+          showStarredOnly={showStarredOnly}
+          onShowStarredOnlyChange={setShowStarredOnly}
+          sortKey={sortKey}
+          onSortKeyChange={setSortKey}
+          scanning={scanning}
+          scanMsg={scanMsg}
+          onScan={onScan}
+          confirmScan={confirmScan}
+          onConfirmScanChange={setConfirmScan}
+          searchQuery={search.query}
+          onSearchChange={search.setQuery}
+          searchResults={search.results}
+          searching={search.searching}
+          searchContainerRef={search.containerRef}
+          onToggleStar={handleToggleStar}
+        />
 
         {error && (
           <div className="error-banner">
             <span>{error}</span>
-            <button className="btn btn-sm" onClick={() => fetchData(date)}>重试</button>
+            <button className="btn btn-sm" onClick={retry}>重试</button>
           </div>
         )}
       </div>
 
       <div className="dashboard-scroll">
         {loading ? (
-          <div className="project-grid">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="project-card skeleton-card">
-                <div className="card-header">
-                  <div className="skeleton skeleton-text" style={{ width: '60%', height: 20 }} />
-                </div>
-                <div className="card-grid">
-                  {Array.from({ length: 4 }).map((_, j) => (
-                    <div key={j} className="card-stat">
-                      <div className="skeleton skeleton-text" style={{ width: 32, height: 10 }} />
-                      <div className="skeleton skeleton-text" style={{ width: 40, height: 16 }} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <ProjectGridSkeleton />
         ) : sorted.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-icon">{showStarredOnly ? '⭐' : '🔍'}</div>
-            <h3>{showStarredOnly ? '暂无关注项目' : '暂无项目数据'}</h3>
-            <p>
-              {showStarredOnly
-                ? '你还没有关注任何项目。点击项目卡片右上角的星标即可关注，或切换到「全部」查看所有项目。'
-                : 'GitBuddy 尚未扫描到任何 Git 仓库。请先配置扫描目录。'}
-            </p>
-            <div className="empty-actions">
-              {showStarredOnly ? (
-                <button className="btn btn-primary" onClick={() => setShowStarredOnly(false)}>查看全部项目</button>
-              ) : (
-                <>
-                  <button className="btn btn-primary" onClick={() => setConfirmScan(true)}>开始扫描</button>
-                  <a href="/#/settings" className="btn btn-secondary">配置目录</a>
-                </>
-              )}
-            </div>
-          </div>
+          <DashboardEmptyState
+            showStarredOnly={showStarredOnly}
+            onViewAll={() => setShowStarredOnly(false)}
+            onScan={() => setConfirmScan(true)}
+          />
         ) : (
           <>
             {starredProjects.length > 0 && (

@@ -368,6 +368,16 @@ body {
   white-space: pre-wrap;
 }
 
+/* FTS5 search snippet highlight */
+.search-result-preview mark,
+.hit-snippet mark,
+.cmdk-item-sub mark {
+  background: var(--accent-tint, rgba(99, 102, 241, 0.2));
+  color: var(--text-primary, inherit);
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
 .sort-control {
   display: flex;
   align-items: center;

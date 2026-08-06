@@ -4,7 +4,7 @@ import {
   listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory,
   NoteWithProject, SearchHit,
 } from '../api/client'
-import { renderMarkdown, stripMarkdown, parseTags } from '../utils/markdown'
+import { renderMarkdown, renderSnippet, stripMarkdown, parseTags } from '../utils/markdown'
 
 type KindFilter = 'all' | 'knowledge' | 'other'
 
@@ -126,7 +126,7 @@ function KnowledgePage() {
               {hits.map(h => (
                 <a
                   key={`${h.type}-${h.id}`}
-                  href={`/#/project/${h.project_id}`}
+                  href={`/project/${h.project_id}`}
                   className="hit-item"
                 >
                   <div className="hit-head">
@@ -134,7 +134,7 @@ function KnowledgePage() {
                     <span className="hit-project">{h.project_name}</span>
                   </div>
                   <div className="hit-title">{h.title}</div>
-                  <div className="hit-snippet">{h.snippet}</div>
+                  <div className="hit-snippet" dangerouslySetInnerHTML={{ __html: renderSnippet(h.snippet) }} />
                 </a>
               ))}
             </div>
@@ -194,7 +194,7 @@ function KnowledgePage() {
               <div className="project-jump">
                 <span className="project-jump-label">跳转项目：</span>
                 {projectNames.slice(0, 8).map(([name, id]) => (
-                  <a key={id} href={`/#/project/${id}`} className="project-jump-item" title={name}>{name}</a>
+                  <a key={id} href={`/project/${id}`} className="project-jump-item" title={name}>{name}</a>
                 ))}
               </div>
             )}
@@ -223,7 +223,7 @@ function KnowledgePage() {
                           ★
                         </button>
                       </div>
-                      <a href={`/#/project/${n.project_id}`} className="knowledge-card-body">
+                      <a href={`/project/${n.project_id}`} className="knowledge-card-body">
                         <div className="knowledge-card-title">{n.title || stripMarkdown(n.content, 40)}</div>
                         <div className="knowledge-card-snippet markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(stripMarkdown(n.content, 120)) }} />
                         <div className="knowledge-card-foot">
