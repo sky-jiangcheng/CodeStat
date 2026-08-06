@@ -18,6 +18,11 @@ const KINDS = [
 ]
 
 function draftKey(projectId: number) {
+  return `gitbuddy-note-draft-${projectId}`
+}
+
+// Legacy key from the pre-rename "gitboard" era, used for one-time migration.
+function legacyDraftKey(projectId: number) {
   return `gitboard-note-draft-${projectId}`
 }
 
@@ -25,6 +30,13 @@ function loadDraft(projectId: number): { content: string; title: string; tags: s
   try {
     const raw = localStorage.getItem(draftKey(projectId))
     if (raw) return JSON.parse(raw)
+    // Migrate legacy draft if present.
+    const legacy = localStorage.getItem(legacyDraftKey(projectId))
+    if (legacy) {
+      localStorage.setItem(draftKey(projectId), legacy)
+      localStorage.removeItem(legacyDraftKey(projectId))
+      return JSON.parse(legacy)
+    }
   } catch { /* ignore */ }
   return { content: '', title: '', tags: '', kind: 'knowledge' }
 }

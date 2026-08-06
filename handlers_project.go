@@ -6,9 +6,9 @@ import (
 	"log"
 	"strconv"
 
-	"gitboard/internal/db"
-	"gitboard/internal/knowledge"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/knowledge"
+	"gitbuddy/internal/stats"
 )
 
 // ProjectResponse is the enriched project payload sent to the frontend.

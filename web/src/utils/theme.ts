@@ -1,6 +1,7 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'gitboard-theme'
+const STORAGE_KEY = 'gitbuddy-theme'
+const LEGACY_STORAGE_KEY = 'gitboard-theme'
 
 function getSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -15,6 +16,13 @@ export function getStoredTheme(): ThemeMode {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === 'light' || raw === 'dark' || raw === 'system') return raw
+    // Migrate legacy key from the pre-rename "gitboard" era.
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (legacy === 'light' || legacy === 'dark' || legacy === 'system') {
+      localStorage.setItem(STORAGE_KEY, legacy)
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+      return legacy
+    }
   } catch {
     // ignore
   }

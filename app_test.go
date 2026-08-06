@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"testing"
 
-	"gitboard/internal/db"
+	"gitbuddy/internal/db"
 
 	_ "modernc.org/sqlite"
 )

@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"gitboard/internal/scanner"
+	"gitbuddy/internal/scanner"
 )
 
 // ProjectGroup represents a grouped project containing one or more repositories.

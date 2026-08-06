@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"gitboard/internal/db"
+	"gitbuddy/internal/db"
 )
 
 // ListTodos returns all todo items for a project.

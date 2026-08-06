@@ -1,5 +1,5 @@
 #!/bin/bash
-# sync-knowledge.sh — Sync Claude memory files to GitBoard project notes (CLI)
+# sync-knowledge.sh — Sync Claude memory files to GitBuddy project notes (CLI)
 #
 # DEPRECATED: prefer the in-app import (Settings -> 操作 -> 导入 Claude 记忆),
 # which calls App.ImportClaudeMemory with parameterized, idempotent queries.
@@ -7,13 +7,13 @@
 # doubling single quotes (the SQL standard for string literals).
 # Usage: bash sync-knowledge.sh
 # This script reads Claude's project memory files and inserts them into
-# GitBoard's SQLite database as project notes, making them visible in the UI.
+# GitBuddy's SQLite database as project notes, making them visible in the UI.
 
 set -euo pipefail
 
 # === Config ===
 CLAUDE_MEMORY_DIR="$HOME/.claude/projects"
-GITBOARD_DB="${HOME}/Library/Application Support/gitboard/dashboard.db"
+GITBUDDY_DB="${HOME}/Library/Application Support/gitbuddy/dashboard.db"
 SQLITE=$(command -v sqlite3 || command -v sqlite3)
 
 if [ -z "$SQLITE" ]; then
@@ -21,15 +21,15 @@ if [ -z "$SQLITE" ]; then
   exit 1
 fi
 
-if [ ! -f "$GITBOARD_DB" ]; then
-  echo "Error: GitBoard database not found at $GITBOARD_DB"
-  echo "Make sure GitBoard has been run at least once."
+if [ ! -f "$GITBUDDY_DB" ]; then
+  echo "Error: GitBuddy database not found at $GITBUDDY_DB"
+  echo "Make sure GitBuddy has been run at least once."
   exit 1
 fi
 
-echo "=== Syncing Claude memory to GitBoard ==="
+echo "=== Syncing Claude memory to GitBuddy ==="
 echo "Memory dir: $CLAUDE_MEMORY_DIR"
-echo "GitBoard DB: $GITBOARD_DB"
+echo "GitBuddy DB: $GITBUDDY_DB"
 echo ""
 
 SYNCED=0
@@ -55,21 +55,21 @@ for project_dir in "$CLAUDE_MEMORY_DIR"/*/; do
     display_name="$project_name"
   fi
 
-  # Find matching GitBoard project by name (try exact match, then fuzzy)
-  project_id=$("$SQLITE" "$GITBOARD_DB" "SELECT id FROM projects WHERE name = '$display_name' OR name LIKE '%$display_name%' LIMIT 1" 2>/dev/null || echo "")
+  # Find matching GitBuddy project by name (try exact match, then fuzzy)
+  project_id=$("$SQLITE" "$GITBUDDY_DB" "SELECT id FROM projects WHERE name = '$display_name' OR name LIKE '%$display_name%' LIMIT 1" 2>/dev/null || echo "")
 
   if [ -z "$project_id" ]; then
     # Try matching by the full directory path
     full_path=$(echo "$project_name" | sed 's/^-//' | sed 's/-/\//g')
-    project_id=$("$SQLITE" "$GITBOARD_DB" "SELECT p.id FROM projects p JOIN repositories r ON r.project_id = p.id WHERE r.path LIKE '%$full_path%' LIMIT 1" 2>/dev/null || echo "")
+    project_id=$("$SQLITE" "$GITBUDDY_DB" "SELECT p.id FROM projects p JOIN repositories r ON r.project_id = p.id WHERE r.path LIKE '%$full_path%' LIMIT 1" 2>/dev/null || echo "")
     # Try to match by the last path segment
     if [ -z "$project_id" ]; then
-      project_id=$("$SQLITE" "$GITBOARD_DB" "SELECT p.id FROM projects p JOIN repositories r ON r.project_id = p.id WHERE r.path LIKE '%/$display_name' OR r.path LIKE '%/$display_name.git' LIMIT 1" 2>/dev/null || echo "")
+      project_id=$("$SQLITE" "$GITBUDDY_DB" "SELECT p.id FROM projects p JOIN repositories r ON r.project_id = p.id WHERE r.path LIKE '%/$display_name' OR r.path LIKE '%/$display_name.git' LIMIT 1" 2>/dev/null || echo "")
     fi
   fi
 
   if [ -z "$project_id" ]; then
-    echo "  ⚠  No matching GitBoard project for: $display_name (Claude dir: $project_name)"
+    echo "  ⚠  No matching GitBuddy project for: $display_name (Claude dir: $project_name)"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
@@ -110,15 +110,15 @@ $body"
     escaped_content=$(echo "$note_content" | sed "s/'/''/g")
 
     # Check if a note with this content already exists for this project
-    existing=$("$SQLITE" "$GITBOARD_DB" "SELECT COUNT(*) FROM project_notes WHERE project_id = $project_id AND content LIKE '${title}%'" 2>/dev/null || echo "0")
+    existing=$("$SQLITE" "$GITBUDDY_DB" "SELECT COUNT(*) FROM project_notes WHERE project_id = $project_id AND content LIKE '${title}%'" 2>/dev/null || echo "0")
 
     if [ "$existing" -gt 0 ]; then
       # Update existing note
-      "$SQLITE" "$GITBOARD_DB" "UPDATE project_notes SET content = '$escaped_content', updated_at = datetime('now') WHERE project_id = $project_id AND content LIKE '${title}%' LIMIT 1" 2>/dev/null || true
+      "$SQLITE" "$GITBUDDY_DB" "UPDATE project_notes SET content = '$escaped_content', updated_at = datetime('now') WHERE project_id = $project_id AND content LIKE '${title}%' LIMIT 1" 2>/dev/null || true
       echo "    ↻ Updated: $filename"
     else
       # Insert new note
-      "$SQLITE" "$GITBOARD_DB" "INSERT INTO project_notes (project_id, content, sort_order, created_at, updated_at) VALUES ($project_id, '$escaped_content', 0, datetime('now'), datetime('now'))" 2>/dev/null || true
+      "$SQLITE" "$GITBUDDY_DB" "INSERT INTO project_notes (project_id, content, sort_order, created_at, updated_at) VALUES ($project_id, '$escaped_content', 0, datetime('now'), datetime('now'))" 2>/dev/null || true
       echo "    + Added: $filename"
     fi
     SYNCED=$((SYNCED + 1))
@@ -128,6 +128,6 @@ done
 echo ""
 echo "=== Sync complete ==="
 echo "  Synced: $SYNCED notes"
-echo "  Skipped: $SKIPPED projects (no GitBoard match)"
+echo "  Skipped: $SKIPPED projects (no GitBuddy match)"
 echo ""
-echo "Refresh GitBoard to see the knowledge notes."
+echo "Refresh GitBuddy to see the knowledge notes."

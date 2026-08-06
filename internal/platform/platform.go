@@ -108,20 +108,35 @@ func GetGitUserName() string {
 
 // GetDbPath returns the path to the SQLite database file.
 // The database is stored in the user's config directory.
+//
+// Migration: this project was renamed from "gitboard" to "gitbuddy". On first
+// launch after upgrade, the legacy "gitboard" data directory is moved to the
+// new "gitbuddy" name so existing users keep their database and notes.
 func GetDbPath() string {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
-		configDir = filepath.Join(os.TempDir(), "gitboard")
+		configDir = filepath.Join(os.TempDir(), "gitbuddy")
 	}
-	dir := filepath.Join(configDir, "gitboard")
+	dir := filepath.Join(configDir, "gitbuddy")
+	// One-time migration from the legacy "gitboard" directory.
+	legacyDir := filepath.Join(configDir, "gitboard")
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if _, lerr := os.Stat(legacyDir); lerr == nil {
+			_ = os.Rename(legacyDir, dir)
+		}
+	}
 	if err := os.MkdirAll(dir, 0750); err != nil {
-		return filepath.Join(os.TempDir(), "gitboard.db")
+		return filepath.Join(os.TempDir(), "gitbuddy.db")
 	}
 	return filepath.Join(dir, "dashboard.db")
 }
 
 // GetPort returns the server port from environment or a random available port.
+// GITBUDDY_PORT is preferred; GITBOARD_PORT is checked for backward compatibility.
 func GetPort() string {
+	if port := os.Getenv("GITBUDDY_PORT"); port != "" {
+		return port
+	}
 	if port := os.Getenv("GITBOARD_PORT"); port != "" {
 		return port
 	}

@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"gitboard/internal/db"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/stats"
 )
 
 // version is the application version. Overridable at build time via:

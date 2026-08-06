@@ -89,7 +89,7 @@ def draw_navbar(draw, active="仪表盘"):
     rrect(draw, [(0, 0), (WIDTH, 56)], 0, fill=CARD)
     draw.line([(0, 56), (WIDTH, 56)], fill=BORDER, width=1)
     brand = get_font(16, bold=True)
-    text(draw, (32, 28), "▦ GitBoard", TEXT, brand)
+    text(draw, (32, 28), "▦ GitBuddy", TEXT, brand)
     links = ["仪表盘", "知识库", "设置"]
     x = 180
     f = get_font(13)
@@ -288,7 +288,7 @@ def draw_dashboard():
     sy += draw_section_header(d, 24, sy, WIDTH - 48, "已收藏仓库", 4)
     starred = [
         ("business-toolkit", 420, 85, 12, 84, True, False),
-        ("GitBoard", 180, 30, 5, 36, True, False),
+        ("GitBuddy", 180, 30, 5, 36, True, False),
         ("frontend-app", 310, 45, 8, 62, True, False),
         ("api-gateway", 95, 12, 3, 19, False, False),
     ]
@@ -360,7 +360,7 @@ def draw_knowledge():
     # Note cards grid (3 cols x 2 rows)
     notes = [
         ("项目知识", "business-toolkit", "knowledge", True, "## 分层架构\n前端 React + 后端 Go，通过 Wails 绑定直连…"),
-        ("部署清单", "infra-tools", "knowledge", False, "## 环境变量\nPORT、GITBOARD_PORT 控制监听端口…"),
+        ("部署清单", "infra-tools", "knowledge", False, "## 环境变量\nPORT、GITBUDDY_PORT 控制监听端口…"),
         ("接口约定", "api-gateway", "knowledge", False, "### 统一错误格式\n所有错误返回 {error: msg}…"),
         ("重构计划", "frontend-app", "idea", False, "考虑拆分 Dashboard 组件，抽出 Hero…"),
         ("修复记录", "user-service", "log", False, "登录态丢失：cookie domain 配置错误…"),

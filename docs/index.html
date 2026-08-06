@@ -4,10 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#1a1a2e">
-  <meta name="description" content="GitBoard - 自动发现本地 Git 仓库并以可视化面板展示提交量统计。支持 Windows / macOS / Linux。">
+  <meta name="description" content="GitBuddy - 自动发现本地 Git 仓库并以可视化面板展示提交量统计。支持 Windows / macOS / Linux。">
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
   <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <title>GitBoard - Git 代码提交统计面板</title>
+  <title>GitBuddy - Git 代码提交统计面板</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -74,7 +74,7 @@
 <body>
 
   <header class="hero">
-    <h1><span>Git</span>Board</h1>
+    <h1><span>Git</span>Buddy</h1>
     <p>自动发现本地 Git 仓库，可视化每日提交量；内置知识库、仓库知识挖掘与命令面板，把每个项目变成可检索的知识。</p>
     <div>
       <span class="badge badge-version">v1.5.4</span>
@@ -84,7 +84,7 @@
     </div>
     <div class="cta">
       <a href="#download" class="btn btn-primary">下载应用</a>
-      <a href="https://github.com/sky-jiangcheng/gitboard" class="btn btn-outline" target="_blank">GitHub</a>
+      <a href="https://github.com/sky-jiangcheng/gitbuddy" class="btn btn-outline" target="_blank">GitHub</a>
     </div>
   </header>
 
@@ -127,7 +127,7 @@
   <section class="section" id="download">
     <h2>下载安装</h2>
     <div style="text-align:center;margin-bottom:24px">
-      <a href="https://github.com/sky-jiangcheng/gitboard/releases/latest" class="btn btn-primary" style="font-size:18px;padding:14px 36px">前往 GitHub Releases 下载</a>
+      <a href="https://github.com/sky-jiangcheng/gitbuddy/releases/latest" class="btn btn-primary" style="font-size:18px;padding:14px 36px">前往 GitHub Releases 下载</a>
     </div>
 
     <div class="downloads">
@@ -158,8 +158,8 @@
       <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
         <h4 style="color:#4caf50;margin-bottom:12px">macOS</h4>
         <ol style="color:#ccc;font-size:14px;padding-left:20px;line-height:2">
-          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard-darwin-amd64.dmg</code>（Intel）或 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">darwin-arm64.dmg</code>（M 系列）</li>
-          <li>双击 .dmg 打开，将 GitBoard.app 拖入 Applications</li>
+          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitbuddy-darwin-amd64.dmg</code>（Intel）或 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">darwin-arm64.dmg</code>（M 系列）</li>
+          <li>双击 .dmg 打开，将 GitBuddy.app 拖入 Applications</li>
           <li>首次打开：右键点击 &gt; <strong>打开</strong>（绕过 Gatekeeper 未签名提示）</li>
         </ol>
       </div>
@@ -168,8 +168,8 @@
       <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
         <h4 style="color:#4caf50;margin-bottom:12px">Windows</h4>
         <ol style="color:#ccc;font-size:14px;padding-left:20px;line-height:2">
-          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard-windows-amd64.zip</code></li>
-          <li>解压后双击 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard.exe</code> 运行</li>
+          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitbuddy-windows-amd64.zip</code></li>
+          <li>解压后双击 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitbuddy.exe</code> 运行</li>
           <li>Windows Defender 弹出警告时，点击 <strong>更多信息</strong> &gt; <strong>仍要运行</strong></li>
         </ol>
       </div>
@@ -178,18 +178,18 @@
       <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
         <h4 style="color:#4caf50;margin-bottom:12px">Linux</h4>
         <p style="color:#ccc;font-size:14px;margin-bottom:8px">下载 .tar.gz 后：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">tar -xzf gitboard-linux-amd64.tar.gz && chmod +x gitboard && ./gitboard</code>
+        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">tar -xzf gitbuddy-linux-amd64.tar.gz && chmod +x gitbuddy && ./gitbuddy</code>
         <p style="color:#999;font-size:13px;margin-top:12px">系统安装（可选）：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">sudo mv gitboard /usr/local/bin/</code>
+        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">sudo mv gitbuddy /usr/local/bin/</code>
       </div>
 
       <!-- 一键安装脚本 -->
       <div style="background:#0d1117;border-radius:8px;padding:20px">
         <h4 style="color:#4a7d4a;margin-bottom:12px">一键安装（实验性）</h4>
         <p style="color:#ccc;font-size:14px;margin-bottom:8px">macOS / Linux：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.sh | bash</code>
+        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.sh | bash</code>
         <p style="color:#ccc;font-size:14px;margin-bottom:8px;margin-top:12px">Windows (PowerShell 管理员)：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.ps1 | iex</code>
+        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.ps1 | iex</code>
       </div>
     </div>
   </section>
@@ -199,7 +199,7 @@
     <div class="features">
       <div class="feature-card">
         <h3>1. 启动应用</h3>
-        <p>下载后双击运行，GitBoard 以原生窗口打开，自动扫描并展示所有 Git 仓库。</p>
+        <p>下载后双击运行，GitBuddy 以原生窗口打开，自动扫描并展示所有 Git 仓库。</p>
       </div>
       <div class="feature-card">
         <h3>2. 配置与达标</h3>
@@ -217,8 +217,8 @@
   </section>
 
   <footer>
-    <p>GitBoard - MIT License</p>
-    <p><a href="https://github.com/sky-jiangcheng/gitboard" target="_blank">GitHub</a></p>
+    <p>GitBuddy - MIT License</p>
+    <p><a href="https://github.com/sky-jiangcheng/gitbuddy" target="_blank">GitHub</a></p>
   </footer>
 
 </body>

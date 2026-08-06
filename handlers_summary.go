@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"gitboard/internal/db"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/stats"
 )
 
 // SummaryData holds the daily summary payload.

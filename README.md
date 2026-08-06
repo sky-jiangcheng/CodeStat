@@ -1,4 +1,4 @@
-# GitBoard
+# GitBuddy
 
 自动发现本地所有 Git 仓库，以可视化 Web 面板独立展示每个项目的每日代码提交量。
 
@@ -39,21 +39,21 @@
 
 ### 下载安装
 
-从 [Releases](https://github.com/sky-jiangcheng/gitboard/releases) 下载对应平台的最新版本。
+从 [Releases](https://github.com/sky-jiangcheng/gitbuddy/releases) 下载对应平台的最新版本。
 
 | 平台 | 一键安装 |
 |------|---------|
-| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.sh \| bash` |
-| Windows | `iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.ps1 \| iex` |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.sh \| bash` |
+| Windows | `iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.ps1 \| iex` |
 
 ### 手动使用
 
 ```bash
 # 下载后赋予执行权限
-chmod +x gitboard
+chmod +x gitbuddy
 
 # 直接运行
-./gitboard
+./gitbuddy
 ```
 
 启动后自动打开浏览器访问 `http://localhost:18731`，进入仪表盘。
@@ -70,13 +70,15 @@ chmod +x gitboard
 
 在设置页面可修改扫描目录、代码量标准（默认 500 行/工作日）、扫描深度（1-2级，默认 2 级）。
 
-配置存储在应用数据目录下的 `gitboard` 文件夹中：
+配置存储在应用数据目录下的 `gitbuddy` 文件夹中：
 
-- **Windows**: `%APPDATA%/gitboard/dashboard.db`
-- **macOS**: `~/Library/Application Support/gitboard/dashboard.db`
-- **Linux**: `~/.config/gitboard/dashboard.db`
+- **Windows**: `%APPDATA%/gitbuddy/dashboard.db`
+- **macOS**: `~/Library/Application Support/gitbuddy/dashboard.db`
+- **Linux**: `~/.config/gitbuddy/dashboard.db`
 
 > 注意：数据库文件名为 `dashboard.db`。若你从早期版本升级，schema 会自动迁移（结构化笔记字段、知识挖掘缓存表等）。
+>
+> **从 GitBoard 升级**：项目已从 `GitBoard` 更名为 `GitBuddy`。首次启动新版本时，旧的 `gitboard` 数据目录会自动迁移为 `gitbuddy`，你的数据库与笔记不会丢失。环境变量 `GITBOARD_PORT` 仍向后兼容。
 
 ## 从源码构建
 
@@ -90,7 +92,7 @@ cd web && npm install && cd ..
 cd web && npm run build && cd ..
 
 # 编译 Go 二进制（前端静态资源自动 embed）
-go build -ldflags="-s -w" -o gitboard .
+go build -ldflags="-s -w" -o gitbuddy .
 
 # 或使用构建脚本
 bash scripts/build.sh
@@ -110,7 +112,7 @@ cd web && npm run dev
 
 ## 项目分组规则
 
-GitBoard 使用智能分组算法自动识别项目边界：
+GitBuddy 使用智能分组算法自动识别项目边界：
 
 | 场景 | 分组规则 |
 |------|---------|
@@ -122,7 +124,7 @@ GitBoard 使用智能分组算法自动识别项目边界：
 
 ## 前后端接口
 
-GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
+GitBuddy 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
 
 | 方法 | 说明 |
 |------|------|
@@ -194,7 +196,7 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 
 ### Q: 仓库卡片为什么只显示名称？
 
-GitBoard 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
+GitBuddy 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
 
 ### Q: 统计数据显示为零？
 

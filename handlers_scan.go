@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"gitboard/internal/db"
-	"gitboard/internal/grouper"
-	"gitboard/internal/scanner"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/grouper"
+	"gitbuddy/internal/scanner"
+	"gitbuddy/internal/stats"
 )
 
 // ScanResult holds the result of a scan operation.

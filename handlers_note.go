@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"gitboard/internal/db"
+	"gitbuddy/internal/db"
 )
 
 // NoteWithProject is a note joined with its parent project (global knowledge hub).

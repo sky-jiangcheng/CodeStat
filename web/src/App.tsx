@@ -57,7 +57,7 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
       <div className="nav-left">
         <Link to="/" className="nav-brand">
           <span className="nav-brand-mark">▦</span>
-          GitBoard
+          GitBuddy
         </Link>
         <div className="nav-links">
           <Link to="/" className={navClass(pathname === '/' || pathname.startsWith('/project'))}>

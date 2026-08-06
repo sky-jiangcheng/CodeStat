@@ -10,8 +10,8 @@
 *.swp
 *.bak
 
-# GitBoard binary
-gitboard
+# GitBuddy binary
+gitbuddy
 git-dashboard
 
 # Database files

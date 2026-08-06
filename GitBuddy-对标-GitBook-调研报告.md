@@ -1,6 +1,6 @@
 # GitBook 能力调研报告（2025–2026）
 
-> 用途：为本地 Git 仓库可视化 + 知识笔记桌面应用 **GitBoard** 与 GitBook 做差距对标。
+> 用途：为本地 Git 仓库可视化 + 知识笔记桌面应用 **GitBuddy** 与 GitBook 做差距对标。
 > 信息来源：GitBook 官方文档站（`gitbook.com/docs`）、官方博客、Changelog、帮助中心、定价页、官方 GitHub 仓库（`GitbookIO/public-docs` 镜像）。检索时间窗聚焦 2025–2026 最新状态（截至 2026-08）。
 > 说明：GitBook 在 2025 年完成了从"老 GitBook CLI（开源工具）"向"AI 原生托管文档平台"的产品形态跃迁，能力清单以**当前 SaaS 平台**为准；老的开源 `gitbook` CLI（`book.json` / `gitbook pdf`）已不是主线路径，仅在个别迁移场景被提及。
 
@@ -179,7 +179,7 @@ GitBook 把 AI 拆成**三层 + 一套可观测性**：
 3. **GitBook Agent**（Ultimate）：**写/改/更新文档**的 AI agent——监控 docs 与产品的 drift、主动建议改进、起草 change request、识别内容缺口；可附任意类型文件（MD/Word 等）作参考。
 4. **AI insights**：见 2.13。AI 回答评分 + 问题聚合，形成可行动的"docs 缺口 backlog"。
 
-**面向 AI Agent 的内容分发**（这是 GitBoard 最值得对标的范式）：
+**面向 AI Agent 的内容分发**（这是 GitBuddy 最值得对标的范式）：
 - **`llms.txt`**：站点根目录的 AI 索引（H1 标题 + 分组 + 链接到 .md 版本 + 简述）。
 - **`llms-full.txt`**：全量文档语料导出。
 - **`.md` 路由**：任意页 URL 加 `.md` 返回 Markdown 版（如 `gitbook.com/docs/.../page.md`）。
@@ -271,7 +271,7 @@ GitBook 把 AI 拆成**三层 + 一套可观测性**：
 - `site redirects`（Premium & Ultimate）处理迁移与 404。
 
 ### 3.5 PWA 规范
-- 官方公开文档**未声明**完整 PWA（manifest + service worker + 离线）。发布站是响应式 web app，重预渲染 + CDN，但不是可安装离线 PWA。**这是 GitBoard（桌面应用）可差异化的点。**
+- 官方公开文档**未声明**完整 PWA（manifest + service worker + 离线）。发布站是响应式 web app，重预渲染 + CDN，但不是可安装离线 PWA。**这是 GitBuddy（桌面应用）可差异化的点。**
 
 ### 3.6 性能规范
 - 预渲染（pre-rendered）+ 全局 CDN。
@@ -383,24 +383,24 @@ GitBook 把 AI 拆成**三层 + 一套可观测性**：
 
 ---
 
-## 6. GitBook 最值得 GitBoard 对标的 10 个能力点（按对开发者文档/知识库产品的重要性排序）
+## 6. GitBook 最值得 GitBuddy 对标的 10 个能力点（按对开发者文档/知识库产品的重要性排序）
 
-> GitBoard 是"本地 Git 仓库可视化 + 知识笔记桌面应用"，与 GitBook 的托管 SaaS 形态不同。下列项兼顾"GitBook 做得好"与"对 GitBoard 这种本地+知识笔记产品有移植价值"。
+> GitBuddy 是"本地 Git 仓库可视化 + 知识笔记桌面应用"，与 GitBook 的托管 SaaS 形态不同。下列项兼顾"GitBook 做得好"与"对 GitBuddy 这种本地+知识笔记产品有移植价值"。
 
 1. **面向 AI Agent 的内容分发层（llms.txt / llms-full.txt / `.md` 路由 / `?ask=` 查询）**
-   GitBoard 可为本地仓库笔记自动生成 `llms.txt` 索引、每篇笔记可导出纯 Markdown、提供 `?ask=` 风格的本地问答接口——让本地知识库同样 AI-ready。这是 2025–2026 文档平台的最强新共识，必做。
+   GitBuddy 可为本地仓库笔记自动生成 `llms.txt` 索引、每篇笔记可导出纯 Markdown、提供 `?ask=` 风格的本地问答接口——让本地知识库同样 AI-ready。这是 2025–2026 文档平台的最强新共识，必做。
 
 2. **块编辑器 + Markdown 双轨 + 自定义 block 标签**
-   Notion 风格块编辑 + `/` palette + 原生 Markdown 输入，配合 `{% hint %}`/`{% tabs %}`/`{% stepper %}`/`{% columns %}`/`{% updates %}`/`cards`/`<details>` 等语义化 block。GitBoard 的笔记编辑器应同时满足"键盘流 Markdown 老手"与"可视化新手"。
+   Notion 风格块编辑 + `/` palette + 原生 Markdown 输入，配合 `{% hint %}`/`{% tabs %}`/`{% stepper %}`/`{% columns %}`/`{% updates %}`/`cards`/`<details>` 等语义化 block。GitBuddy 的笔记编辑器应同时满足"键盘流 Markdown 老手"与"可视化新手"。
 
 3. **OpenAPI 自动渲染 + Try-it（Scalar）+ 自动生成 endpoint 页**
-   开发者文档的硬通货。GitBoard 若做"本地仓库内嵌 API 文档"，应支持导入 spec（2.0/3.0/3.1）→ 生成可测试 block，spec 变更自动同步。
+   开发者文档的硬通货。GitBuddy 若做"本地仓库内嵌 API 文档"，应支持导入 spec（2.0/3.0/3.1）→ 生成可测试 block，spec 变更自动同步。
 
 4. **Git 双向同步 + Change Request（类 PR）+ Diff view**
-   GitBoard 天然有"本地 Git 仓库"优势：可把笔记变更建模为 branch/CR/diff，复用 Git 本身的版本与评审能力，diff view 支持"仅看改动页"。这是 GitBoard 相对 GitBook 的潜在**超越点**（本地 Git 一等公民）。
+   GitBuddy 天然有"本地 Git 仓库"优势：可把笔记变更建模为 branch/CR/diff，复用 Git 本身的版本与评审能力，diff view 支持"仅看改动页"。这是 GitBuddy 相对 GitBook 的潜在**超越点**（本地 Git 一等公民）。
 
 5. **SUMMARY.md + frontmatter + `.gitbook/vars.yaml` 的内容规范**
-   用 `SUMMARY.md` 表达目录、frontmatter（`description`/`icon`/`hidden`/`vars`/`if`/`layout`）表达元数据、`vars.yaml` + `<code class="expression">` 表达变量与动态内容。GitBoard 可直接借鉴这套"文件即配置"的 docs-as-code 规范。
+   用 `SUMMARY.md` 表达目录、frontmatter（`description`/`icon`/`hidden`/`vars`/`if`/`layout`）表达元数据、`vars.yaml` + `<code class="expression">` 表达变量与动态内容。GitBuddy 可直接借鉴这套"文件即配置"的 docs-as-code 规范。
 
 6. **设计系统：4 主题 + primary/tint/semantic 三色 + LCH 自动达标色板 + light/dark logo**
    "样式定义意图而非外观、跨主题自动适配"的设计哲学非常值得学习；LCH 色板保证可访问性对比度自动达标，是高质量桌面应用 UI 的参考标杆。
@@ -409,13 +409,13 @@ GitBook 把 AI 拆成**三层 + 一套可观测性**：
    特别是"Agent & LLMs"维度（追踪 llms.txt/llms-full.txt/.md 请求 + 哪些 agent 访问）和"Ask AI 评分 → 文档缺口 backlog"——这是传统笔记应用普遍缺失、但对知识库产品极有价值的能力。
 
 8. **GitBook Assistant / Agent 三层 AI + MCP server + Channels**
-   聊天 Assistant（agentic retrieval + adaptive content + 嵌入产品）+ 写作 Agent（监控 drift、起草 CR）+ Channels（Slack/Linear/GitHub）。GitBoard 可对标"本地知识库问答 + 笔记 drift 检测 + 可选 MCP 暴露给外部 agent"。
+   聊天 Assistant（agentic retrieval + adaptive content + 嵌入产品）+ 写作 Agent（监控 drift、起草 CR）+ Channels（Slack/Linear/GitHub）。GitBuddy 可对标"本地知识库问答 + 笔记 drift 检测 + 可选 MCP 暴露给外部 agent"。
 
 9. **官方文档自举 + 完整 DX（CLI / MCP / SKILL.md / Agent Score）**
-   GitBook 用自家产品发布自家文档，并提供 CLI（`@gitbook/cli`，`--json` agent 友好）、MCP server、SKILL.md、Agent Score 自检。GitBoard 作为开发者工具，应同样提供 CLI/可被 AI agent 调用 + 自检工具，并让自身文档成为产品能力的展示窗。
+   GitBook 用自家产品发布自家文档，并提供 CLI（`@gitbook/cli`，`--json` agent 友好）、MCP server、SKILL.md、Agent Score 自检。GitBuddy 作为开发者工具，应同样提供 CLI/可被 AI agent 调用 + 自检工具，并让自身文档成为产品能力的展示窗。
 
 10. **快捷键体系 + 命令面板（`⌘K` 搜索 / `⌘I` Assistant / `/` block palette / `⌘/` modifier）**
-    桌面应用尤其依赖键盘流。GitBook 的"搜索/Assistant/block 插入/block 修改/标题转换/表格操作"全键盘覆盖是优秀范本，GitBoard 应提供等价的命令面板与块级快捷键。
+    桌面应用尤其依赖键盘流。GitBook 的"搜索/Assistant/block 插入/block 修改/标题转换/表格操作"全键盘覆盖是优秀范本，GitBuddy 应提供等价的命令面板与块级快捷键。
 
 ---
 

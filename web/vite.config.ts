@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'favicon.ico'],
       manifest: {
-        name: 'GitBoard',
-        short_name: 'GitBoard',
-        description: 'Git 代码提交统计面板 - 自动发现本地项目并可视化展示提交量',
+        name: 'GitBuddy',
+        short_name: 'GitBuddy',
+        description: 'GitBuddy - Git 代码提交统计面板 - 自动发现本地项目并可视化展示提交量',
         theme_color: '#1a1a2e',
         background_color: '#f5f7fa',
         display: 'standalone',
