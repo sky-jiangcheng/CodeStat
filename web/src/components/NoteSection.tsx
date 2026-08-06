@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, Note,
 } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
+import MarkdownToolbar from './MarkdownToolbar'
 
 interface Props {
   projectId: number
@@ -57,6 +58,8 @@ function NoteSection({ projectId }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
+  const draftTextareaRef = useRef<HTMLTextAreaElement>(null)
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null)
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
@@ -189,13 +192,21 @@ function NoteSection({ projectId }: Props) {
             className="form-input note-tags-input"
           />
           <div className="note-editor-split">
-            <textarea
-              value={draft.content}
-              onChange={e => setDraft({ ...draft, content: e.target.value })}
-              placeholder="输入 Markdown 内容…"
-              className="form-input note-textarea"
-              rows={10}
-            />
+            <div className="note-editor-pane">
+              <MarkdownToolbar
+                textareaRef={draftTextareaRef}
+                value={draft.content}
+                onChange={(v) => setDraft({ ...draft, content: v })}
+              />
+              <textarea
+                ref={draftTextareaRef}
+                value={draft.content}
+                onChange={e => setDraft({ ...draft, content: e.target.value })}
+                placeholder="输入 Markdown 内容…"
+                className="form-input note-textarea"
+                rows={10}
+              />
+            </div>
             {showPreview && (
               <div className="note-preview markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(draft.content) }} />
             )}
@@ -246,12 +257,20 @@ function NoteSection({ projectId }: Props) {
                     className="form-input note-tags-input"
                   />
                   <div className="note-editor-split">
-                    <textarea
-                      value={editContent}
-                      onChange={e => setEditContent(e.target.value)}
-                      className="form-input note-textarea"
-                      rows={10}
-                    />
+                    <div className="note-editor-pane">
+                      <MarkdownToolbar
+                        textareaRef={editTextareaRef}
+                        value={editContent}
+                        onChange={setEditContent}
+                      />
+                      <textarea
+                        ref={editTextareaRef}
+                        value={editContent}
+                        onChange={e => setEditContent(e.target.value)}
+                        className="form-input note-textarea"
+                        rows={10}
+                      />
+                    </div>
                     {showPreview && (
                       <div className="note-preview markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(editContent) }} />
                     )}

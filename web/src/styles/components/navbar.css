@@ -86,3 +86,22 @@
   border: 1px solid var(--border-default);
   color: var(--text-tertiary);
 }
+
+/* Keyboard-shortcut hint icon (a11y/discoverability tooltip). */
+.nav-shortcut-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 8px;
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: help;
+  transition: all var(--transition-fast);
+}
+
+.nav-shortcut-hint:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}

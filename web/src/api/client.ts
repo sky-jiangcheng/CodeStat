@@ -481,6 +481,21 @@ export function searchProjects(query: string): Promise<Project[]> {
   return http<Project[]>(`/projects/search?q=${encodeURIComponent(query)}`).then(d => d ?? [])
 }
 
+export interface ExportResult {
+  success: boolean
+  path: string
+  notes: number
+  todos: number
+  message?: string
+}
+
+export function exportNotes(format: 'markdown' | 'json'): Promise<ExportResult> {
+  if (isWails()) return wail<ExportResult>('ExportNotes', format)
+  // HTTP standalone mode: return a no-op success since there is no native
+  // save dialog in the browser. The Wails build is the primary target.
+  return Promise.resolve({ success: false, path: '', notes: 0, todos: 0, message: '导出仅在桌面应用中可用' })
+}
+
 export function getStatusBar(): Promise<StatusBarData> {
   if (isWails()) return wail<StatusBarData>('GetStatusBar').then(d => d ?? {
     current_time: '', last_commit_time: '', last_commit_repo: '',

@@ -1,10 +1,11 @@
-import { Component, ReactNode, useEffect, useState } from 'react'
+import { Component, ReactNode, useEffect, useState, useCallback } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
 import Knowledge from './pages/Knowledge'
 import CommandPalette from './components/CommandPalette'
+import { useGlobalShortcuts } from './hooks/useGlobalShortcuts'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
 
 // ErrorBoundary prevents a render crash in any routed page from black-screening
@@ -79,11 +80,17 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
         <span>搜索</span>
         <kbd className="nav-kbd">⌘K</kbd>
       </button>
+      <div className="nav-shortcut-hint" title="键盘快捷键：⌘K 搜索 · ⌘G 仪表盘 · ⌘N 知识库 · ⌘, 设置">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="4" width="20" height="16" rx="2" />
+          <path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10" />
+        </svg>
+      </div>
     </nav>
   )
 }
 
-function App() {
+function AppInner() {
   const [paletteOpen, setPaletteOpen] = useState(false)
 
   useEffect(() => {
@@ -94,26 +101,27 @@ function App() {
     })
   }, [])
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        setPaletteOpen(o => !o)
-      }
-    }
-    window.addEventListener('keydown', handler)
-    return () => window.removeEventListener('keydown', handler)
-  }, [])
+  // App-wide keyboard shortcuts (Cmd/Ctrl+K palette, +G dashboard, +N knowledge,
+  // +, settings). The toggle callback is memoized so the hook does not rebind
+  // on every render.
+  const togglePalette = useCallback(() => setPaletteOpen(o => !o), [])
+  useGlobalShortcuts(togglePalette)
 
   return (
+    <div className="app">
+      <NavBar onOpenPalette={() => setPaletteOpen(true)} />
+      <main className="main-content">
+        <RoutedApp />
+      </main>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+    </div>
+  )
+}
+
+function App() {
+  return (
     <BrowserRouter>
-      <div className="app">
-        <NavBar onOpenPalette={() => setPaletteOpen(true)} />
-        <main className="main-content">
-          <RoutedApp />
-        </main>
-        <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
-      </div>
+      <AppInner />
     </BrowserRouter>
   )
 }

@@ -94,6 +94,12 @@ type NoteWithProject struct {
 	ProjectName string `json:"project_name"`
 }
 
+// TodoWithProject is a todo joined with its parent project, used by exports.
+type TodoWithProject struct {
+	Todo
+	ProjectName string `json:"project_name"`
+}
+
 // TodoCount holds incomplete and total todo counts for a project.
 type TodoCount struct {
 	ProjectID int64 `json:"project_id"`
@@ -523,6 +529,28 @@ func ListAllNotes(db *sql.DB) ([]NoteWithProject, error) {
 		notes = append(notes, np)
 	}
 	return notes, rows.Err()
+}
+
+// ListAllTodos returns every todo across all projects, joined with project
+// info, ordered by project then sort order. Used by the data export feature.
+func ListAllTodos(db *sql.DB) ([]TodoWithProject, error) {
+	rows, err := db.Query(
+		"SELECT t.id, t.project_id, t.title, t.completed, t.priority, t.sort_order, t.created_at, t.updated_at, p.name " +
+			"FROM project_todos t JOIN projects p ON p.id = t.project_id " +
+			"ORDER BY p.name ASC, t.sort_order ASC, t.id ASC")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var todos []TodoWithProject
+	for rows.Next() {
+		var tp TodoWithProject
+		if err := rows.Scan(&tp.ID, &tp.ProjectID, &tp.Title, &tp.Completed, &tp.Priority, &tp.SortOrder, &tp.CreatedAt, &tp.UpdatedAt, &tp.ProjectName); err != nil {
+			return nil, err
+		}
+		todos = append(todos, tp)
+	}
+	return todos, rows.Err()
 }
 
 // ListAllTags returns the distinct set of non-empty tag strings.

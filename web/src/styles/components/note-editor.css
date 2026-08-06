@@ -35,13 +35,56 @@
   margin-bottom: 8px;
 }
 
+/* Editor pane holds the toolbar + textarea stacked vertically. */
+.note-editor-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
 .note-editor-split .note-textarea {
   margin-bottom: 0;
+  flex: 1;
 }
 
 .note-editor-split .note-preview {
   max-height: 240px;
   overflow-y: auto;
+}
+
+/* --- Markdown formatting toolbar --- */
+.md-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+
+.md-tool-btn {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.md-tool-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.md-tool-btn:active {
+  background: var(--bg-active);
 }
 
 .draft-hint {

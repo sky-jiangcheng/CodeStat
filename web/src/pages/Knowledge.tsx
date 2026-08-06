@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory,
+  listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory, exportNotes,
   NoteWithProject, SearchHit,
 } from '../api/client'
 import { renderMarkdown, renderSnippet, stripMarkdown, parseTags } from '../utils/markdown'
@@ -19,6 +19,7 @@ function KnowledgePage() {
   const [activeTag, setActiveTag] = useState<string | null>(null)
   const [pinnedOnly, setPinnedOnly] = useState(false)
   const [importing, setImporting] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [message, setMessage] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
@@ -59,6 +60,25 @@ function KnowledgePage() {
     }
   }
 
+  const handleExport = async (format: 'markdown' | 'json') => {
+    setExporting(true)
+    try {
+      const r = await exportNotes(format)
+      if (r.success) {
+        const parts = [`已导出 ${r.notes} 条笔记`]
+        if (r.todos > 0) parts.push(`${r.todos} 条待办`)
+        setMessage(parts.join('、') + ' → ' + r.path)
+      } else {
+        setMessage(r.message || '导出已取消')
+      }
+    } catch (e) {
+      setMessage('导出失败：' + (e instanceof Error ? e.message : '未知错误'))
+    } finally {
+      setExporting(false)
+      setTimeout(() => setMessage(''), 6000)
+    }
+  }
+
   const filtered = useMemo(() => {
     let list = notes
     if (kindFilter === 'knowledge') list = list.filter(n => n.kind === 'knowledge')
@@ -95,6 +115,12 @@ function KnowledgePage() {
           <p className="page-sub">跨项目汇总 {notes.length} 条笔记，支持全文搜索、标签筛选与置顶。</p>
         </div>
         <div className="page-head-actions">
+          <button className="btn btn-secondary btn-sm" onClick={() => handleExport('markdown')} disabled={exporting} title="导出全部笔记为 Markdown 文件">
+            {exporting ? '导出中…' : '导出 Markdown'}
+          </button>
+          <button className="btn btn-secondary btn-sm" onClick={() => handleExport('json')} disabled={exporting} title="导出全部笔记与待办为 JSON 文件">
+            导出 JSON
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={handleImport} disabled={importing}>
             {importing ? '导入中…' : '导入 Claude 记忆'}
           </button>

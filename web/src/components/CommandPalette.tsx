@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
 import { renderSnippet } from '../utils/markdown'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 
 interface Props {
   open: boolean
@@ -11,13 +12,22 @@ interface Props {
 // CommandPalette is a Cmd/Ctrl+K quick-switcher: search notes & todos across all
 // projects and jump straight to a project. It surfaces the knowledge-search
 // capability as a first-class keyboard action.
+//
+// Accessibility: the overlay is a focus-trapped modal dialog (role="dialog",
+// aria-modal) so screen readers announce it correctly and keyboard focus
+// cannot escape to the background page. Focus returns to the trigger button
+// when the palette closes (WCAG 2.1 SC 2.4.3).
 export default function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const dialogRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
+
+  // Trap focus inside the dialog while open, restoring focus on close.
+  useFocusTrap(dialogRef, open)
 
   useEffect(() => {
     if (open) {
@@ -25,7 +35,15 @@ export default function CommandPalette({ open, onClose }: Props) {
       setHits([])
       setActiveIndex(0)
       getProjects('', false).then(setProjects).catch(() => setProjects([]))
-      setTimeout(() => inputRef.current?.focus(), 30)
+    }
+  }, [open])
+
+  // Focus the input after the dialog renders. useFocusTrap focuses the first
+  // focusable element, but we ensure the input is it via tabindex.
+  useEffect(() => {
+    if (open) {
+      const t = setTimeout(() => inputRef.current?.focus(), 30)
+      return () => clearTimeout(t)
     }
   }, [open])
 
@@ -68,8 +86,19 @@ export default function CommandPalette({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="cmdk-overlay" onClick={onClose}>
-      <div className="cmdk" onClick={e => e.stopPropagation()}>
+    <div
+      className="cmdk-overlay"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        ref={dialogRef}
+        className="cmdk"
+        role="dialog"
+        aria-modal="true"
+        aria-label="搜索面板"
+        onClick={e => e.stopPropagation()}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -78,17 +107,24 @@ export default function CommandPalette({ open, onClose }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="搜索笔记 / 待办 / 跳转项目…"
           className="cmdk-input"
+          aria-label="搜索关键词"
+          aria-autocomplete="list"
+          aria-controls="cmdk-results"
+          aria-activedescendant={totalItems > 0 ? `cmdk-item-${activeIndex}` : undefined}
         />
-        <div className="cmdk-results">
+        <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label="搜索结果">
           {hits.length === 0 && filteredProjects.length === 0 && (
-            <div className="cmdk-empty">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
+            <div className="cmdk-empty" role="status">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
           )}
-          {hits.length > 0 && <div className="cmdk-group">笔记与待办</div>}
+          {hits.length > 0 && <div className="cmdk-group" role="presentation">笔记与待办</div>}
           {hits.map((h, i) => (
             <a
               key={`${h.type}-${h.id}`}
+              id={`cmdk-item-${i}`}
               href={`/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
+              role="option"
+              aria-selected={activeIndex === i}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
             >
@@ -99,12 +135,15 @@ export default function CommandPalette({ open, onClose }: Props) {
               </div>
             </a>
           ))}
-          {filteredProjects.length > 0 && <div className="cmdk-group">项目</div>}
+          {filteredProjects.length > 0 && <div className="cmdk-group" role="presentation">项目</div>}
           {filteredProjects.map((p, i) => (
             <a
               key={p.id}
+              id={`cmdk-item-${hits.length + i}`}
               href={`/project/${p.id}`}
               className={`cmdk-item ${activeIndex === hits.length + i ? 'cmdk-item-active' : ''}`}
+              role="option"
+              aria-selected={activeIndex === hits.length + i}
               onMouseEnter={() => setActiveIndex(hits.length + i)}
               onClick={onClose}
             >
@@ -116,7 +155,7 @@ export default function CommandPalette({ open, onClose }: Props) {
             </a>
           ))}
         </div>
-        <div className="cmdk-foot">
+        <div className="cmdk-foot" role="presentation">
           <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
         </div>
       </div>
