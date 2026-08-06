@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-
-	"gitboard/internal/db"
 )
 
 // ConfigData holds the application configuration sent to the frontend.
@@ -15,11 +13,11 @@ type ConfigData struct {
 
 // GetConfig returns all configuration settings and scan roots.
 func (a *App) GetConfig() (*ConfigData, error) {
-	configs, err := db.GetAllConfigs(a.db)
+	configs, err := a.Stores.Config.All()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config")
 	}
-	roots, _ := db.GetScanRoots(a.db)
+	roots, _ := a.Stores.ScanRoot.Get()
 	return &ConfigData{Config: configs, ScanRoots: roots}, nil
 }
 
@@ -35,12 +33,12 @@ func (a *App) UpdateConfig(key, value string) error {
 			return fmt.Errorf("config value must be a number")
 		}
 	}
-	return db.SetConfig(a.db, key, value)
+	return a.Stores.Config.Set(key, value)
 }
 
 // UpdateScanRoots replaces the entire scan root list atomically.
 func (a *App) UpdateScanRoots(scanRoots []string) error {
-	if err := db.ReplaceScanRoots(a.db, scanRoots); err != nil {
+	if err := a.Stores.ScanRoot.Replace(scanRoots); err != nil {
 		return fmt.Errorf("failed to update scan roots: %w", err)
 	}
 	return nil

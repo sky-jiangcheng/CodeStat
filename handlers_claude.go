@@ -5,8 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"gitboard/internal/db"
 )
 
 // ImportResult summarizes a Claude memory import run.
@@ -32,8 +30,8 @@ func (a *App) ImportClaudeMemory() (*ImportResult, error) {
 		return &ImportResult{}, nil
 	}
 
-	projects, _ := db.GetAllProjects(a.db)
-	repos, _ := db.GetAllRepositories(a.db)
+	projects, _ := a.Stores.Project.GetAll()
+	repos, _ := a.Stores.Repository.GetAll()
 
 	result := &ImportResult{}
 	for _, e := range entries {
@@ -73,12 +71,12 @@ func (a *App) ImportClaudeMemory() (*ImportResult, error) {
 			title := claudeNoteTitle(base)
 			kind := "knowledge"
 
-			if existing, _ := db.GetNoteBySourceTitle(a.db, pid, "claude", title); existing != nil {
-				_ = db.UpdateNote(a.db, existing.ID, body)
-				_ = db.UpdateNoteMeta(a.db, existing.ID, title, "", kind, existing.Pinned)
+			if existing, _ := a.Stores.Note.GetBySourceTitle(pid, "claude", title); existing != nil {
+				_ = a.Stores.Note.Update(existing.ID, body)
+				_ = a.Stores.Note.UpdateMeta(existing.ID, title, "", kind, existing.Pinned)
 				result.Updated++
 			} else {
-				if _, err := db.CreateNoteEx(a.db, pid, title, body, "", kind, "claude"); err == nil {
+				if _, err := a.Stores.Note.CreateEx(pid, title, body, "", kind, "claude"); err == nil {
 					result.Synced++
 				}
 			}
@@ -116,7 +114,7 @@ func claudeNoteTitle(filename string) string {
 
 // matchClaudeProject finds the GitBoard project id for a Claude memory dir,
 // preferring exact name, then repo path suffix, then name containment.
-func matchClaudeProject(displayName string, projects []db.Project, repos []db.Repository) int64 {
+func matchClaudeProject(displayName string, projects []Project, repos []Repository) int64 {
 	lower := strings.ToLower(displayName)
 	// 1. exact name
 	for _, p := range projects {

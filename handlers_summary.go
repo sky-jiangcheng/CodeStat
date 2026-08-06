@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gitboard/internal/db"
-	"gitboard/internal/stats"
 )
 
 // SummaryData holds the daily summary payload.
@@ -26,18 +25,18 @@ type SummaryData struct {
 // GetSummary returns aggregated stats for all repositories on a given date.
 func (a *App) GetSummary(date string) (*SummaryData, error) {
 	if date == "" {
-		date = stats.GetYesterdayDate()
+		date = a.Git.GetYesterdayDate()
 	}
-	if err := stats.ValidateDate(date); err != nil {
+	if err := a.Git.ValidateDate(date); err != nil {
 		return nil, fmt.Errorf("invalid date format")
 	}
 
-	allStats, err := db.GetStatsByDate(a.db, date)
+	allStats, err := a.Stores.DailyStat.GetByDate(date)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load summary")
 	}
 
-	summary := &SummaryData{Date: date, IsWorkday: stats.IsWorkday(date)}
+	summary := &SummaryData{Date: date, IsWorkday: a.Git.IsWorkday(date)}
 	repoSet := make(map[int64]bool)
 	for _, st := range allStats {
 		repoSet[st.RepositoryID] = true
@@ -61,10 +60,10 @@ type HeatmapResponse struct {
 
 // GetHeatmapData returns daily commit stats for the past year.
 func (a *App) GetHeatmapData() *HeatmapResponse {
-	endDate := stats.GetTodayDate()
+	endDate := a.Git.GetTodayDate()
 	startDate := time.Now().AddDate(0, 0, -365).Format("2006-01-02")
 
-	days, err := db.GetHeatmapData(a.db, startDate, endDate, a.gitUser)
+	days, err := a.Stores.DailyStat.GetHeatmap(startDate, endDate, a.gitUser)
 	if err != nil {
 		log.Printf("get heatmap error: %v", err)
 		return &HeatmapResponse{Days: []db.HeatmapDay{}}
@@ -98,7 +97,7 @@ func (a *App) GetStatusBar() *StatusBarData {
 		return a.statusCache
 	}
 
-	repos, _ := db.GetAllRepositories(a.db)
+	repos, _ := a.Stores.Repository.GetAll()
 	repoPaths := make([]string, 0, len(repos))
 	for _, r := range repos {
 		repoPaths = append(repoPaths, r.Path)
@@ -108,7 +107,7 @@ func (a *App) GetStatusBar() *StatusBarData {
 		CurrentTime: now.Format("2006-01-02 15:04:05"),
 	}
 
-	recent, err := stats.GetRecentCommit(repoPaths, a.gitUser)
+	recent, err := a.Git.GetRecentCommit(repoPaths, a.gitUser)
 	if err == nil && recent != nil {
 		data.LastCommitTime = recent.Time
 		data.LastCommitRepo = pathBase(recent.Repo)
@@ -123,7 +122,7 @@ func (a *App) GetStatusBar() *StatusBarData {
 
 // GetTodoCounts returns incomplete and total todo counts per project.
 func (a *App) GetTodoCounts() []db.TodoCount {
-	counts, err := db.GetTodoCounts(a.db)
+	counts, err := a.Stores.Todo.Counts()
 	if err != nil {
 		log.Printf("get todo counts error: %v", err)
 		return nil
@@ -136,7 +135,7 @@ func (a *App) GetTodoCounts() []db.TodoCount {
 
 // GetNoteCounts returns the count of notes per project.
 func (a *App) GetNoteCounts() []db.NoteCount {
-	counts, err := db.GetNoteCounts(a.db)
+	counts, err := a.Stores.Note.Counts()
 	if err != nil {
 		log.Printf("get note counts error: %v", err)
 		return nil
@@ -156,7 +155,7 @@ func (a *App) SearchNotes(query string) []SearchHit {
 	if strings.TrimSpace(query) == "" {
 		return nil
 	}
-	results, err := db.SearchNotes(a.db, query)
+	results, err := a.Stores.Search.Notes(query)
 	if err != nil {
 		log.Printf("search notes error: %v", err)
 		return nil
@@ -172,7 +171,7 @@ func (a *App) SearchAll(query string) []SearchHit {
 	if strings.TrimSpace(query) == "" {
 		return nil
 	}
-	results, err := db.SearchAll(a.db, query)
+	results, err := a.Stores.Search.All(query)
 	if err != nil {
 		log.Printf("search all error: %v", err)
 		return nil
@@ -185,13 +184,13 @@ func (a *App) SearchAll(query string) []SearchHit {
 
 // ExportProjectStats returns all stats in CSV format suitable for spreadsheet import.
 func (a *App) ExportProjectStats(projectID int64) string {
-	statsList, err := db.GetStatsByProject(a.db, projectID, "")
+	statsList, err := a.Stores.DailyStat.GetByProject(projectID, "")
 	if err != nil {
 		return ""
 	}
 	if len(statsList) == 0 {
 		a.refreshProjectStats(projectID, "")
-		statsList, _ = db.GetStatsByProject(a.db, projectID, "")
+		statsList, _ = a.Stores.DailyStat.GetByProject(projectID, "")
 	}
 
 	var sb strings.Builder

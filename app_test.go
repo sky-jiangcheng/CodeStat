@@ -4,12 +4,17 @@ import (
 	"database/sql"
 	"testing"
 
+	"gitboard/internal/core/git"
+	"gitboard/internal/core/kb"
+	"gitboard/internal/core/storage/sqlite"
 	"gitboard/internal/db"
 
 	_ "modernc.org/sqlite"
 )
 
-// setupTestApp creates an in-memory App for integration testing.
+// setupTestApp creates an in-memory App for integration testing. Uses the
+// production dependency graph (LocalGitProvider + SQLite stores + KB facade)
+// so the new interfaces are exercised alongside the legacy paths.
 func setupTestApp(t *testing.T) *App {
 	t.Helper()
 	database, err := sql.Open("sqlite", ":memory:")
@@ -26,6 +31,9 @@ func setupTestApp(t *testing.T) *App {
 		root_path TEXT NOT NULL,
 		level_override INTEGER DEFAULT 0,
 		is_auto_grouped BOOLEAN DEFAULT 1,
+		is_starred INTEGER DEFAULT 0,
+		collected BOOLEAN NOT NULL DEFAULT FALSE,
+		collected_at DATETIME,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);
 	CREATE TABLE IF NOT EXISTS project_todos (
@@ -66,7 +74,11 @@ func setupTestApp(t *testing.T) *App {
 	pid, _ := res.LastInsertId()
 	_ = pid
 
-	return &App{db: database, gitUser: "testuser"}
+	// Wire dependencies exactly like production
+	gp := git.NewLocalGitProvider()
+	stores := sqlite.New(database)
+	kbf := kb.NewFacade(stores)
+	return NewAppWithDeps(database, "testuser", gp, stores, kbf)
 }
 
 func TestAppCreateAndListTodos(t *testing.T) {
