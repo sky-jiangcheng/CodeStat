@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote, getProjects, Note, Project,
+  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, Note,
 } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
 
 interface Props {
   projectId: number
-  autoNew?: boolean
 }
 
 type KindFilter = 'all' | 'knowledge' | 'other'
@@ -19,18 +18,29 @@ const KINDS = [
 ]
 
 function draftKey(projectId: number) {
+  return `gitbuddy-note-draft-${projectId}`
+}
+
+function legacyDraftKey(projectId: number) {
   return `gitboard-note-draft-${projectId}`
 }
 
 function loadDraft(projectId: number): { content: string; title: string; tags: string; kind: string } {
   try {
-    const raw = localStorage.getItem(draftKey(projectId))
+    let raw = localStorage.getItem(draftKey(projectId))
+    if (!raw) {
+      raw = localStorage.getItem(legacyDraftKey(projectId))
+      if (raw) {
+        localStorage.setItem(draftKey(projectId), raw)
+        localStorage.removeItem(legacyDraftKey(projectId))
+      }
+    }
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
   return { content: '', title: '', tags: '', kind: 'knowledge' }
 }
 
-function NoteSection({ projectId, autoNew = false }: Props) {
+function NoteSection({ projectId }: Props) {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -46,24 +56,12 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
-  const [projects, setProjects] = useState<Project[]>([])
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
   }, [projectId])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
-
-  useEffect(() => {
-    getProjects().then(setProjects).catch(() => setProjects([]))
-  }, [])
-
-  useEffect(() => {
-    if (autoNew) {
-      setIsNew(true)
-      setEditingId(null)
-    }
-  }, [autoNew])
 
   useEffect(() => {
     try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
@@ -111,15 +109,6 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       fetchNotes()
     } catch { /* ignore */ }
     finally { setSaving(false) }
-  }
-
-  const handleMoveProject = async (noteId: number, targetProjectId: number) => {
-    if (targetProjectId === projectId) return
-    try {
-      await moveNote(noteId, targetProjectId)
-      setNotes(prev => prev.filter(n => n.id !== noteId))
-      if (editingId === noteId) setEditingId(null)
-    } catch { /* ignore */ }
   }
 
   const handleDelete = async (id: number) => {
@@ -247,18 +236,6 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                       <input type="checkbox" checked={editPinned} onChange={e => setEditPinned(e.target.checked)} />
                       置顶
                     </label>
-                    <select
-                      value={projectId}
-                      onChange={e => handleMoveProject(note.id, Number(e.target.value))}
-                      className="form-input note-kind-select"
-                      title="关联项目"
-                    >
-                      {projects.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.id === projectId ? `${p.name}（当前）` : p.name}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                   <input
                     type="text"

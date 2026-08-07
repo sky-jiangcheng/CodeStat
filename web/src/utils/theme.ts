@@ -1,6 +1,19 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 
-const STORAGE_KEY = 'gitboard-theme'
+const STORAGE_KEY = 'gitbuddy-theme'
+const LEGACY_STORAGE_KEY = 'gitboard-theme'
+
+function migrateLegacyTheme() {
+  try {
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY)
+    if (legacy !== null && localStorage.getItem(STORAGE_KEY) === null) {
+      localStorage.setItem(STORAGE_KEY, legacy)
+      localStorage.removeItem(LEGACY_STORAGE_KEY)
+    }
+  } catch {
+    // ignore
+  }
+}
 
 function getSystemTheme(): 'light' | 'dark' {
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
@@ -12,6 +25,7 @@ export function getEffectiveTheme(mode: ThemeMode): 'light' | 'dark' {
 }
 
 export function getStoredTheme(): ThemeMode {
+  migrateLegacyTheme()
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (raw === 'light' || raw === 'dark' || raw === 'system') return raw
