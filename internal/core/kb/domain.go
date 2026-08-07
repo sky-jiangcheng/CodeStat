@@ -1,5 +1,5 @@
 // Package kb defines the "Knowledge Base" domain model used by the plugin
-// protocol (kb:space:* and kb:doc:* scopes). The existing GitBoard model uses
+// protocol (kb:space:* and kb:doc:* scopes). The existing GitBuddy model uses
 // "project" and "note" names; this package exposes the plugin-aligned names
 // (Space = project, Doc = note) along with a bidirectional mapper so the two
 // models can coexist during the transition.

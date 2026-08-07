@@ -5,14 +5,15 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"gitboard/internal/db"
 	"gitboard/internal/stats"
 )
 
-// ScanResult summarizes a repository scan run.
-type ScanResult struct {
+// RepoScanResult summarizes a repository scan run.
+type RepoScanResult struct {
 	FoundRepos    int `json:"found_repos"`
 	NewRepos      int `json:"new_repos"`
 	SkippedHidden int `json:"skipped_hidden"`
@@ -20,8 +21,8 @@ type ScanResult struct {
 
 // ScanForRepositories walks the scan roots on disk looking for .git directories
 // and upserts them into the repositories table with author/user info.
-func (a *App) ScanForRepositories() (*ScanResult, error) {
-	result := &ScanResult{}
+func (a *App) ScanForRepositories() (*RepoScanResult, error) {
+	result := &RepoScanResult{}
 	cfg, err := a.GetConfig()
 	if err != nil {
 		return nil, err
@@ -153,7 +154,8 @@ func (a *App) RefreshStats() error {
 
 // RefreshProjectStats triggers a stats refresh for all repos under a single project.
 func (a *App) RefreshProjectStats(projectID int64) error {
-	return a.refreshProjectStats(projectID, "")
+	a.refreshProjectStats(projectID, "")
+	return nil
 }
 
 // refreshProjectStats refreshes project stats optionally limited to a single date.
@@ -169,17 +171,15 @@ func (a *App) refreshProjectStats(projectID int64, date string) {
 			if qErr != nil || result == nil {
 				continue
 			}
-			_ = a.Stores.DailyStat.Upsert(r.ID, date, result.Author, result.FilesChanged, result.LinesAdded, result.LinesDeleted)
+			_ = a.Stores.DailyStat.Upsert(r.ID, date, a.gitUser, result.FilesChanged, result.LinesAdded, result.LinesDeleted)
 			continue
 		}
 		// Full refresh for this repo.
 		res, qErr := a.Git.QueryStats(r.Path, "", a.gitUser)
-		if qErr != nil || res == nil || len(res.AllAuthors) == 0 {
+		if qErr != nil || res == nil {
 			continue
 		}
-		for _, row := range res.AllAuthors {
-			_ = a.Stores.DailyStat.Upsert(r.ID, res.StatDate, row.Author, row.FilesChanged, row.LinesAdded, row.LinesDeleted)
-		}
+		_ = a.Stores.DailyStat.Upsert(r.ID, date, a.gitUser, res.FilesChanged, res.LinesAdded, res.LinesDeleted)
 	}
 }
 
@@ -195,33 +195,16 @@ func (a *App) RefreshAllStats(_ string) error {
 		return aLast < bLast
 	})
 	for _, r := range repos {
-		// Query stats for the last 7 days to keep scans fast.
 		result, err := a.Git.QueryStats(r.Path, "", a.gitUser)
 		if err != nil {
 			log.Printf("query stats %s error: %v", r.Path, err)
 			continue
 		}
-		if result == nil || len(result.AllAuthors) == 0 {
+		if result == nil {
 			_ = a.Stores.Repository.UpdateLastScanned(r.ID)
 			continue
 		}
-		// Insert / update stats rows per author on that date.
-		for _, row := range result.AllAuthors {
-			if err := a.Stores.DailyStat.Upsert(r.ID, result.StatDate, row.Author, row.FilesChanged, row.LinesAdded, row.LinesDeleted); err != nil {
-				log.Printf("upsert stat %s@%s error: %v", r.Path, result.StatDate, err)
-			}
-		}
-		// Update repository metadata (latest commit branch, has_remote, etc.).
-		meta, err := a.Git.MineKnowledge(r.Path)
-		if err == nil && meta != nil {
-			if meta.RepositoryMeta != nil {
-				rm := meta.RepositoryMeta
-				_ = a.Stores.RepoMeta.Upsert(r.ID, rm.Branch, rm.LatestCommitHash, rm.LatestCommitTime, rm.HasRemote, rm.RemoteURL, rm.FirstCommitDate, rm.SizeBytes)
-			}
-			if len(meta.TopContributors) > 0 || len(meta.RecentCommits) > 0 {
-				_ = a.Stores.RepoMeta.UpdateKnowledge(r.ID, meta)
-			}
-		}
+		_ = a.Stores.DailyStat.Upsert(r.ID, "", a.gitUser, result.FilesChanged, result.LinesAdded, result.LinesDeleted)
 		_ = a.Stores.Repository.UpdateLastScanned(r.ID)
 	}
 	return nil
@@ -234,4 +217,13 @@ func lastScanTime(s *string) string {
 		return ""
 	}
 	return *s
+}
+
+// parseMaxDepth converts the scan_depth config string to an int (1-2, default 2).
+func parseMaxDepth(s string) int {
+	n, err := strconv.Atoi(s)
+	if err != nil || n <= 0 || n > 2 {
+		return 2
+	}
+	return n
 }

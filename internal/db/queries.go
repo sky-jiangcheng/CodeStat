@@ -29,10 +29,13 @@ type Project struct {
 
 // Repository represents a row in the repositories table.
 type Repository struct {
-	ID            int64  `json:"id"`
-	Path          string `json:"path"`
-	ProjectID     *int64 `json:"project_id"`
-	LastScannedAt *string `json:"last_scanned_at"`
+	ID            int64   `json:"id"`
+	Path          string  `json:"path"`
+	ProjectID     *int64  `json:"project_id"`
+	LastScanned   *string `json:"last_scanned_at"`
+	DisplayName   *string `json:"display_name,omitempty"`
+	GitUser       *string `json:"git_user,omitempty"`
+	Organization  *string `json:"organization,omitempty"`
 }
 
 // Todo represents a row in the project_todos table.
@@ -551,7 +554,7 @@ func getNoteByID(db *sql.DB, id int64) (*Note, error) {
 
 // GetAllRepositories returns all repositories ordered by path.
 func GetAllRepositories(db *sql.DB) ([]Repository, error) {
-	rows, err := db.Query("SELECT id, path, project_id, last_scanned_at FROM repositories ORDER BY path ASC")
+	rows, err := db.Query("SELECT id, path, project_id, last_scanned_at, display_name, git_user, organization FROM repositories ORDER BY path ASC")
 	if err != nil {
 		return nil, err
 	}
@@ -559,7 +562,7 @@ func GetAllRepositories(db *sql.DB) ([]Repository, error) {
 	var repos []Repository
 	for rows.Next() {
 		var r Repository
-		if err := rows.Scan(&r.ID, &r.Path, &r.ProjectID, &r.LastScannedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Path, &r.ProjectID, &r.LastScanned, &r.DisplayName, &r.GitUser, &r.Organization); err != nil {
 			return nil, err
 		}
 		repos = append(repos, r)
@@ -569,7 +572,7 @@ func GetAllRepositories(db *sql.DB) ([]Repository, error) {
 
 // GetRepositoriesByProjectID returns all repositories for a project.
 func GetRepositoriesByProjectID(db *sql.DB, projectID int64) ([]Repository, error) {
-	rows, err := db.Query("SELECT id, path, project_id, last_scanned_at FROM repositories WHERE project_id = ? ORDER BY path ASC", projectID)
+	rows, err := db.Query("SELECT id, path, project_id, last_scanned_at, display_name, git_user, organization FROM repositories WHERE project_id = ? ORDER BY path ASC", projectID)
 	if err != nil {
 		return nil, err
 	}
@@ -577,7 +580,7 @@ func GetRepositoriesByProjectID(db *sql.DB, projectID int64) ([]Repository, erro
 	var repos []Repository
 	for rows.Next() {
 		var r Repository
-		if err := rows.Scan(&r.ID, &r.Path, &r.ProjectID, &r.LastScannedAt); err != nil {
+		if err := rows.Scan(&r.ID, &r.Path, &r.ProjectID, &r.LastScanned, &r.DisplayName, &r.GitUser, &r.Organization); err != nil {
 			return nil, err
 		}
 		repos = append(repos, r)

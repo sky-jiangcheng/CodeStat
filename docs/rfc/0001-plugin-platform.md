@@ -13,7 +13,7 @@
 
 ## 1. 背景与目标
 
-当前 GitBoard 是 **Wails + SQLite 单二进制桌面应用**，代码高度耦合：
+当前 GitBuddy 是 **Wails + SQLite 单二进制桌面应用**，代码高度耦合：
 
 - `main.App` 持有 `*sql.DB`，所有 handler（`handlers_*.go`）直接调用 `internal/db/*.go` 的函数式 API；
 - Git 操作在 `internal/stats/`、`internal/knowledge/` 中以包级函数形式实现，无法切换远程 Git 服务商；

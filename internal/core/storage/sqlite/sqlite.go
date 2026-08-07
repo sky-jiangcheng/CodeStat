@@ -10,31 +10,36 @@ import (
 	"encoding/json"
 	"log"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"gitboard/internal/core/storage"
 	"gitboard/internal/db"
 )
 
-// Store implements all storage.Store interfaces backed by a *sql.DB.
-type Store struct {
+// base holds the shared database handle for all sub-stores.
+type base struct {
 	raw *sql.DB
+}
+
+// Store is the composite that also satisfies ScanTxer (which has no method-name
+// conflicts with the per-domain interfaces).
+type Store struct {
+	base
 }
 
 // Compile-time interface checks – catches any drift between the interface and
 // the implementation at build time.
 var (
-	_ storage.ProjectStore    = (*Store)(nil)
-	_ storage.RepositoryStore = (*Store)(nil)
-	_ storage.DailyStatStore  = (*Store)(nil)
-	_ storage.NoteStore       = (*Store)(nil)
-	_ storage.TodoStore       = (*Store)(nil)
-	_ storage.RepoMetaStore   = (*Store)(nil)
-	_ storage.ConfigStore     = (*Store)(nil)
-	_ storage.ScanRootStore   = (*Store)(nil)
-	_ storage.SearchStore     = (*Store)(nil)
-	_ storage.ScanTxer        = (*Store)(nil)
+	_ storage.ProjectStore    = (*projectStore)(nil)
+	_ storage.RepositoryStore = (*repositoryStore)(nil)
+	_ storage.DailyStatStore   = (*dailyStatStore)(nil)
+	_ storage.NoteStore        = (*noteStore)(nil)
+	_ storage.TodoStore        = (*todoStore)(nil)
+	_ storage.RepoMetaStore    = (*repoMetaStore)(nil)
+	_ storage.ConfigStore      = (*configStore)(nil)
+	_ storage.ScanRootStore    = (*scanRootStore)(nil)
+	_ storage.SearchStore      = (*searchStore)(nil)
+	_ storage.ScanTxer         = (*Store)(nil)
 )
 
 // New constructs a SQLite-backed storage.Stores bundle using the supplied
@@ -42,17 +47,17 @@ var (
 // not closed by Store.Close) so existing lifecycle code in main.go keeps
 // working unchanged.
 func New(raw *sql.DB) storage.Stores {
-	s := &Store{raw: raw}
+	s := &Store{base{raw: raw}}
 	return storage.Stores{
-		Project:    s,
-		Repository: s,
-		DailyStat:  s,
-		Note:       s,
-		Todo:       s,
-		RepoMeta:   s,
-		Config:     s,
-		ScanRoot:   s,
-		Search:     s,
+		Project:    &projectStore{s.base},
+		Repository: &repositoryStore{s.base},
+		DailyStat:  &dailyStatStore{s.base},
+		Note:       &noteStore{s.base},
+		Todo:       &todoStore{s.base},
+		RepoMeta:   &repoMetaStore{s.base},
+		Config:     &configStore{s.base},
+		ScanRoot:   &scanRootStore{s.base},
+		Search:     &searchStore{s.base},
 		ScanTxer:   s,
 	}
 }
@@ -66,20 +71,22 @@ func (s *Store) UnderlyingDB() *sql.DB { return s.raw }
 // ProjectStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) GetAll() ([]storage.Project, error)  { return db.GetAllProjects(s.raw) }
-func (s *Store) GetStarred() ([]storage.Project, error) {
+type projectStore struct{ base }
+
+func (s *projectStore) GetAll() ([]storage.Project, error) { return db.GetAllProjects(s.raw) }
+func (s *projectStore) GetStarred() ([]storage.Project, error) {
 	return db.GetStarredProjects(s.raw)
 }
-func (s *Store) GetByID(id int64) (*storage.Project, error) {
+func (s *projectStore) GetByID(id int64) (*storage.Project, error) {
 	return db.GetProjectByID(s.raw, id)
 }
-func (s *Store) Search(query string) ([]storage.Project, error) {
+func (s *projectStore) Search(query string) ([]storage.Project, error) {
 	return db.SearchProjects(s.raw, query)
 }
-func (s *Store) ToggleStar(id int64) (bool, error) {
+func (s *projectStore) ToggleStar(id int64) (bool, error) {
 	return db.ToggleProjectStar(s.raw, id)
 }
-func (s *Store) Sync(name, rootPath string, levelOverride int, isAutoGrouped bool) (int64, error) {
+func (s *projectStore) Sync(name, rootPath string, levelOverride int, isAutoGrouped bool) (int64, error) {
 	tx, err := s.raw.Begin()
 	if err != nil {
 		return 0, err
@@ -94,7 +101,7 @@ func (s *Store) Sync(name, rootPath string, levelOverride int, isAutoGrouped boo
 	}
 	return id, nil
 }
-func (s *Store) GetCollectedIDs(ctx context.Context) ([]int64, error) {
+func (s *projectStore) GetCollectedIDs(ctx context.Context) ([]int64, error) {
 	return db.GetCollectedProjectIDs(ctx, s.raw)
 }
 
@@ -102,18 +109,20 @@ func (s *Store) GetCollectedIDs(ctx context.Context) ([]int64, error) {
 // RepositoryStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) GetAll() ([]storage.Repository, error) {
+type repositoryStore struct{ base }
+
+func (s *repositoryStore) GetAll() ([]storage.Repository, error) {
 	return db.GetAllRepositories(s.raw)
 }
-func (s *Store) GetByProject(projectID int64) ([]storage.Repository, error) {
+func (s *repositoryStore) GetByProject(projectID int64) ([]storage.Repository, error) {
 	return db.GetRepositoriesByProjectID(s.raw, projectID)
 }
-func (s *Store) CountByProject(projectID int64) (int64, error) {
+func (s *repositoryStore) CountByProject(projectID int64) (int64, error) {
 	var n int64
 	err := s.raw.QueryRow(`SELECT COUNT(*) FROM repositories WHERE project_id = ?`, projectID).Scan(&n)
 	return n, err
 }
-func (s *Store) Upsert(path, displayName, gitUser, organization string) (*storage.Repository, error) {
+func (s *repositoryStore) Upsert(path, displayName, gitUser, organization string) (*storage.Repository, error) {
 	// Step 1: Upsert the path + metadata (last_scanned stays unchanged).
 	_, err := s.raw.Exec(`
 		INSERT INTO repositories (path, display_name, git_user, organization, last_scanned)
@@ -126,14 +135,14 @@ func (s *Store) Upsert(path, displayName, gitUser, organization string) (*storag
 	if err != nil {
 		return nil, err
 	}
-	// Step 2: Read back the full row so the caller gets the ID.
+	// Step 2: Read back the row so the caller gets the ID.
 	var r storage.Repository
 	var projectID sql.NullInt64
-	var user, org, lastScanned sql.NullString
+	var lastScanned sql.NullString
 	err = s.raw.QueryRow(`
-		SELECT id, project_id, path, display_name, git_user, organization, last_scanned
+		SELECT id, project_id, path, last_scanned
 		FROM repositories WHERE path = ?
-	`, path).Scan(&r.ID, &projectID, &r.Path, &r.DisplayName, &user, &org, &lastScanned)
+	`, path).Scan(&r.ID, &projectID, &r.Path, &lastScanned)
 	if err != nil {
 		return nil, err
 	}
@@ -141,21 +150,13 @@ func (s *Store) Upsert(path, displayName, gitUser, organization string) (*storag
 		pid := projectID.Int64
 		r.ProjectID = &pid
 	}
-	if user.Valid {
-		v := user.String
-		r.GitUser = &v
-	}
-	if org.Valid {
-		v := org.String
-		r.Organization = &v
-	}
 	if lastScanned.Valid {
 		v := lastScanned.String
 		r.LastScanned = &v
 	}
 	return &r, nil
 }
-func (s *Store) AssignToProject(projectID int64, repoIDs []int64) error {
+func (s *repositoryStore) AssignToProject(projectID int64, repoIDs []int64) error {
 	if len(repoIDs) == 0 {
 		return nil
 	}
@@ -171,7 +172,7 @@ func (s *Store) AssignToProject(projectID int64, repoIDs []int64) error {
 	_, err := s.raw.Exec(q, args...)
 	return err
 }
-func (s *Store) GetAllPaths() ([]string, error) {
+func (s *repositoryStore) GetAllPaths() ([]string, error) {
 	rows, err := s.raw.Query(`SELECT path FROM repositories`)
 	if err != nil {
 		return nil, err
@@ -187,7 +188,7 @@ func (s *Store) GetAllPaths() ([]string, error) {
 	}
 	return paths, rows.Err()
 }
-func (s *Store) UpdateLastScanned(repoID int64) error {
+func (s *repositoryStore) UpdateLastScanned(repoID int64) error {
 	return db.UpdateRepositoryLastScanned(s.raw, repoID)
 }
 
@@ -195,19 +196,21 @@ func (s *Store) UpdateLastScanned(repoID int64) error {
 // DailyStatStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Upsert(repoID int64, date, author string, filesChanged, linesAdded, linesDeleted int) error {
+type dailyStatStore struct{ base }
+
+func (s *dailyStatStore) Upsert(repoID int64, date, author string, filesChanged, linesAdded, linesDeleted int) error {
 	return db.UpsertDailyStat(s.raw, repoID, date, author, filesChanged, linesAdded, linesDeleted)
 }
-func (s *Store) GetByProject(projectID int64, date string) ([]storage.DailyStat, error) {
+func (s *dailyStatStore) GetByProject(projectID int64, date string) ([]storage.DailyStat, error) {
 	return db.GetStatsByProject(s.raw, projectID, date)
 }
-func (s *Store) GetByRepository(repoID int64, date string) ([]storage.DailyStat, error) {
+func (s *dailyStatStore) GetByRepository(repoID int64, date string) ([]storage.DailyStat, error) {
 	return db.GetStatsByRepositoryAndDate(s.raw, repoID, date)
 }
-func (s *Store) GetByDate(date string) ([]storage.DailyStat, error) {
+func (s *dailyStatStore) GetByDate(date string) ([]storage.DailyStat, error) {
 	return db.GetStatsByDate(s.raw, date)
 }
-func (s *Store) GetHeatmap(startDate, endDate, gitUser string) ([]storage.HeatmapDay, error) {
+func (s *dailyStatStore) GetHeatmap(startDate, endDate, gitUser string) ([]storage.HeatmapDay, error) {
 	return db.GetHeatmapData(s.raw, startDate, endDate, gitUser)
 }
 
@@ -215,61 +218,67 @@ func (s *Store) GetHeatmap(startDate, endDate, gitUser string) ([]storage.Heatma
 // NoteStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Create(projectID int64, content string) (*storage.Note, error) {
+type noteStore struct{ base }
+
+func (s *noteStore) Create(projectID int64, content string) (*storage.Note, error) {
 	return db.CreateNote(s.raw, projectID, content)
 }
-func (s *Store) CreateEx(projectID int64, title, content, tags, kind, source string) (*storage.Note, error) {
+func (s *noteStore) CreateEx(projectID int64, title, content, tags, kind, source string) (*storage.Note, error) {
 	return db.CreateNoteEx(s.raw, projectID, title, content, tags, kind, source)
 }
-func (s *Store) List(projectID int64) ([]storage.Note, error) {
+func (s *noteStore) List(projectID int64) ([]storage.Note, error) {
 	return db.ListNotes(s.raw, projectID)
 }
-func (s *Store) Update(id int64, content string) error {
+func (s *noteStore) Update(id int64, content string) error {
 	return db.UpdateNote(s.raw, id, content)
 }
-func (s *Store) Delete(id int64) error { return db.DeleteNote(s.raw, id) }
-func (s *Store) UpdateMeta(id int64, title, tags, kind string, pinned bool) error {
+func (s *noteStore) Delete(id int64) error { return db.DeleteNote(s.raw, id) }
+func (s *noteStore) UpdateMeta(id int64, title, tags, kind string, pinned bool) error {
 	return db.UpdateNoteMeta(s.raw, id, title, tags, kind, pinned)
 }
-func (s *Store) Pin(id int64, pinned bool) error {
+func (s *noteStore) Pin(id int64, pinned bool) error {
 	return db.PinNote(s.raw, id, pinned)
 }
-func (s *Store) GetBySourceTitle(projectID int64, source, title string) (*storage.Note, error) {
+func (s *noteStore) GetBySourceTitle(projectID int64, source, title string) (*storage.Note, error) {
 	return db.GetNoteBySourceTitle(s.raw, projectID, source, title)
 }
-func (s *Store) ListAllWithProject() ([]storage.NoteWithProject, error) {
+func (s *noteStore) ListAllWithProject() ([]storage.NoteWithProject, error) {
 	return db.ListAllNotes(s.raw)
 }
-func (s *Store) ListAllTags() ([]string, error)    { return db.ListAllTags(s.raw) }
-func (s *Store) Counts() ([]storage.NoteCount, error) { return db.GetNoteCounts(s.raw) }
+func (s *noteStore) ListAllTags() ([]string, error)    { return db.ListAllTags(s.raw) }
+func (s *noteStore) Counts() ([]storage.NoteCount, error) { return db.GetNoteCounts(s.raw) }
 
 // ---------------------------------------------------------------------------
 // TodoStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Create(projectID int64, title string) (*storage.Todo, error) {
+type todoStore struct{ base }
+
+func (s *todoStore) Create(projectID int64, title string) (*storage.Todo, error) {
 	return db.CreateTodo(s.raw, projectID, title)
 }
-func (s *Store) List(projectID int64) ([]storage.Todo, error) {
+func (s *todoStore) List(projectID int64) ([]storage.Todo, error) {
 	return db.ListTodos(s.raw, projectID)
 }
-func (s *Store) Toggle(id int64) error { return db.ToggleTodo(s.raw, id) }
-func (s *Store) Delete(id int64) error { return db.DeleteTodo(s.raw, id) }
-func (s *Store) Reorder(ids []int64) error { return db.ReorderTodos(s.raw, ids) }
-func (s *Store) Counts() ([]storage.TodoCount, error) { return db.GetTodoCounts(s.raw) }
+func (s *todoStore) Toggle(id int64) error { return db.ToggleTodo(s.raw, id) }
+func (s *todoStore) Delete(id int64) error { return db.DeleteTodo(s.raw, id) }
+func (s *todoStore) Reorder(ids []int64) error { return db.ReorderTodos(s.raw, ids) }
+func (s *todoStore) Counts() ([]storage.TodoCount, error) { return db.GetTodoCounts(s.raw) }
 
 // ---------------------------------------------------------------------------
 // RepoMetaStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Get(repoID int64) (*storage.RepoMeta, error) {
+type repoMetaStore struct{ base }
+
+func (s *repoMetaStore) Get(repoID int64) (*storage.RepoMeta, error) {
 	return db.GetRepoMeta(s.raw, repoID)
 }
 
 // Upsert writes the core repository metadata columns (branch, last commit,
 // remote info, size). If no row exists one is created; otherwise existing
 // values are updated in place.
-func (s *Store) Upsert(repoID int64, branch, latestCommitHash, latestCommitTime string, hasRemote bool, remoteURL, firstCommitDate string, sizeBytes int64) error {
+func (s *repoMetaStore) Upsert(repoID int64, branch, latestCommitHash, latestCommitTime string, hasRemote bool, remoteURL, firstCommitDate string, sizeBytes int64) error {
 	_, err := s.raw.Exec(`
 		INSERT INTO repo_meta (repository_id, branch, latest_commit_hash, latest_commit_time,
 			has_remote, remote_url, first_commit_date, size_bytes)
@@ -290,7 +299,7 @@ func (s *Store) Upsert(repoID int64, branch, latestCommitHash, latestCommitTime 
 // supplied knowledge payload and persists them into the repo_meta row.
 // Unknown knowledge structures are safely skipped; missing columns degrade
 // gracefully (we just log and continue).
-func (s *Store) UpdateKnowledge(repoID int64, knowledge interface{}) error {
+func (s *repoMetaStore) UpdateKnowledge(repoID int64, knowledge interface{}) error {
 	type recent struct {
 		Hash    string `json:"hash,omitempty"`
 		Time    string `json:"time,omitempty"`
@@ -298,14 +307,10 @@ func (s *Store) UpdateKnowledge(repoID int64, knowledge interface{}) error {
 		Message string `json:"message,omitempty"`
 	}
 	type contributor struct {
-		Author      string `json:"author,omitempty"`
-		Commits     int    `json:"commits,omitempty"`
-		LinesAdded  int    `json:"lines_added,omitempty"`
-		LinesDeleted int   `json:"lines_deleted,omitempty"`
-	}
-	type hasKnowledge interface {
-		GetRecentCommits() []interface{}
-		GetTopContributors() []interface{}
+		Author       string `json:"author,omitempty"`
+		Commits      int    `json:"commits,omitempty"`
+		LinesAdded   int    `json:"lines_added,omitempty"`
+		LinesDeleted int    `json:"lines_deleted,omitempty"`
 	}
 	var recentJSON, contribJSON string
 	// Prefer a direct struct match if the caller gave us *knowledge.RepoKnowledge,
@@ -380,30 +385,36 @@ func emptyToNull(s string) interface{} {
 // ConfigStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Get(key string) (string, error)           { return db.GetConfig(s.raw, key) }
-func (s *Store) Set(key, value string) error             { return db.SetConfig(s.raw, key, value) }
-func (s *Store) All() (map[string]string, error)         { return db.GetAllConfigs(s.raw) }
+type configStore struct{ base }
+
+func (s *configStore) Get(key string) (string, error) { return db.GetConfig(s.raw, key) }
+func (s *configStore) Set(key, value string) error     { return db.SetConfig(s.raw, key, value) }
+func (s *configStore) All() (map[string]string, error) { return db.GetAllConfigs(s.raw) }
 
 // ---------------------------------------------------------------------------
 // ScanRootStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Get() ([]string, error)                { return db.GetScanRoots(s.raw) }
-func (s *Store) Replace(roots []string) error           { return db.ReplaceScanRoots(s.raw, roots) }
+type scanRootStore struct{ base }
+
+func (s *scanRootStore) Get() ([]string, error)      { return db.GetScanRoots(s.raw) }
+func (s *scanRootStore) Replace(roots []string) error { return db.ReplaceScanRoots(s.raw, roots) }
 
 // ---------------------------------------------------------------------------
 // SearchStore
 // ---------------------------------------------------------------------------
 
-func (s *Store) Notes(query string) ([]storage.SearchHit, error) {
+type searchStore struct{ base }
+
+func (s *searchStore) Notes(query string) ([]storage.SearchHit, error) {
 	return db.SearchNotes(s.raw, query)
 }
-func (s *Store) All(query string) ([]storage.SearchHit, error) {
+func (s *searchStore) All(query string) ([]storage.SearchHit, error) {
 	return db.SearchAll(s.raw, query)
 }
 
 // ---------------------------------------------------------------------------
-// ScanTxer
+// ScanTxer (implemented directly on Store – no method-name conflicts)
 // ---------------------------------------------------------------------------
 
 // SyncProjectRepoAndCleanup runs the full scan-side transaction exactly as
@@ -463,16 +474,9 @@ func (s *Store) AutoGroupUnassigned() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	type repo struct {
-		ID           int64
-		Path         string
-		DisplayName  string
-		GitUser      sql.NullString
-		Organization sql.NullString
-	}
-	var unassigned []repo
+	var unassigned []repoForGrouping
 	for rows.Next() {
-		var r repo
+		var r repoForGrouping
 		if err := rows.Scan(&r.ID, &r.Path, &r.DisplayName, &r.GitUser, &r.Organization); err != nil {
 			rows.Close()
 			return 0, err
@@ -485,7 +489,7 @@ func (s *Store) AutoGroupUnassigned() (int, error) {
 	}
 
 	// Group repos by key.
-	groups := make(map[string][]repo)
+	groups := make(map[string][]repoForGrouping)
 	for _, r := range unassigned {
 		key := autoGroupKey(r)
 		groups[key] = append(groups[key], r)
@@ -517,8 +521,17 @@ func (s *Store) AutoGroupUnassigned() (int, error) {
 	return assigned, tx.Commit()
 }
 
+// repoForGrouping is the working set for auto-grouping unassigned repos.
+type repoForGrouping struct {
+	ID           int64
+	Path         string
+	DisplayName  string
+	GitUser      sql.NullString
+	Organization sql.NullString
+}
+
 // autoGroupKey picks the best grouping dimension for a repository.
-func autoGroupKey(r repo) string {
+func autoGroupKey(r repoForGrouping) string {
 	if r.Organization.Valid && r.Organization.String != "" {
 		return r.Organization.String
 	}
@@ -530,7 +543,7 @@ func autoGroupKey(r repo) string {
 }
 
 // humanizeGroupName picks the best display name for a group from its members.
-func humanizeGroupName(key string, list []repo) string {
+func humanizeGroupName(key string, list []repoForGrouping) string {
 	counts := make(map[string]int)
 	for _, r := range list {
 		if r.Organization.Valid && r.Organization.String != "" {
@@ -593,9 +606,3 @@ func assignReposToProjectTx(tx *sql.Tx, projectID int64, ids []int64) error {
 	_, err := tx.Exec(q, args...)
 	return err
 }
-
-// Keep the linter happy about unused imports added earlier.
-var (
-	_ = sort.Strings
-	_ = filepath.Base
-)

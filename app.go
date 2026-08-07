@@ -129,40 +129,6 @@ func (a *App) refreshAllStatsWithCancel(ctx context.Context) {
 	}
 }
 
-// refreshProjectStats refreshes stats for all repos in a single project.
-// When date is empty it refreshes only the latest stat entry per author;
-// otherwise it refreshes just that single date.
-func (a *App) refreshProjectStats(projectID int64, date string) {
-	repos, err := a.Stores.Repository.GetByProject(projectID)
-	if err != nil {
-		return
-	}
-	for _, repo := range repos {
-		allResult, err := a.Git.QueryStats(repo.Path, date, "")
-		if err != nil {
-			continue
-		}
-		if allResult != nil {
-			if err := a.Stores.DailyStat.Upsert(repo.ID, date, "all",
-				allResult.FilesChanged, allResult.LinesAdded, allResult.LinesDeleted); err != nil {
-				log.Printf("upsert daily stat error: %v", err)
-			}
-		}
-		if a.gitUser != "" {
-			myResult, err := a.Git.QueryStats(repo.Path, date, a.gitUser)
-			if err != nil {
-				continue
-			}
-			if myResult != nil {
-				if err := a.Stores.DailyStat.Upsert(repo.ID, date, a.gitUser,
-					myResult.FilesChanged, myResult.LinesAdded, myResult.LinesDeleted); err != nil {
-					log.Printf("upsert daily stat error: %v", err)
-				}
-			}
-		}
-	}
-}
-
 // refreshProjectHistory backfills a full year of daily stats for all repos
 // belonging to a single project. This is the per-project equivalent of
 // refreshAllStatsWithCancel, triggered on demand from the dashboard.

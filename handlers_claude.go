@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"gitboard/internal/core/storage"
 )
 
 // ImportResult summarizes a Claude memory import run.
@@ -15,7 +17,7 @@ type ImportResult struct {
 }
 
 // ImportClaudeMemory imports notes from Claude's per-project memory directory
-// (~/.claude/projects/*/memory/*.md) into GitBoard, matching each to a project
+// (~/.claude/projects/*/memory/*.md) into GitBuddy, matching each to a project
 // by name or repository path. Imports are idempotent (re-running updates existing
 // notes rather than duplicating them) and use parameterized queries throughout.
 func (a *App) ImportClaudeMemory() (*ImportResult, error) {
@@ -112,9 +114,9 @@ func claudeNoteTitle(filename string) string {
 	}
 }
 
-// matchClaudeProject finds the GitBoard project id for a Claude memory dir,
+// matchClaudeProject finds the GitBuddy project id for a Claude memory dir,
 // preferring exact name, then repo path suffix, then name containment.
-func matchClaudeProject(displayName string, projects []Project, repos []Repository) int64 {
+func matchClaudeProject(displayName string, projects []storage.Project, repos []storage.Repository) int64 {
 	lower := strings.ToLower(displayName)
 	// 1. exact name
 	for _, p := range projects {

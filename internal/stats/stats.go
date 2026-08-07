@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -16,6 +17,37 @@ type Result struct {
 	FilesChanged int
 	LinesAdded   int
 	LinesDeleted int
+}
+
+// RepoMetaInfo holds inferred metadata about a repository for upsert.
+type RepoMetaInfo struct {
+	DisplayName  string
+	User         string
+	Organization string
+}
+
+// InferRepoMeta derives display name, git user, and organization from a
+// repository path and optional known author. It uses git config for the
+// user and falls back to directory-based heuristics.
+func InferRepoMeta(repoPath, author string) RepoMetaInfo {
+	var m RepoMetaInfo
+	base := filepath.Base(repoPath)
+	m.DisplayName = base
+	if author != "" {
+		m.User = author
+	} else {
+		// Try git config user.name
+		out, err := exec.Command("git", "-C", repoPath, "config", "user.name").Output()
+		if err == nil {
+			m.User = strings.TrimSpace(string(out))
+		}
+	}
+	// Derive organization from the parent directory name.
+	parent := filepath.Base(filepath.Dir(repoPath))
+	if parent != "" && parent != "." && parent != "/" {
+		m.Organization = parent
+	}
+	return m
 }
 
 // DailyEntry holds per-day stats for heatmap/history use.
