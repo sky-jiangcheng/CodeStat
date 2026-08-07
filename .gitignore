@@ -10,7 +10,7 @@
 *.swp
 *.bak
 
-# GitBoard binary
+# GitBuddy binary
 gitboard
 git-dashboard
 

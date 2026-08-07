@@ -1,0 +1,83 @@
+# Changelog
+
+本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
+
+版本号同步由 `scripts/bump-version.sh` 维护（SSOT：`wails.json` → `info.productVersion`）。
+
+## [Unreleased]
+
+### 新增
+- 产品正式更名为 GitBuddy（旧名 GitBoard 残留仅保留 module/包路径级引用）
+- 新增社区健康文件：CHANGELOG / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / SUPPORT / Issue+PR 模板 / Dependabot
+- 记录产品定位决策 ADR 0002，并标记 RFC 0001（插件平台）为 Superseded
+- 清理为旧 RFC 预留的未使用导出方法（PauseScan/ResumeScan/ExportProjectStats/ExportHeatmapCSV）
+- 进程内插件系统：yaegi 脚本运行时（目录扫描 / 加载 / 事件总线 / panic 隔离），插件接口见 `internal/core/plugin`，脚本加载契约与选型结论见 ADR 0002 与 `examples/plugins/`
+- Claude 记忆导入重构为内置 KnowledgeImporter 插件，与脚本插件共享运行时导入/去重/统计路径
+- 知识源导入触发：启动自动导入（可开关）+ 设置页手动触发 + 前端 toast 结果通知
+- 知识库升级为首页，支持快速创建笔记（issue #31）
+- 知识库体验增强（issue #37）：首屏搜索框自动聚焦、顶部「最近编辑」快速访问区、空状态引导创建或导入 AI 记忆、编辑器「关联项目」下拉快速迁移笔记（新增 `MoveNote` API）
+
+## [1.5.4] - 2026-08-02
+
+### 新增
+- 启动时历史回填、收藏同步及默认扫描根目录播种
+
+## [1.5.3] - 2026-07-25
+
+### 修复
+- 全量扫描策略优化为合并同步，增强跨平台支持
+
+## [1.5.2] - 2026-07-25
+
+### 新增
+- 全面更新应用图标系统
+
+## [1.5.1] - 2026-08-01
+
+### 新增
+- 优化扫描与性能，支持自定义扫描路径
+
+## [1.5.0] - 2026-08-01
+
+### 新增
+- 统一 UI 配色为灰阶并优化仪表盘布局
+- 增强数据序列化与前端健壮性
+
+## [1.4.0] - 2026-07-01
+
+### 新增
+- 知识库：跨项目笔记中心（Markdown、标签、置顶、全文搜索）
+- 仓库知识挖掘：README / 技术栈 / 语言占比
+- Claude 记忆导入
+- 命令面板（⌘/Ctrl+K）
+- PWA 可安装
+
+## [1.3.0] - 2026-06-01
+
+### 新增
+- 智能项目分组（Monorepo 识别、级别调整）
+- 仓库收藏与按需刷新历史
+- 项目详情页：趋势折线图、提交热力图
+
+## [1.2.0] - 2026-05-01
+
+### 新增
+- 仪表盘：每日目标进度环、项目卡片、工作日检查
+
+## [1.1.0] - 2026-04-01
+
+### 新增
+- 自动发现本地 Git 仓库与基础提交统计
+- 模糊搜索
+
+## [1.0.0] - 2026-03-01
+
+### 新增
+- 首个正式版本：Wails 桌面应用骨架、GitHub Actions 多平台构建发布
+
+[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.5.4...HEAD
+[1.5.4]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.4
+[1.5.3]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.3
+[1.5.2]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.2
+[1.5.1]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.1
+[1.5.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.0

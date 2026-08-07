@@ -122,7 +122,7 @@ function ProjectDetailPage() {
   if (error || !project) {
     return (
       <div className="project-detail">
-        <button className="btn btn-secondary back-btn" onClick={() => navigate('/')}>&larr; 返回仪表盘</button>
+        <button className="btn btn-secondary back-btn" onClick={() => navigate('/dashboard')}>&larr; 返回仪表盘</button>
         <div className="error-banner">
           <span>{error || '项目未找到'}</span>
           <button className="btn btn-sm" onClick={() => id && getProjectDetail(Number(id)).then(setProject).catch(() => {})}>重试</button>
@@ -135,7 +135,7 @@ function ProjectDetailPage() {
   return (
     <div className="project-detail">
       <div className="project-fixed">
-        <button className="btn btn-secondary back-btn" onClick={() => navigate('/')}>
+        <button className="btn btn-secondary back-btn" onClick={() => navigate('/dashboard')}>
           &larr; 返回仪表盘
         </button>
 
@@ -324,7 +324,7 @@ function ProjectDetailPage() {
             </div>
           </div>
 
-          <ProjectPanel projectId={Number(id)} />
+          <ProjectPanel projectId={Number(id)} autoNewNote={dateParam === 'newNote' || searchParams.get('newNote') === '1'} />
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-# GitBoard
+# GitBuddy
 
 自动发现本地所有 Git 仓库，以可视化 Web 面板独立展示每个项目的每日代码提交量。
 
@@ -29,6 +29,7 @@
 | 智能项目分组 | 自动识别 Monorepo 与单仓库，支持手动拆分/合并（事务安全，笔记与待办随项目迁移） |
 | 工作日检查 | 自定义每日代码量标准，未达标时面板告警提醒 |
 | 知识库 | 跨项目笔记中心：Markdown 笔记、标签、置顶、分类；全文搜索（排序 + 片段高亮，跨笔记与待办） |
+| 知识库体验增强 | 首屏搜索框自动聚焦；顶部「最近编辑」快速访问区（最多 5 条）；空状态引导创建或导入 AI 记忆；编辑器「关联项目」下拉快速迁移笔记 |
 | 仓库知识挖掘 | 自动提取 README、检测技术栈与语言占比、最近提交流，缓存避免重复扫描 |
 | 命令面板 | ⌘/Ctrl+K 快速搜索笔记/待办并跳转项目 |
 | Claude 记忆导入 | 一键将 `~/.claude/projects/*/memory/*.md` 安全导入为知识笔记（参数化查询，幂等） |
@@ -110,7 +111,7 @@ cd web && npm run dev
 
 ## 项目分组规则
 
-GitBoard 使用智能分组算法自动识别项目边界：
+GitBuddy 使用智能分组算法自动识别项目边界：
 
 | 场景 | 分组规则 |
 |------|---------|
@@ -122,7 +123,7 @@ GitBoard 使用智能分组算法自动识别项目边界：
 
 ## 前后端接口
 
-GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
+GitBuddy 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
 
 | 方法 | 说明 |
 |------|------|
@@ -138,10 +139,52 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 | `SearchNotes(query)` / `SearchAll(query)` | 笔记搜索 / 跨笔记与待办搜索（排序 + 片段） |
 | `ListAllNotes()` / `ListAllTags()` | 知识库：全部笔记与标签 |
 | `CreateNoteWithMeta` / `UpdateNoteMeta` / `PinNote` | 笔记元数据（标题/标签/类型/置顶） |
-| `ImportClaudeMemory()` | 导入 Claude 记忆为知识笔记 |
+| `MoveNote(noteID, projectID)` | 将笔记迁移到其他项目（关联项目快捷操作） |
+| `ImportClaudeMemory()` | 导入 Claude 记忆为知识笔记（经插件运行时） |
+| `GetPluginStatuses()` | 插件加载状态列表 |
+| `GetKnowledgeSources()` | 已注册知识导入源列表 |
+| `TriggerKnowledgeImport(name)` | 触发指定知识源导入 |
+| `ReloadPlugins()` | 重新扫描并加载插件目录 |
 | `TriggerScan()` / `GetScanStatus()` | 扫描与状态（区分扫描中/回填历史中） |
 
-错误以 Go `error` 形式返回，前端按需展示。
+ 错误以 Go `error` 形式返回，前端按需展示。
+
+## 插件
+
+GitBuddy 支持进程内插件（详见 `docs/adr/0002-c-end-repositioning.md`）。插件是放置在配置目录 `plugins/` 下的 Go 脚本，启动时由 yaegi 解释器加载（跨 Win/Mac/Linux 一致，见 issue #33 选型验证）。
+
+### 插件目录
+
+- macOS/Linux: `~/.config/gitboard/plugins/`
+- Windows: `%AppData%\gitboard\plugins\`
+
+每个插件目录包含一个 `plugin.go`，导出以下符号：
+
+| 符号 | 签名 | 必填 |
+|------|------|------|
+| `Name` | `func() string` | 是 |
+| `Init` | `func(ctx *plugin.Context) error` | 是 |
+| `Source` | `func() string` | 否（默认 `Name()`） |
+| `Import` | `func(ctx *plugin.Context) ([]plugin.ImportDoc, error)` | 否（知识源） |
+
+脚本通过 `import "gitboard/internal/core/plugin"` 使用宿主导出的类型。示例见 `examples/plugins/`。
+
+### 内置知识源
+
+Claude 记忆导入已重构为内置 `KnowledgeImporter`（issue #35），与脚本插件共享运行时导入/去重/统计路径。设置页「插件」tab 可查看插件加载状态、知识源列表并手动触发导入。
+
+### 导入触发
+
+- **手动**：设置页「插件」tab 点击知识源的「立即导入」
+- **自动**：应用启动时自动导入所有知识源（设置页可开关 `auto_import`）
+- **结果通知**：导入完成后前端弹出 toast 展示新增/更新/跳过数量（Wails 事件 `import.completed`）
+
+### 运行时行为
+
+- 插件 panic 不会崩溃宿主进程：运行时 `recover` 并记录错误到设置页
+- 插件目录不存在时静默跳过
+- 事件总线：`note.created` / `project.scanned` / `import.completed`
+- 导入幂等：按 `(project, source, title)` 去重，重复导入更新而非复制
 
 ## 技术栈
 
@@ -164,7 +207,10 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 │   ├── scanner/         # Git 仓库递归扫描（深度/数量限制）
 │   ├── stats/           # git log --shortstat 解析、最近提交
 │   ├── grouper/         # 智能项目分组（Monorepo 识别、级别调整）
-│   └── knowledge/       # 仓库知识挖掘（README / 技术栈 / 语言占比）
+│   ├── knowledge/       # 仓库知识挖掘（README / 技术栈 / 语言占比）
+│   ├── core/plugin/     # 插件接口定义 + yaegi 脚本运行时（目录扫描/事件总线/导入）
+│   └── importers/       # 内置知识导入器（claude：Claude 记忆导入）
+├── examples/plugins/    # 插件示例（hello / importer）
 ├── web/                 # React SPA 前端（Vite + PWA）
 │   └── src/
 │       ├── pages/       # Dashboard（已收藏/其他仓库分区展示、模糊搜索）/ ProjectDetail / Knowledge / Settings
@@ -194,7 +240,7 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 
 ### Q: 仓库卡片为什么只显示名称？
 
-GitBoard 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
+GitBuddy 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
 
 ### Q: 统计数据显示为零？
 

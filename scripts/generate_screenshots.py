@@ -89,7 +89,7 @@ def draw_navbar(draw, active="仪表盘"):
     rrect(draw, [(0, 0), (WIDTH, 56)], 0, fill=CARD)
     draw.line([(0, 56), (WIDTH, 56)], fill=BORDER, width=1)
     brand = get_font(16, bold=True)
-    text(draw, (32, 28), "▦ GitBoard", TEXT, brand)
+    text(draw, (32, 28), "▦ GitBuddy", TEXT, brand)
     links = ["仪表盘", "知识库", "设置"]
     x = 180
     f = get_font(13)
@@ -288,7 +288,7 @@ def draw_dashboard():
     sy += draw_section_header(d, 24, sy, WIDTH - 48, "已收藏仓库", 4)
     starred = [
         ("business-toolkit", 420, 85, 12, 84, True, False),
-        ("GitBoard", 180, 30, 5, 36, True, False),
+        ("GitBuddy", 180, 30, 5, 36, True, False),
         ("frontend-app", 310, 45, 8, 62, True, False),
         ("api-gateway", 95, 12, 3, 19, False, False),
     ]

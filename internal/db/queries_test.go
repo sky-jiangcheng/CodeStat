@@ -336,6 +336,52 @@ func TestUpdateNonExistentNote(t *testing.T) {
 	}
 }
 
+func TestMoveNote(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid1 := createTestProject(t, db, "move-note-from")
+	pid2 := createTestProject(t, db, "move-note-to")
+
+	note, err := CreateNote(db, pid1, "Relocatable content")
+	if err != nil {
+		t.Fatalf("CreateNote failed: %v", err)
+	}
+
+	if err := MoveNote(db, note.ID, pid2); err != nil {
+		t.Fatalf("MoveNote failed: %v", err)
+	}
+
+	from, err := ListNotes(db, pid1)
+	if err != nil {
+		t.Fatalf("ListNotes(from) failed: %v", err)
+	}
+	if len(from) != 0 {
+		t.Errorf("expected no notes in source project, got %d", len(from))
+	}
+
+	to, err := ListNotes(db, pid2)
+	if err != nil {
+		t.Fatalf("ListNotes(to) failed: %v", err)
+	}
+	if len(to) != 1 || to[0].ID != note.ID {
+		t.Errorf("expected moved note in target project, got %+v", to)
+	}
+	if to[0].ProjectID != pid2 {
+		t.Errorf("expected project_id %d, got %d", pid2, to[0].ProjectID)
+	}
+}
+
+func TestMoveNonExistentNote(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	pid := createTestProject(t, db, "move-nonexistent")
+
+	err := MoveNote(db, 99999, pid)
+	if err == nil {
+		t.Error("expected error when moving non-existent note")
+	}
+}
+
 func TestDeleteNote(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()

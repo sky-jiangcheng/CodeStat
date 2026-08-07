@@ -25,12 +25,21 @@ func (a *App) GetConfig() (*ConfigData, error) {
 
 // UpdateConfig sets a single configuration key-value pair.
 func (a *App) UpdateConfig(key, value string) error {
-	allowed := map[string]bool{"daily_code_standard": true, "scan_depth": true, "git_author": true}
+	allowed := map[string]bool{
+		"daily_code_standard": true,
+		"scan_depth":          true,
+		"git_author":          true,
+		"auto_import":         true,
+	}
 	if !allowed[key] {
 		return fmt.Errorf("unknown config key: %s", key)
 	}
 	// Validate numeric configs
-	if key != "git_author" {
+	if key == "auto_import" {
+		if value != "0" && value != "1" {
+			return fmt.Errorf("auto_import must be 0 or 1")
+		}
+	} else if key != "git_author" {
 		if _, err := strconv.Atoi(value); err != nil {
 			return fmt.Errorf("config value must be a number")
 		}

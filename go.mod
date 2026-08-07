@@ -3,6 +3,7 @@ module gitboard
 go 1.25.0
 
 require (
+	github.com/traefik/yaegi v0.16.1
 	github.com/wailsapp/wails/v2 v2.13.0
 	modernc.org/sqlite v1.44.0
 )

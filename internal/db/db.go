@@ -304,6 +304,7 @@ func insertDefaults(db *sql.DB) error {
 	defaults := map[string]string{
 		"daily_code_standard": "500",
 		"scan_depth":          "2",
+		"auto_import":         "1",
 	}
 
 	for key, value := range defaults {
