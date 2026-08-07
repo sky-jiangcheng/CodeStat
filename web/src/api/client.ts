@@ -425,6 +425,15 @@ export function deleteNote(noteId: number): Promise<void> {
   return http<void>(`/notes/${noteId}`, { method: 'DELETE' })
 }
 
+export function moveNote(noteId: number, projectId: number): Promise<void> {
+  if (isWails()) return wail<void>('MoveNote', noteId, projectId)
+  return http<void>(`/notes/${noteId}/move`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project_id: projectId }),
+  })
+}
+
 // --- Knowledge hub API ---
 
 export function listAllNotes(): Promise<NoteWithProject[]> {
@@ -490,4 +499,69 @@ export function getStatusBar(): Promise<StatusBarData> {
     current_time: '', last_commit_time: '', last_commit_repo: '',
     last_commit_branch: '', last_commit_msg: '',
   })
+}
+
+// --- Plugin API ---
+
+export interface PluginStatus {
+  name: string
+  path: string
+  loaded: boolean
+  error?: string
+}
+
+export interface SourceStatus {
+  name: string
+  plugin: string
+  enabled: boolean
+}
+
+export interface ImportRun {
+  created: number
+  updated: number
+  skipped: number
+}
+
+export function getPluginStatuses(): Promise<PluginStatus[]> {
+  if (isWails()) return wail<PluginStatus[]>('GetPluginStatuses').then(d => d ?? [])
+  return http<PluginStatus[]>('/plugins').then(d => d ?? [])
+}
+
+export function getKnowledgeSources(): Promise<SourceStatus[]> {
+  if (isWails()) return wail<SourceStatus[]>('GetKnowledgeSources').then(d => d ?? [])
+  return http<SourceStatus[]>('/plugins/sources').then(d => d ?? [])
+}
+
+export function triggerKnowledgeImport(name: string): Promise<ImportRun> {
+  if (isWails()) return wail<ImportRun>('TriggerKnowledgeImport', name).then(d => d ?? { created: 0, updated: 0, skipped: 0 })
+  return http<ImportRun>('/plugins/import', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: name }),
+  }).then(d => d ?? { created: 0, updated: 0, skipped: 0 })
+}
+
+export function reloadPlugins(): Promise<PluginStatus[]> {
+  if (isWails()) return wail<PluginStatus[]>('ReloadPlugins').then(d => d ?? [])
+  return http<PluginStatus[]>('/plugins/reload', { method: 'POST' }).then(d => d ?? [])
+}
+
+// --- Wails runtime events ---
+
+interface RuntimeGlobal {
+  runtime?: {
+    EventsOn?: (name: string, cb: (data: unknown) => void) => void
+  }
+}
+
+export function listenImportCompleted(cb: (data: { source: string; created: number; updated: number; skipped: number; error?: string }) => void): () => void {
+  const w = window as unknown as RuntimeGlobal
+  if (w.runtime?.EventsOn) {
+    w.runtime.EventsOn('import.completed', (data) => {
+      const d = (data ?? {}) as { source?: string; created?: number; updated?: number; skipped?: number; error?: string }
+      cb({ source: d.source ?? 'unknown', created: d.created ?? 0, updated: d.updated ?? 0, skipped: d.skipped ?? 0, error: d.error })
+    })
+  }
+  // No unsubscribe API in Wails v2 EventsOn; return a no-op.
+  return () => {}
 }

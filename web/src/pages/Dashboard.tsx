@@ -418,7 +418,7 @@ function Dashboard() {
             <p>
               {showStarredOnly
                 ? '你还没有关注任何项目。点击项目卡片右上角的星标即可关注，或切换到「全部」查看所有项目。'
-                : 'GitBoard 尚未扫描到任何 Git 仓库。请先配置扫描目录。'}
+                : 'GitBuddy 尚未扫描到任何 Git 仓库。请先配置扫描目录。'}
             </p>
             <div className="empty-actions">
               {showStarredOnly ? (

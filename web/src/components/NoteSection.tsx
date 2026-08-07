@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, Note,
+  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote, getProjects, Note, Project,
 } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
 
 interface Props {
   projectId: number
+  autoNew?: boolean
 }
 
 type KindFilter = 'all' | 'knowledge' | 'other'
@@ -29,7 +30,7 @@ function loadDraft(projectId: number): { content: string; title: string; tags: s
   return { content: '', title: '', tags: '', kind: 'knowledge' }
 }
 
-function NoteSection({ projectId }: Props) {
+function NoteSection({ projectId, autoNew = false }: Props) {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -45,12 +46,24 @@ function NoteSection({ projectId }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
+  const [projects, setProjects] = useState<Project[]>([])
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
   }, [projectId])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
+
+  useEffect(() => {
+    getProjects().then(setProjects).catch(() => setProjects([]))
+  }, [])
+
+  useEffect(() => {
+    if (autoNew) {
+      setIsNew(true)
+      setEditingId(null)
+    }
+  }, [autoNew])
 
   useEffect(() => {
     try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
@@ -98,6 +111,15 @@ function NoteSection({ projectId }: Props) {
       fetchNotes()
     } catch { /* ignore */ }
     finally { setSaving(false) }
+  }
+
+  const handleMoveProject = async (noteId: number, targetProjectId: number) => {
+    if (targetProjectId === projectId) return
+    try {
+      await moveNote(noteId, targetProjectId)
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+      if (editingId === noteId) setEditingId(null)
+    } catch { /* ignore */ }
   }
 
   const handleDelete = async (id: number) => {
@@ -225,6 +247,18 @@ function NoteSection({ projectId }: Props) {
                       <input type="checkbox" checked={editPinned} onChange={e => setEditPinned(e.target.checked)} />
                       置顶
                     </label>
+                    <select
+                      value={projectId}
+                      onChange={e => handleMoveProject(note.id, Number(e.target.value))}
+                      className="form-input note-kind-select"
+                      title="关联项目"
+                    >
+                      {projects.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.id === projectId ? `${p.name}（当前）` : p.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <input
                     type="text"

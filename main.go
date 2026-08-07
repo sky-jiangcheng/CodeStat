@@ -25,7 +25,7 @@ func init() {
 }
 
 func main() {
-	log.Println("GitBoard starting...")
+	log.Println("GitBuddy starting...")
 
 	// Open database
 	database, err := db.InitDB(platform.GetDbPath())
@@ -60,7 +60,7 @@ func main() {
 
 	// Launch Wails
 	err = wails.Run(&options.App{
-		Title:     "GitBoard",
+		Title:     "GitBuddy",
 		Width:     1280,
 		Height:    800,
 		MinWidth:  800,
@@ -102,6 +102,6 @@ func setupLogging() {
 		log.SetOutput(f)
 	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
-	log.Printf("=== GitBoard log started ===")
+	log.Printf("=== GitBuddy log started ===")
 	log.Printf("PATH=%s", os.Getenv("PATH"))
 }

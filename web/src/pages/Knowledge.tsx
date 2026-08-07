@@ -20,7 +20,26 @@ function KnowledgePage() {
   const [pinnedOnly, setPinnedOnly] = useState(false)
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
+  const [newNotePicker, setNewNotePicker] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
+  const handleQuickCreate = () => {
+    if (projectNames.length === 0) {
+      setMessage('暂无项目，请先在仪表盘配置扫描目录并扫描后新建笔记。')
+      setTimeout(() => setMessage(''), 4000)
+      return
+    }
+    if (projectNames.length === 1) {
+      navigate(`/project/${projectNames[0][1]}?newNote=1`)
+      return
+    }
+    setNewNotePicker(v => !v)
+  }
+
+  const pickProject = (id: number) => {
+    setNewNotePicker(false)
+    navigate(`/project/${id}?newNote=1`)
+  }
 
   const fetchAll = useCallback(() => {
     Promise.all([listAllNotes(), listAllTags()])
@@ -76,6 +95,12 @@ function KnowledgePage() {
 
   const pinnedCount = useMemo(() => notes.filter(n => n.pinned).length, [notes])
 
+  const recentNotes = useMemo(() => {
+    return [...notes]
+      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
+      .slice(0, 5)
+  }, [notes])
+
   if (loading) {
     return (
       <div className="knowledge">
@@ -95,11 +120,27 @@ function KnowledgePage() {
           <p className="page-sub">跨项目汇总 {notes.length} 条笔记，支持全文搜索、标签筛选与置顶。</p>
         </div>
         <div className="page-head-actions">
+          <button className="btn btn-primary btn-sm" onClick={handleQuickCreate}>
+            快速创建笔记
+          </button>
           <button className="btn btn-secondary btn-sm" onClick={handleImport} disabled={importing}>
             {importing ? '导入中…' : '导入 Claude 记忆'}
           </button>
         </div>
       </div>
+
+      {newNotePicker && (
+        <div className="new-note-picker">
+          <div className="new-note-picker-title">选择所属项目</div>
+          <div className="new-note-picker-list">
+            {projectNames.map(([name, id]) => (
+              <button key={id} className="new-note-picker-item" onClick={() => pickProject(id)}>
+                <span className="hit-project">{name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {message && <div className="message-banner">{message}</div>}
 
@@ -108,8 +149,9 @@ function KnowledgePage() {
           type="text"
           value={query}
           onChange={e => handleSearch(e.target.value)}
-          placeholder="搜索笔记与待办…"
+          placeholder="搜索笔记与待办…（首屏即搜）"
           className="form-input knowledge-search-input"
+          autoFocus
         />
         {query && <span className="search-hint">回车查看全部，清空返回列表</span>}
       </div>
@@ -142,6 +184,23 @@ function KnowledgePage() {
         </div>
       ) : (
         <>
+          {recentNotes.length > 0 && (
+            <div className="knowledge-section recent-section">
+              <div className="section-header">
+                <h2>最近编辑</h2>
+              </div>
+              <div className="recent-list">
+                {recentNotes.map(n => (
+                  <a key={n.id} href={`/#/project/${n.project_id}`} className="recent-item">
+                    <span className="recent-title">{n.title || stripMarkdown(n.content, 40)}</span>
+                    <span className="recent-project">{n.project_name}</span>
+                    <span className="recent-time">{n.updated_at.slice(0, 10)}</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="knowledge-filters">
             <div className="filter-toggle">
               <button className={`filter-btn ${kindFilter === 'all' ? 'active' : ''}`} onClick={() => setKindFilter('all')}>全部</button>
@@ -200,13 +259,27 @@ function KnowledgePage() {
             )}
 
             {filtered.length === 0 ? (
-              <div className="empty-state small">
-                <div className="empty-icon">📝</div>
-                <h3>{notes.length === 0 ? '还没有任何笔记' : '暂无匹配的笔记'}</h3>
-                <p>{notes.length === 0
-                  ? '前往项目详情页新建笔记，或点击右上角「导入 Claude 记忆」一键同步。'
-                  : '尝试调整筛选条件或清除搜索关键词。'}</p>
-              </div>
+              notes.length === 0 ? (
+                <div className="empty-state large">
+                  <div className="empty-icon">📝</div>
+                  <h3>开始建立你的第二大脑</h3>
+                  <p>创建第一条笔记，或从 Claude 记忆同步已有知识。</p>
+                  <div className="empty-actions">
+                    <button className="btn btn-primary" onClick={handleQuickCreate}>
+                      创建笔记
+                    </button>
+                    <button className="btn btn-secondary" onClick={handleImport} disabled={importing}>
+                      {importing ? '导入中…' : '导入 Claude 记忆'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-state small">
+                  <div className="empty-icon">🔍</div>
+                  <h3>暂无匹配的笔记</h3>
+                  <p>尝试调整筛选条件或清除搜索关键词。</p>
+                </div>
+              )
             ) : (
               <div className="note-grid">
                 {filtered.map(n => {

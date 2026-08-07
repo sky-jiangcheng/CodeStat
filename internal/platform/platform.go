@@ -120,6 +120,20 @@ func GetDbPath() string {
 	return filepath.Join(dir, "dashboard.db")
 }
 
+// GetPluginsDir returns the directory that holds plugin directories
+// (one subdirectory per plugin, each containing plugin.go).
+func GetPluginsDir() string {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		configDir = filepath.Join(os.TempDir(), "gitboard")
+	}
+	dir := filepath.Join(configDir, "gitboard", "plugins")
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return filepath.Join(os.TempDir(), "gitboard-plugins")
+	}
+	return dir
+}
+
 // GetPort returns the server port from environment or a random available port.
 func GetPort() string {
 	if port := os.Getenv("GITBOARD_PORT"); port != "" {

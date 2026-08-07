@@ -182,34 +182,3 @@ func (a *App) SearchAll(query string) []SearchHit {
 	}
 	return results
 }
-
-// ExportProjectStats returns all stats in CSV format suitable for spreadsheet import.
-func (a *App) ExportProjectStats(projectID int64) string {
-	statsList, err := db.GetStatsByProject(a.db, projectID, "")
-	if err != nil {
-		return ""
-	}
-	if len(statsList) == 0 {
-		a.refreshProjectStats(projectID, "")
-		statsList, _ = db.GetStatsByProject(a.db, projectID, "")
-	}
-
-	var sb strings.Builder
-	sb.WriteString("date,author,files_changed,lines_added,lines_deleted\n")
-	for _, st := range statsList {
-		sb.WriteString(fmt.Sprintf("%s,%s,%d,%d,%d\n",
-			st.StatDate, st.Author, st.FilesChanged, st.LinesAdded, st.LinesDeleted))
-	}
-	return sb.String()
-}
-
-// ExportHeatmapCSV returns heatmap data as CSV for spreadsheet use.
-func (a *App) ExportHeatmapCSV() string {
-	days := a.GetHeatmapData().Days
-	var sb strings.Builder
-	sb.WriteString("date,lines_added,lines_deleted,commits\n")
-	for _, d := range days {
-		sb.WriteString(fmt.Sprintf("%s,%d,%d,%d\n", d.Date, d.LinesAdded, d.LinesDeleted, d.Commits))
-	}
-	return sb.String()
-}

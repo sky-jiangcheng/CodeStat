@@ -3,13 +3,14 @@ import NoteSection from './NoteSection'
 
 interface Props {
   projectId: number
+  autoNewNote?: boolean
 }
 
-function ProjectPanel({ projectId }: Props) {
+function ProjectPanel({ projectId, autoNewNote = false }: Props) {
   return (
     <div className="side-panel">
       <TodoSection projectId={projectId} />
-      <NoteSection projectId={projectId} />
+      <NoteSection projectId={projectId} autoNew={autoNewNote} />
     </div>
   )
 }

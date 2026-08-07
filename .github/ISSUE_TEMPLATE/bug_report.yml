@@ -1,0 +1,59 @@
+name: 缺陷报告
+description: 报告一个可复现的 Bug
+title: "[Bug]: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "感谢你报告 Bug！请尽量完整填写以下信息，便于快速定位。"
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+      description: 应用版本号（如 1.5.4）
+      placeholder: "1.5.4"
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options:
+        - Windows (amd64)
+        - macOS (Intel)
+        - macOS (Apple Silicon)
+        - Linux (amd64)
+        - 其他
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 复现步骤
+      description: 从打开应用到出现问题的完整步骤
+      placeholder: |
+        1. 打开 GitBuddy
+        2. 点击「重新扫描」
+        3. 观察到崩溃
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期望行为
+      description: 你期望发生什么
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: 实际行为
+      description: 实际发生了什么（可附截图或错误信息）
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志
+      description: 相关日志内容（macOS: ~/Library/Logs/gitboard.log）
+      render: text

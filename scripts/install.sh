@@ -1,5 +1,5 @@
 #!/bin/bash
-# GitBoard install script for macOS and Linux
+# GitBuddy install script for macOS and Linux
 set -e
 
 INSTALL_DIR="/usr/local/bin"
@@ -27,7 +27,7 @@ case "$OS" in
   *) echo "Unsupported OS: $OS"; exit 1 ;;
 esac
 
-echo "Downloading GitBoard for $TARGET..."
+echo "Downloading GitBuddy for $TARGET..."
 
 DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/gitboard-$TARGET"
 
@@ -41,5 +41,5 @@ else
 fi
 
 echo ""
-echo "GitBoard installed to $INSTALL_DIR/$BINARY_NAME"
+echo "GitBuddy installed to $INSTALL_DIR/$BINARY_NAME"
 echo "Run 'gitboard' to start!"

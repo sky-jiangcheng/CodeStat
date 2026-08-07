@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { getConfig, updateConfig, updateScanRoots, triggerScan, importClaudeMemory } from '../api/client'
+import { getConfig, updateConfig, updateScanRoots, triggerScan, importClaudeMemory,
+  getPluginStatuses, getKnowledgeSources, triggerKnowledgeImport, reloadPlugins,
+  type PluginStatus, type SourceStatus } from '../api/client'
 import { applyTheme, getStoredTheme, storeTheme, type ThemeMode } from '../utils/theme'
 
 interface ConfigData {
@@ -7,13 +9,14 @@ interface ConfigData {
   scan_roots: string[]
 }
 
-type TabKey = 'scan' | 'standards' | 'authors' | 'appearance' | 'actions'
+type TabKey = 'scan' | 'standards' | 'authors' | 'appearance' | 'actions' | 'plugins'
 
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'scan', label: '扫描目录' },
   { key: 'standards', label: '代码标准' },
   { key: 'authors', label: '作者配置' },
   { key: 'appearance', label: '外观' },
+  { key: 'plugins', label: '插件' },
   { key: 'actions', label: '操作' },
 ]
 
@@ -35,6 +38,10 @@ function Settings() {
   const [message, setMessage] = useState('')
   const [importing, setImporting] = useState(false)
   const [tab, setTab] = useState<TabKey>('scan')
+  const [plugins, setPlugins] = useState<PluginStatus[]>([])
+  const [sources, setSources] = useState<SourceStatus[]>([])
+  const [importingSource, setImportingSource] = useState<string>('')
+  const [autoImport, setAutoImport] = useState(true)
   const timerRef = useRef<ReturnType<typeof setTimeout>>()
 
   const showMessage = (msg: string) => {
@@ -51,10 +58,58 @@ function Settings() {
         setCodeStandard(d.config.daily_code_standard || '500')
         setScanDepth(d.config.scan_depth || '2')
         setAuthorName(d.config.git_author || '')
+        setAutoImport(d.config.auto_import !== '0')
       })
       .finally(() => setLoading(false))
+    refreshPluginState()
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [])
+
+  const refreshPluginState = async () => {
+    const [p, s] = await Promise.all([getPluginStatuses(), getKnowledgeSources()])
+    setPlugins(p)
+    setSources(s)
+  }
+
+  const handleReloadPlugins = async () => {
+    setSaving(true)
+    try {
+      const p = await reloadPlugins()
+      setPlugins(p)
+      const s = await getKnowledgeSources()
+      setSources(s)
+      showMessage('插件已重新加载')
+    } catch (e: unknown) {
+      showMessage('插件重载失败: ' + (e instanceof Error ? e.message : '未知错误'))
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleImportSource = async (name: string) => {
+    setImportingSource(name)
+    try {
+      const r = await triggerKnowledgeImport(name)
+      showMessage(`导入完成：新增 ${r.created}，更新 ${r.updated}，跳过 ${r.skipped}`)
+    } catch (e: unknown) {
+      showMessage('导入失败: ' + (e instanceof Error ? e.message : '未知错误'))
+    } finally {
+      setImportingSource('')
+    }
+  }
+
+  const handleAutoImportToggle = async (on: boolean) => {
+    setSaving(true)
+    try {
+      await updateConfig('auto_import', on ? '1' : '0')
+      setAutoImport(on)
+      showMessage(on ? '已开启启动时自动导入' : '已关闭启动时自动导入')
+    } catch (e: unknown) {
+      showMessage('保存失败: ' + (e instanceof Error ? e.message : '未知错误'))
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSaveConfig = async () => {
     const num = parseInt(codeStandard, 10)
@@ -303,6 +358,81 @@ function Settings() {
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {tab === 'plugins' && (
+        <div className="settings-section">
+          <p className="section-desc">
+            插件是放置在配置目录 <code>plugins/</code> 下的 Go 脚本，启动时自动加载。
+            每个插件目录包含一个 <code>plugin.go</code>，导出 <code>Name</code> 与 <code>Init</code>。
+          </p>
+
+          <div className="form-group">
+            <label>启动时自动导入知识源</label>
+            <div className="toggle-row">
+              <button
+                className={`toggle ${autoImport ? 'toggle-on' : ''}`}
+                onClick={() => handleAutoImportToggle(!autoImport)}
+                disabled={saving}
+                aria-pressed={autoImport}
+              >
+                <span className="toggle-knob" />
+              </button>
+              <span className="form-hint" style={{ marginTop: 0 }}>
+                {autoImport ? '应用启动时自动导入所有知识源' : '仅在手动点击时导入'}
+              </span>
+            </div>
+          </div>
+
+          <div className="section-header-row">
+            <h2 style={{ margin: 0 }}>已加载插件</h2>
+            <button className="btn btn-secondary btn-sm" onClick={handleReloadPlugins} disabled={saving}>
+              重新加载
+            </button>
+          </div>
+
+          {plugins.length === 0 ? (
+            <div className="empty-hint">暂无插件。可将插件目录放入配置目录的 plugins/ 下后点击「重新加载」。</div>
+          ) : (
+            <ul className="plugin-list">
+              {plugins.map((p) => (
+                <li key={p.path} className={`plugin-item ${p.loaded ? 'plugin-ok' : 'plugin-err'}`}>
+                  <div className="plugin-info">
+                    <span className="plugin-name">{p.name || '(未命名)'}</span>
+                    <span className="plugin-path">{p.path}</span>
+                  </div>
+                  <span className={`plugin-badge ${p.loaded ? 'badge-ok' : 'badge-err'}`}>
+                    {p.loaded ? '已加载' : '加载失败'}
+                  </span>
+                  {p.error && <div className="plugin-error">{p.error}</div>}
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <h2 style={{ marginTop: 24 }}>知识导入源</h2>
+          {sources.length === 0 ? (
+            <div className="empty-hint">暂无知识导入源。</div>
+          ) : (
+            <ul className="plugin-list">
+              {sources.map((s) => (
+                <li key={s.name} className="plugin-item plugin-ok">
+                  <div className="plugin-info">
+                    <span className="plugin-name">{s.name}</span>
+                    <span className="plugin-path">来自 {s.plugin || 'builtin'}</span>
+                  </div>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleImportSource(s.name)}
+                    disabled={importingSource !== '' || !s.enabled}
+                  >
+                    {importingSource === s.name ? '导入中…' : '立即导入'}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

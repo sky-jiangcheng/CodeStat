@@ -5,6 +5,8 @@ import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
 import Knowledge from './pages/Knowledge'
 import CommandPalette from './components/CommandPalette'
+import ToastHost, { type ToastItem } from './components/Toast'
+import { listenImportCompleted } from './api/client'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
 
 // ErrorBoundary prevents a render crash in any routed page from black-screening
@@ -39,7 +41,7 @@ class ErrorBoundary extends Component<
           <div className="error-banner">
             <span>页面加载出错：{this.state.error?.message || '未知错误'}</span>
           </div>
-          <button className="btn btn-primary" onClick={this.handleReset}>返回仪表盘</button>
+          <button className="btn btn-primary" onClick={this.handleReset}>返回首页</button>
         </div>
       )
     }
@@ -57,14 +59,14 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
       <div className="nav-left">
         <Link to="/" className="nav-brand">
           <span className="nav-brand-mark">▦</span>
-          GitBoard
+          GitBuddy
         </Link>
         <div className="nav-links">
-          <Link to="/" className={navClass(pathname === '/' || pathname.startsWith('/project'))}>
-            仪表盘
-          </Link>
-          <Link to="/knowledge" className={navClass(pathname === '/knowledge')}>
+          <Link to="/" className={navClass(pathname === '/')}>
             知识库
+          </Link>
+          <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
+            仪表盘
           </Link>
           <Link to="/settings" className={navClass(pathname === '/settings')}>
             设置
@@ -85,6 +87,13 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
 
 function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const pushToast = (t: Omit<ToastItem, 'id'>) => {
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+    setToasts(prev => [...prev, { ...t, id }])
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), t.duration ?? 5000)
+  }
 
   useEffect(() => {
     const mode = getStoredTheme()
@@ -92,6 +101,25 @@ function App() {
     return listenSystemTheme(() => {
       if (getStoredTheme() === 'system') applyTheme('system')
     })
+  }, [])
+
+  useEffect(() => {
+    // Surface knowledge import results as toasts (issue #36).
+    const unsubscribe = listenImportCompleted((data) => {
+      if (data.error) {
+        pushToast({ kind: 'error', title: `导入 ${data.source} 失败`, message: data.error })
+        return
+      }
+      if (data.created === 0 && data.updated === 0 && data.skipped === 0) {
+        return
+      }
+      pushToast({
+        kind: 'success',
+        title: `知识源 ${data.source} 已导入`,
+        message: `新增 ${data.created} · 更新 ${data.updated} · 跳过 ${data.skipped}`,
+      })
+    })
+    return unsubscribe
   }, [])
 
   useEffect(() => {
@@ -113,6 +141,7 @@ function App() {
           <RoutedApp />
         </main>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        <ToastHost toasts={toasts} onDismiss={(id) => setToasts(prev => prev.filter(x => x.id !== id))} />
       </div>
     </HashRouter>
   )
@@ -126,9 +155,9 @@ function RoutedApp() {
   return (
     <ErrorBoundary resetKey={pathname}>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Knowledge />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/project/:id" element={<ProjectDetail />} />
-        <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/settings" element={<Settings />} />
       </Routes>
     </ErrorBoundary>

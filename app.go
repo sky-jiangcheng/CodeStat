@@ -8,7 +8,9 @@ import (
 	"sync"
 	"time"
 
+	pluginruntime "gitboard/internal/core/plugin/runtime"
 	"gitboard/internal/db"
+	"gitboard/internal/platform"
 	"gitboard/internal/stats"
 )
 
@@ -23,6 +25,7 @@ type App struct {
 	ctx             context.Context
 	db              *sql.DB
 	gitUser         string
+	pluginRuntime   *pluginruntime.Runtime
 	scanMu          sync.Mutex
 	scanning        bool
 	backfilling     bool
@@ -41,14 +44,38 @@ type App struct {
 // NewApp creates a new App instance with dependencies injected.
 func NewApp(database *sql.DB, gitUser string) *App {
 	return &App{
-		db:      database,
-		gitUser: gitUser,
+		db:            database,
+		gitUser:       gitUser,
+		pluginRuntime: pluginruntime.New(database),
 	}
 }
 
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	// Register built-in importers before loading script plugins so both appear
+	// in the knowledge-sources list.
+	a.registerClaudeImporter()
+	// Load plugins so event handlers are registered before the UI binds.
+	a.pluginRuntime.Load(platform.GetPluginsDir())
+	log.Printf("plugin runtime ready: %d plugin(s), %d source(s)",
+		len(a.pluginRuntime.PluginStatuses()), len(a.pluginRuntime.SourceStatuses()))
+
+	// Auto-import knowledge sources on startup (issue #36). Defaults to on;
+	// a user can disable it via the auto_import config key.
+	if v, err := db.GetConfig(a.db, "auto_import"); err == nil && v != "0" {
+		go func() {
+			results := a.TriggerAllKnowledgeImports()
+			for _, r := range results {
+				if r.Err != "" {
+					log.Printf("auto-import %q failed: %s", r.Name, r.Err)
+				} else {
+					log.Printf("auto-import %q: +%d ~%d -%d",
+						r.Name, r.Run.Created, r.Run.Updated, r.Run.Skipped)
+				}
+			}
+		}()
+	}
 }
 
 // shutdown is called when the application exits.

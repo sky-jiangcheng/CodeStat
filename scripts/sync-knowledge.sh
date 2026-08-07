@@ -1,5 +1,5 @@
 #!/bin/bash
-# sync-knowledge.sh — Sync Claude memory files to GitBoard project notes (CLI)
+# sync-knowledge.sh — Sync Claude memory files to GitBuddy project notes (CLI)
 #
 # DEPRECATED: prefer the in-app import (Settings -> 操作 -> 导入 Claude 记忆),
 # which calls App.ImportClaudeMemory with parameterized, idempotent queries.
@@ -7,7 +7,7 @@
 # doubling single quotes (the SQL standard for string literals).
 # Usage: bash sync-knowledge.sh
 # This script reads Claude's project memory files and inserts them into
-# GitBoard's SQLite database as project notes, making them visible in the UI.
+# GitBuddy's SQLite database as project notes, making them visible in the UI.
 
 set -euo pipefail
 
@@ -22,14 +22,14 @@ if [ -z "$SQLITE" ]; then
 fi
 
 if [ ! -f "$GITBOARD_DB" ]; then
-  echo "Error: GitBoard database not found at $GITBOARD_DB"
-  echo "Make sure GitBoard has been run at least once."
+  echo "Error: GitBuddy database not found at $GITBOARD_DB"
+  echo "Make sure GitBuddy has been run at least once."
   exit 1
 fi
 
-echo "=== Syncing Claude memory to GitBoard ==="
+echo "=== Syncing Claude memory to GitBuddy ==="
 echo "Memory dir: $CLAUDE_MEMORY_DIR"
-echo "GitBoard DB: $GITBOARD_DB"
+echo "GitBuddy DB: $GITBOARD_DB"
 echo ""
 
 SYNCED=0
@@ -55,7 +55,7 @@ for project_dir in "$CLAUDE_MEMORY_DIR"/*/; do
     display_name="$project_name"
   fi
 
-  # Find matching GitBoard project by name (try exact match, then fuzzy)
+  # Find matching GitBuddy project by name (try exact match, then fuzzy)
   project_id=$("$SQLITE" "$GITBOARD_DB" "SELECT id FROM projects WHERE name = '$display_name' OR name LIKE '%$display_name%' LIMIT 1" 2>/dev/null || echo "")
 
   if [ -z "$project_id" ]; then
@@ -69,7 +69,7 @@ for project_dir in "$CLAUDE_MEMORY_DIR"/*/; do
   fi
 
   if [ -z "$project_id" ]; then
-    echo "  ⚠  No matching GitBoard project for: $display_name (Claude dir: $project_name)"
+    echo "  ⚠  No matching GitBuddy project for: $display_name (Claude dir: $project_name)"
     SKIPPED=$((SKIPPED + 1))
     continue
   fi
@@ -128,6 +128,6 @@ done
 echo ""
 echo "=== Sync complete ==="
 echo "  Synced: $SYNCED notes"
-echo "  Skipped: $SKIPPED projects (no GitBoard match)"
+echo "  Skipped: $SKIPPED projects (no GitBuddy match)"
 echo ""
-echo "Refresh GitBoard to see the knowledge notes."
+echo "Refresh GitBuddy to see the knowledge notes."

@@ -95,30 +95,6 @@ func (a *App) GetScanStatus() *ScanStatus {
 	}
 }
 
-// PauseScan pauses an ongoing scan.
-func (a *App) PauseScan() error {
-	a.scanMu.Lock()
-	defer a.scanMu.Unlock()
-	if a.scanCancel != nil {
-		a.scanCancel()
-		a.scanCancel = nil
-		a.scanning = false
-	}
-	return nil
-}
-
-// ResumeScan resumes a paused scan.
-func (a *App) ResumeScan() error {
-	a.scanMu.Lock()
-	defer a.scanMu.Unlock()
-	if a.scanCancel == nil && a.scanning {
-		_, cancel := context.WithCancel(context.Background())
-		a.scanCancel = cancel
-		// Resume scanning logic would go here
-	}
-	return nil
-}
-
 // runCollectedScan performs the actual scan for collected projects only.
 func (a *App) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 	defer func() {
@@ -197,6 +173,11 @@ func (a *App) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 	a.refreshCollectedStatsWithCancel(ctx, collectedIDs)
 	_ = db.SetConfig(a.db, "last_stats_backfill", stats.GetTodayDate())
 	log.Printf("scan complete: %d repos, %d projects", len(repos), len(groups))
+	if a.pluginRuntime != nil {
+		a.pluginRuntime.Emit("project.scanned", map[string]any{
+			"repos_found": len(repos), "projects": len(groups),
+		})
+	}
 }
 
 // refreshCollectedStatsWithCancel refreshes stats for collected projects only.
