@@ -29,7 +29,7 @@ class ErrorBoundary extends Component<
 
   handleReset = () => {
     this.setState({ hasError: false, error: null })
-    window.location.hash = '#/'
+    window.location.hash = '#/dashboard'
   }
 
   render() {
@@ -57,14 +57,14 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
       <div className="nav-left">
         <Link to="/" className="nav-brand">
           <span className="nav-brand-mark">▦</span>
-          GitBoard
+          GitBuddy
         </Link>
         <div className="nav-links">
-          <Link to="/" className={navClass(pathname === '/' || pathname.startsWith('/project'))}>
-            仪表盘
-          </Link>
-          <Link to="/knowledge" className={navClass(pathname === '/knowledge')}>
+          <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
             知识库
+          </Link>
+          <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
+            仪表盘
           </Link>
           <Link to="/settings" className={navClass(pathname === '/settings')}>
             设置
@@ -126,7 +126,8 @@ function RoutedApp() {
   return (
     <ErrorBoundary resetKey={pathname}>
       <Routes>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Knowledge />} />
+        <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/project/:id" element={<ProjectDetail />} />
         <Route path="/knowledge" element={<Knowledge />} />
         <Route path="/settings" element={<Settings />} />

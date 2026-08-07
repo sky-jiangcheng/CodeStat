@@ -1,11 +1,15 @@
 # RFC 0001: GitBuddy 架构演进 & 插件平台化
 
+> **⚠️ Superseded by [ADR 0002](../adr/0002-c-end-repositioning.md)**
+> 本 RFC 中的 M2（常驻 HTTP Server / RBAC / AK-SK）、M3（插件协议网关 + scope 权限）、M4（PG/ES / K8s / gitbuddy-server）均已废弃。
+> M1 抽象层保留，作为附加插件扩展接口的底层支撑。
+
 | 项 | 值 |
 |---|---|
-| 状态 | Proposed |
+| 状态 | **Superseded** (M1 已完成，M2-M4 废弃) |
 | 设计版本 | v0.1 (M1) |
-| 最近更新 | 2026-08-06 |
-| 对应里程碑 | M1 抽象解耦 → M2 服务化底座 → M3 插件协议闭环 → M4 生态规模化 |
+| 最近更新 | 2026-08-07 |
+| 对应里程碑 | M1 抽象解耦 ✅ → M2/M3/M4 废弃（见 ADR 0002） |
 
 ## 1. 背景与目标
 

@@ -18,12 +18,23 @@ const KINDS = [
 ]
 
 function draftKey(projectId: number) {
+  return `gitbuddy-note-draft-${projectId}`
+}
+
+function legacyDraftKey(projectId: number) {
   return `gitboard-note-draft-${projectId}`
 }
 
 function loadDraft(projectId: number): { content: string; title: string; tags: string; kind: string } {
   try {
-    const raw = localStorage.getItem(draftKey(projectId))
+    let raw = localStorage.getItem(draftKey(projectId))
+    if (!raw) {
+      raw = localStorage.getItem(legacyDraftKey(projectId))
+      if (raw) {
+        localStorage.setItem(draftKey(projectId), raw)
+        localStorage.removeItem(legacyDraftKey(projectId))
+      }
+    }
     if (raw) return JSON.parse(raw)
   } catch { /* ignore */ }
   return { content: '', title: '', tags: '', kind: 'knowledge' }

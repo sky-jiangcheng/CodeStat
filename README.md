@@ -1,4 +1,4 @@
-# GitBoard
+# GitBuddy
 
 自动发现本地所有 Git 仓库，以可视化 Web 面板独立展示每个项目的每日代码提交量。
 
@@ -39,12 +39,12 @@
 
 ### 下载安装
 
-从 [Releases](https://github.com/sky-jiangcheng/gitboard/releases) 下载对应平台的最新版本。
+从 [Releases](https://github.com/sky-jiangcheng/gitbuddy/releases) 下载对应平台的最新版本。
 
 | 平台 | 一键安装 |
 |------|---------|
-| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.sh \| bash` |
-| Windows | `iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.ps1 \| iex` |
+| macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.sh \| bash` |
+| Windows | `iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.ps1 \| iex` |
 
 ### 手动使用
 
@@ -110,7 +110,7 @@ cd web && npm run dev
 
 ## 项目分组规则
 
-GitBoard 使用智能分组算法自动识别项目边界：
+GitBuddy 使用智能分组算法自动识别项目边界：
 
 | 场景 | 分组规则 |
 |------|---------|
@@ -122,7 +122,7 @@ GitBoard 使用智能分组算法自动识别项目边界：
 
 ## 前后端接口
 
-GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
+GitBuddy 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前端（`window.go.main.App.*`），开发模式下（`npm run dev`）前端通过 `/api` HTTP 代理回退访问同一逻辑。主要绑定方法：
 
 | 方法 | 说明 |
 |------|------|
@@ -194,7 +194,7 @@ GitBoard 是 Wails 桌面应用：Go 方法通过 Wails Bind 直接暴露给前�
 
 ### Q: 仓库卡片为什么只显示名称？
 
-GitBoard 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
+GitBuddy 采用按需扫描策略：未收藏的仓库仅展示名称与收藏按钮，不加载统计数据。点击星标收藏后，卡片将展示完整的每日统计信息。此设计避免对大量未关注仓库进行无意义的历史扫描。
 
 ### Q: 统计数据显示为零？
 
