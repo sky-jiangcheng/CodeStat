@@ -5,9 +5,7 @@
 package sqlite
 
 import (
-	"context"
 	"database/sql"
-	"encoding/json"
 	"log"
 	"path/filepath"
 	"strings"
@@ -30,16 +28,14 @@ type Store struct {
 // Compile-time interface checks – catches any drift between the interface and
 // the implementation at build time.
 var (
-	_ storage.ProjectStore    = (*projectStore)(nil)
 	_ storage.RepositoryStore = (*repositoryStore)(nil)
-	_ storage.DailyStatStore   = (*dailyStatStore)(nil)
-	_ storage.NoteStore        = (*noteStore)(nil)
-	_ storage.TodoStore        = (*todoStore)(nil)
-	_ storage.RepoMetaStore    = (*repoMetaStore)(nil)
-	_ storage.ConfigStore      = (*configStore)(nil)
-	_ storage.ScanRootStore    = (*scanRootStore)(nil)
-	_ storage.SearchStore      = (*searchStore)(nil)
-	_ storage.ScanTxer         = (*Store)(nil)
+	_ storage.DailyStatStore  = (*dailyStatStore)(nil)
+	_ storage.NoteStore       = (*noteStore)(nil)
+	_ storage.TodoStore       = (*todoStore)(nil)
+	_ storage.ConfigStore     = (*configStore)(nil)
+	_ storage.ScanRootStore   = (*scanRootStore)(nil)
+	_ storage.SearchStore     = (*searchStore)(nil)
+	_ storage.ScanTxer        = (*Store)(nil)
 )
 
 // New constructs a SQLite-backed storage.Stores bundle using the supplied
@@ -49,12 +45,10 @@ var (
 func New(raw *sql.DB) storage.Stores {
 	s := &Store{base{raw: raw}}
 	return storage.Stores{
-		Project:    &projectStore{s.base},
 		Repository: &repositoryStore{s.base},
 		DailyStat:  &dailyStatStore{s.base},
 		Note:       &noteStore{s.base},
 		Todo:       &todoStore{s.base},
-		RepoMeta:   &repoMetaStore{s.base},
 		Config:     &configStore{s.base},
 		ScanRoot:   &scanRootStore{s.base},
 		Search:     &searchStore{s.base},
@@ -68,44 +62,6 @@ func New(raw *sql.DB) storage.Stores {
 func (s *Store) UnderlyingDB() *sql.DB { return s.raw }
 
 // ---------------------------------------------------------------------------
-// ProjectStore
-// ---------------------------------------------------------------------------
-
-type projectStore struct{ base }
-
-func (s *projectStore) GetAll() ([]storage.Project, error) { return db.GetAllProjects(s.raw) }
-func (s *projectStore) GetStarred() ([]storage.Project, error) {
-	return db.GetStarredProjects(s.raw)
-}
-func (s *projectStore) GetByID(id int64) (*storage.Project, error) {
-	return db.GetProjectByID(s.raw, id)
-}
-func (s *projectStore) Search(query string) ([]storage.Project, error) {
-	return db.SearchProjects(s.raw, query)
-}
-func (s *projectStore) ToggleStar(id int64) (bool, error) {
-	return db.ToggleProjectStar(s.raw, id)
-}
-func (s *projectStore) Sync(name, rootPath string, levelOverride int, isAutoGrouped bool) (int64, error) {
-	tx, err := s.raw.Begin()
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback() //nolint:errcheck
-	id, err := db.SyncProjectTx(tx, name, rootPath, levelOverride, isAutoGrouped)
-	if err != nil {
-		return 0, err
-	}
-	if err := tx.Commit(); err != nil {
-		return 0, err
-	}
-	return id, nil
-}
-func (s *projectStore) GetCollectedIDs(ctx context.Context) ([]int64, error) {
-	return db.GetCollectedProjectIDs(ctx, s.raw)
-}
-
-// ---------------------------------------------------------------------------
 // RepositoryStore
 // ---------------------------------------------------------------------------
 
@@ -116,11 +72,6 @@ func (s *repositoryStore) GetAll() ([]storage.Repository, error) {
 }
 func (s *repositoryStore) GetByProject(projectID int64) ([]storage.Repository, error) {
 	return db.GetRepositoriesByProjectID(s.raw, projectID)
-}
-func (s *repositoryStore) CountByProject(projectID int64) (int64, error) {
-	var n int64
-	err := s.raw.QueryRow(`SELECT COUNT(*) FROM repositories WHERE project_id = ?`, projectID).Scan(&n)
-	return n, err
 }
 func (s *repositoryStore) Upsert(path, displayName, gitUser, organization string) (*storage.Repository, error) {
 	// Step 1: Upsert the path + metadata (last_scanned stays unchanged).
@@ -204,9 +155,6 @@ func (s *dailyStatStore) Upsert(repoID int64, date, author string, filesChanged,
 func (s *dailyStatStore) GetByProject(projectID int64, date string) ([]storage.DailyStat, error) {
 	return db.GetStatsByProject(s.raw, projectID, date)
 }
-func (s *dailyStatStore) GetByRepository(repoID int64, date string) ([]storage.DailyStat, error) {
-	return db.GetStatsByRepositoryAndDate(s.raw, repoID, date)
-}
 func (s *dailyStatStore) GetByDate(date string) ([]storage.DailyStat, error) {
 	return db.GetStatsByDate(s.raw, date)
 }
@@ -239,13 +187,10 @@ func (s *noteStore) UpdateMeta(id int64, title, tags, kind string, pinned bool) 
 func (s *noteStore) Pin(id int64, pinned bool) error {
 	return db.PinNote(s.raw, id, pinned)
 }
-func (s *noteStore) GetBySourceTitle(projectID int64, source, title string) (*storage.Note, error) {
-	return db.GetNoteBySourceTitle(s.raw, projectID, source, title)
-}
 func (s *noteStore) ListAllWithProject() ([]storage.NoteWithProject, error) {
 	return db.ListAllNotes(s.raw)
 }
-func (s *noteStore) ListAllTags() ([]string, error)    { return db.ListAllTags(s.raw) }
+func (s *noteStore) ListAllTags() ([]string, error)       { return db.ListAllTags(s.raw) }
 func (s *noteStore) Counts() ([]storage.NoteCount, error) { return db.GetNoteCounts(s.raw) }
 
 // ---------------------------------------------------------------------------
@@ -260,126 +205,10 @@ func (s *todoStore) Create(projectID int64, title string) (*storage.Todo, error)
 func (s *todoStore) List(projectID int64) ([]storage.Todo, error) {
 	return db.ListTodos(s.raw, projectID)
 }
-func (s *todoStore) Toggle(id int64) error { return db.ToggleTodo(s.raw, id) }
-func (s *todoStore) Delete(id int64) error { return db.DeleteTodo(s.raw, id) }
-func (s *todoStore) Reorder(ids []int64) error { return db.ReorderTodos(s.raw, ids) }
+func (s *todoStore) Toggle(id int64) error                { return db.ToggleTodo(s.raw, id) }
+func (s *todoStore) Delete(id int64) error                { return db.DeleteTodo(s.raw, id) }
+func (s *todoStore) Reorder(ids []int64) error            { return db.ReorderTodos(s.raw, ids) }
 func (s *todoStore) Counts() ([]storage.TodoCount, error) { return db.GetTodoCounts(s.raw) }
-
-// ---------------------------------------------------------------------------
-// RepoMetaStore
-// ---------------------------------------------------------------------------
-
-type repoMetaStore struct{ base }
-
-func (s *repoMetaStore) Get(repoID int64) (*storage.RepoMeta, error) {
-	return db.GetRepoMeta(s.raw, repoID)
-}
-
-// Upsert writes the core repository metadata columns (branch, last commit,
-// remote info, size). If no row exists one is created; otherwise existing
-// values are updated in place.
-func (s *repoMetaStore) Upsert(repoID int64, branch, latestCommitHash, latestCommitTime string, hasRemote bool, remoteURL, firstCommitDate string, sizeBytes int64) error {
-	_, err := s.raw.Exec(`
-		INSERT INTO repo_meta (repository_id, branch, latest_commit_hash, latest_commit_time,
-			has_remote, remote_url, first_commit_date, size_bytes)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(repository_id) DO UPDATE SET
-			branch             = excluded.branch,
-			latest_commit_hash = excluded.latest_commit_hash,
-			latest_commit_time = excluded.latest_commit_time,
-			has_remote         = excluded.has_remote,
-			remote_url         = excluded.remote_url,
-			first_commit_date  = excluded.first_commit_date,
-			size_bytes         = excluded.size_bytes
-	`, repoID, branch, latestCommitHash, latestCommitTime, hasRemote, remoteURL, firstCommitDate, sizeBytes)
-	return err
-}
-
-// UpdateKnowledge serializes TopContributors and RecentCommits from the
-// supplied knowledge payload and persists them into the repo_meta row.
-// Unknown knowledge structures are safely skipped; missing columns degrade
-// gracefully (we just log and continue).
-func (s *repoMetaStore) UpdateKnowledge(repoID int64, knowledge interface{}) error {
-	type recent struct {
-		Hash    string `json:"hash,omitempty"`
-		Time    string `json:"time,omitempty"`
-		Author  string `json:"author,omitempty"`
-		Message string `json:"message,omitempty"`
-	}
-	type contributor struct {
-		Author       string `json:"author,omitempty"`
-		Commits      int    `json:"commits,omitempty"`
-		LinesAdded   int    `json:"lines_added,omitempty"`
-		LinesDeleted int    `json:"lines_deleted,omitempty"`
-	}
-	var recentJSON, contribJSON string
-	// Prefer a direct struct match if the caller gave us *knowledge.RepoKnowledge,
-	// otherwise walk via reflection-less duck-typing using the above accessor
-	// shape or just the json we can infer from marshalable public fields.
-	switch k := knowledge.(type) {
-	case *struct {
-		TopContributors []contributor `json:"top_contributors"`
-		RecentCommits   []recent      `json:"recent_commits"`
-	}:
-		if b, err := json.Marshal(k.TopContributors); err == nil {
-			contribJSON = string(b)
-		}
-		if b, err := json.Marshal(k.RecentCommits); err == nil {
-			recentJSON = string(b)
-		}
-	default:
-		// Fallback: marshal entire thing and try to extract two arrays. We
-		// accept the extra CPU cost here because callers only invoke this
-		// once per repo per refresh cycle.
-		blob, err := json.Marshal(knowledge)
-		if err == nil {
-			var parsed struct {
-				TopContributors json.RawMessage `json:"top_contributors"`
-				RecentCommits   json.RawMessage `json:"recent_commits"`
-			}
-			if json.Unmarshal(blob, &parsed) == nil {
-				if len(parsed.TopContributors) > 0 {
-					contribJSON = string(parsed.TopContributors)
-				}
-				if len(parsed.RecentCommits) > 0 {
-					recentJSON = string(parsed.RecentCommits)
-				}
-			}
-		}
-	}
-	// Try to update; if these columns don't exist yet we silently succeed so
-	// that migrations can land later without breaking the refresh pipeline.
-	const q = `UPDATE repo_meta SET
-			top_contributors_json = COALESCE(?, top_contributors_json),
-			recent_commits_json   = COALESCE(?, recent_commits_json)
-		WHERE repository_id = ?`
-	_, err := s.raw.Exec(q, emptyToNull(contribJSON), emptyToNull(recentJSON), repoID)
-	if err == nil {
-		return nil
-	}
-	// Degrade: if the JSON columns aren't present yet, try to stuff the
-	// payloads into the nullable text columns (tech_stack/readme). This
-	// keeps the data persisted even if the schema hasn't been migrated.
-	if recentJSON != "" || contribJSON != "" {
-		combined := contribJSON
-		if recentJSON != "" {
-			if combined != "" {
-				combined += "\n"
-			}
-			combined += recentJSON
-		}
-		_, _ = s.raw.Exec(`UPDATE repo_meta SET readme = COALESCE(?, readme) WHERE repository_id = ?`, combined, repoID)
-	}
-	return nil
-}
-
-// emptyToNull returns nil when s is empty, otherwise the string itself.
-func emptyToNull(s string) interface{} {
-	if s == "" {
-		return nil
-	}
-	return s
-}
 
 // ---------------------------------------------------------------------------
 // ConfigStore
@@ -387,7 +216,6 @@ func emptyToNull(s string) interface{} {
 
 type configStore struct{ base }
 
-func (s *configStore) Get(key string) (string, error) { return db.GetConfig(s.raw, key) }
 func (s *configStore) Set(key, value string) error     { return db.SetConfig(s.raw, key, value) }
 func (s *configStore) All() (map[string]string, error) { return db.GetAllConfigs(s.raw) }
 
@@ -397,7 +225,7 @@ func (s *configStore) All() (map[string]string, error) { return db.GetAllConfigs
 
 type scanRootStore struct{ base }
 
-func (s *scanRootStore) Get() ([]string, error)      { return db.GetScanRoots(s.raw) }
+func (s *scanRootStore) Get() ([]string, error)       { return db.GetScanRoots(s.raw) }
 func (s *scanRootStore) Replace(roots []string) error { return db.ReplaceScanRoots(s.raw, roots) }
 
 // ---------------------------------------------------------------------------
@@ -416,45 +244,6 @@ func (s *searchStore) All(query string) ([]storage.SearchHit, error) {
 // ---------------------------------------------------------------------------
 // ScanTxer (implemented directly on Store – no method-name conflicts)
 // ---------------------------------------------------------------------------
-
-// SyncProjectRepoAndCleanup runs the full scan-side transaction exactly as
-// the legacy handlers_scan.go code did. It exists so that callers do not
-// need to leak the *sql.Tx type across the storage boundary.
-func (s *Store) SyncProjectRepoAndCleanup(
-	groups []storage.ProjectGroupInput,
-	scannedPaths []string,
-	onProgress func(done, total int),
-) error {
-	tx, err := s.raw.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback() //nolint:errcheck
-
-	total := len(groups)
-	for i, g := range groups {
-		projectID, err := db.SyncProjectTx(tx, g.Name, g.RootPath, g.LevelOverride, g.IsAutoGrouped)
-		if err != nil {
-			log.Printf("sync project error: %v", err)
-			continue
-		}
-		for _, repoPath := range g.RepoPaths {
-			if err := db.UpsertRepositoryTx(tx, repoPath, projectID); err != nil {
-				log.Printf("upsert repo error: %v", err)
-			}
-		}
-		if onProgress != nil {
-			onProgress(i+1, total)
-		}
-	}
-
-	if err := db.CleanupStaleDataTx(tx, scannedPaths); err != nil {
-		log.Printf("cleanup stale data error: %v", err)
-		return err
-	}
-
-	return tx.Commit()
-}
 
 // AutoGroupUnassigned scans every repository with NULL project_id, groups
 // them by organization / git_user / parent directory, creates a project for

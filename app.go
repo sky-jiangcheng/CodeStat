@@ -8,16 +8,17 @@ import (
 	"sync"
 	"time"
 
-	pluginruntime "gitboard/internal/core/plugin/runtime"
 	"gitboard/internal/core/git"
-	"gitboard/internal/core/kb"
+	pluginruntime "gitboard/internal/core/plugin/runtime"
 	"gitboard/internal/core/storage"
 	"gitboard/internal/db"
 	"gitboard/internal/platform"
 )
 
 // version is the application version. Overridable at build time via:
-//   wails build -ldflags "-X main.version=1.5.3"
+//
+//	wails build -ldflags "-X main.version=1.5.3"
+//
 // Kept in sync with wails.json -> info.productVersion by scripts/bump-version.sh.
 var version = "1.5.4"
 
@@ -25,44 +26,43 @@ var version = "1.5.4"
 // frontend via Wails Bind. The ctx is set during OnStartup.
 //
 // M1 transition: the app holds both the new abstract dependencies (Git /
-// Stores / KB) and the legacy raw *sql.DB handle. New code MUST go through
+// Stores) and the legacy raw *sql.DB handle. New code MUST go through
 // the abstract deps; existing code is gradually migrated in subsequent
 // milestones.
 type App struct {
-	ctx             context.Context
-	gitUser         string
-	scanMu          sync.Mutex
-	scanning        bool
-	backfilling     bool
-	scanCancel      context.CancelFunc
-	backfillCancel  context.CancelFunc
-	scanProgress    int
-	scanTotal       int
-	currentTask     string // tracks the current scan task ID
+	ctx            context.Context
+	gitUser        string
+	scanMu         sync.Mutex
+	scanning       bool
+	backfilling    bool
+	scanCancel     context.CancelFunc
+	backfillCancel context.CancelFunc
+	scanProgress   int
+	scanTotal      int
+	currentTask    string // tracks the current scan task ID
 
 	// --- New core abstractions (M1+) ---
-	Git             git.Provider
-	Stores          storage.Stores
-	KB              kb.Facade
+	Git    git.Provider
+	Stores storage.Stores
 
 	// --- In-process plugin runtime (yaegi scripts + built-in importers) ---
 	pluginRuntime *pluginruntime.Runtime
 
 	// --- Legacy handle, kept for transition period only ---
-	db              *sql.DB
+	db *sql.DB
 
 	// Status bar cache to avoid repeated git log queries on every render
 	statusCacheMu   sync.Mutex
-	statusCache      *StatusBarData
-	statusCacheTime  time.Time
+	statusCache     *StatusBarData
+	statusCacheTime time.Time
 }
 
 // NewApp creates a new App instance with default production dependencies
-// (LocalGitProvider + SQLite stores + KB facade). Use NewAppWithDeps when
+// (LocalGitProvider + SQLite stores). Use NewAppWithDeps when
 // you need to inject custom implementations (e.g. in tests).
 func NewApp(database *sql.DB, gitUser string) *App {
-	gp, stores, kbf := WireDefaults(database)
-	return NewAppWithDeps(database, gitUser, gp, stores, kbf)
+	gp, stores := WireDefaults(database)
+	return NewAppWithDeps(database, gitUser, gp, stores)
 }
 
 // startup is called at application startup.
