@@ -8,9 +8,12 @@ import (
 	"sync"
 	"time"
 
+	pluginruntime "gitboard/internal/core/plugin/runtime"
 	"gitboard/internal/core/git"
 	"gitboard/internal/core/kb"
 	"gitboard/internal/core/storage"
+	"gitboard/internal/db"
+	"gitboard/internal/platform"
 )
 
 // version is the application version. Overridable at build time via:
@@ -42,6 +45,9 @@ type App struct {
 	Stores          storage.Stores
 	KB              kb.Facade
 
+	// --- In-process plugin runtime (yaegi scripts + built-in importers) ---
+	pluginRuntime *pluginruntime.Runtime
+
 	// --- Legacy handle, kept for transition period only ---
 	db              *sql.DB
 
@@ -62,6 +68,31 @@ func NewApp(database *sql.DB, gitUser string) *App {
 // startup is called at application startup.
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	if a.pluginRuntime != nil {
+		// Register built-in importers before loading script plugins so both
+		// appear in the knowledge-sources list.
+		a.registerClaudeImporter()
+		// Load plugins so event handlers are registered before the UI binds.
+		a.pluginRuntime.Load(platform.GetPluginsDir())
+		log.Printf("plugin runtime ready: %d plugin(s), %d source(s)",
+			len(a.pluginRuntime.PluginStatuses()), len(a.pluginRuntime.SourceStatuses()))
+
+		// Auto-import knowledge sources on startup (issue #36). Defaults to on;
+		// a user can disable it via the auto_import config key.
+		if v, err := db.GetConfig(a.db, "auto_import"); err == nil && v != "0" {
+			go func() {
+				results := a.TriggerAllKnowledgeImports()
+				for _, r := range results {
+					if r.Err != "" {
+						log.Printf("auto-import %q failed: %s", r.Name, r.Err)
+					} else {
+						log.Printf("auto-import %q: +%d ~%d -%d",
+							r.Name, r.Run.Created, r.Run.Updated, r.Run.Skipped)
+					}
+				}
+			}()
+		}
+	}
 }
 
 // shutdown is called when the application exits.

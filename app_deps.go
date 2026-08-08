@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 
+	pluginruntime "gitboard/internal/core/plugin/runtime"
 	"gitboard/internal/core/git"
 	"gitboard/internal/core/kb"
 	"gitboard/internal/core/storage"
@@ -28,10 +29,11 @@ func WireDefaults(rawDB *sql.DB) (git.Provider, storage.Stores, kb.Facade) {
 // backends).
 func NewAppWithDeps(database *sql.DB, gitUser string, gp git.Provider, stores storage.Stores, kbf kb.Facade) *App {
 	return &App{
-		db:      database,
-		gitUser: gitUser,
-		Git:     gp,
-		Stores:  stores,
-		KB:      kbf,
+		db:            database,
+		gitUser:       gitUser,
+		Git:           gp,
+		Stores:        stores,
+		KB:            kbf,
+		pluginRuntime: pluginruntime.New(database),
 	}
 }

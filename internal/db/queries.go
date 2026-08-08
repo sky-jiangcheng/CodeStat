@@ -452,6 +452,24 @@ func UpdateNoteMeta(db *sql.DB, noteID int64, title, tags, kind string, pinned b
 	return nil
 }
 
+// MoveNote reassigns a note to a different project.
+func MoveNote(db *sql.DB, noteID, projectID int64) error {
+	res, err := db.Exec(
+		"UPDATE project_notes SET project_id = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?",
+		projectID, noteID)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 // PinNote sets or clears the pinned flag on a note.
 func PinNote(db *sql.DB, noteID int64, pinned bool) error {
 	res, err := db.Exec(
