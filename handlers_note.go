@@ -29,7 +29,13 @@ func (a *App) CreateNote(projectID int64, content string) (*db.Note, error) {
 	if strings.TrimSpace(content) == "" {
 		return nil, fmt.Errorf("content is required")
 	}
-	return a.Stores.Note.Create(projectID, content)
+	note, err := a.Stores.Note.Create(projectID, content)
+	if err == nil && a.pluginRuntime != nil {
+		a.pluginRuntime.Emit("note.created", map[string]any{
+			"id": note.ID, "project_id": projectID, "content": content,
+		})
+	}
+	return note, err
 }
 
 // UpdateNote updates the content of a note.
@@ -77,7 +83,13 @@ func (a *App) CreateNoteWithMeta(projectID int64, title, content, tags, kind, so
 	if strings.TrimSpace(content) == "" {
 		return nil, fmt.Errorf("content is required")
 	}
-	return a.Stores.Note.CreateEx(projectID, title, content, tags, kind, source)
+	note, err := a.Stores.Note.CreateEx(projectID, title, content, tags, kind, source)
+	if err == nil && a.pluginRuntime != nil {
+		a.pluginRuntime.Emit("note.created", map[string]any{
+			"id": note.ID, "project_id": projectID, "title": title, "content": content, "tags": tags, "kind": kind,
+		})
+	}
+	return note, err
 }
 
 // UpdateNoteMeta updates a note's editable metadata (title, tags, kind, pinned).
@@ -88,4 +100,9 @@ func (a *App) UpdateNoteMeta(noteID int64, title, tags, kind string, pinned bool
 // PinNote sets or clears the pinned flag on a note.
 func (a *App) PinNote(noteID int64, pinned bool) error {
 	return a.Stores.Note.Pin(noteID, pinned)
+}
+
+// MoveNote reassigns a note to a different project (relink shortcut).
+func (a *App) MoveNote(noteID, projectID int64) error {
+	return db.MoveNote(a.db, noteID, projectID)
 }

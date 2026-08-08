@@ -23,7 +23,7 @@ func (a *App) GetConfig() (*ConfigData, error) {
 
 // UpdateConfig sets a single configuration key-value pair.
 func (a *App) UpdateConfig(key, value string) error {
-	allowed := map[string]bool{"daily_code_standard": true, "scan_depth": true, "git_author": true}
+	allowed := map[string]bool{"daily_code_standard": true, "scan_depth": true, "git_author": true, "auto_import": true}
 	if !allowed[key] {
 		return fmt.Errorf("unknown config key: %s", key)
 	}
