@@ -9,20 +9,34 @@ interface Props {
 // CommandPalette is a Cmd/Ctrl+K quick-switcher: search notes & todos across all
 // projects and jump straight to a project. It surfaces the knowledge-search
 // capability as a first-class keyboard action.
+//
+// Accessibility: implemented as a combobox-in-dialog (ARIA APG). The dialog traps
+// focus, restores it to the trigger on close, and the input drives selection via
+// aria-activedescendant over a role="listbox" of role="option" items.
 export default function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const previouslyFocused = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (open) {
+      // Record the element that had focus (the trigger button) so we can restore it.
+      previouslyFocused.current = document.activeElement as HTMLElement
       setQuery('')
       setHits([])
       setActiveIndex(0)
       getProjects('', false).then(setProjects).catch(() => setProjects([]))
       setTimeout(() => inputRef.current?.focus(), 30)
+    } else {
+      // Restore focus to the triggering element when the palette closes.
+      const el = previouslyFocused.current
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+        previouslyFocused.current = null
+      }
     }
   }, [open])
 
@@ -46,37 +60,65 @@ export default function CommandPalette({ open, onClose }: Props) {
   }, [projects, query])
 
   const totalItems = hits.length + filteredProjects.length
+  const activeId = totalItems > 0 ? `cmdk-opt-${activeIndex}` : undefined
+
+  // Keep the active option in view as the user navigates with the arrow keys,
+  // so the visible highlight and aria-activedescendant stay in sync.
+  useEffect(() => {
+    if (!open || !activeId) return
+    document.getElementById(activeId)?.scrollIntoView({ block: 'nearest' })
+  }, [activeId, open])
+
+  const goto = (index: number) => {
+    if (index < hits.length) {
+      const h = hits[index]
+      if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
+    } else {
+      const p = filteredProjects[index - hits.length]
+      if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
+    }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => Math.min(i + 1, totalItems - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter') {
+    else if (e.key === 'Enter') { e.preventDefault(); goto(activeIndex) }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    else if (e.key === 'Tab') {
+      // Focus trap: the input is the only tabbable element inside the dialog,
+      // so Tab / Shift+Tab cycles back to it instead of escaping to the page.
       e.preventDefault()
-      if (activeIndex < hits.length) {
-        const h = hits[activeIndex]
-        if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
-      } else {
-        const p = filteredProjects[activeIndex - hits.length]
-        if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
-      }
-    } else if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      inputRef.current?.focus()
+    }
   }
 
   if (!open) return null
 
   return (
-    <div className="cmdk-overlay" onClick={onClose}>
-      <div className="cmdk" onClick={e => e.stopPropagation()}>
+    <div className="cmdk-overlay" onClick={onClose} tabIndex={-1}>
+      <div
+        className="cmdk"
+        role="dialog"
+        aria-modal="true"
+        aria-label="全局搜索"
+        onClick={e => e.stopPropagation()}
+      >
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-label="搜索"
+          aria-expanded={totalItems > 0}
+          aria-controls="cmdk-results"
+          aria-autocomplete="list"
+          aria-activedescendant={activeId}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="搜索笔记 / 待办 / 跳转项目…"
           className="cmdk-input"
         />
-        <div className="cmdk-results">
+        <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label="搜索结果">
           {hits.length === 0 && filteredProjects.length === 0 && (
             <div className="cmdk-empty">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
           )}
@@ -84,8 +126,12 @@ export default function CommandPalette({ open, onClose }: Props) {
           {hits.map((h, i) => (
             <a
               key={`${h.type}-${h.id}`}
+              id={`cmdk-opt-${i}`}
               href={`/#/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
+              role="option"
+              aria-selected={activeIndex === i}
+              tabIndex={-1}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
             >
@@ -97,24 +143,34 @@ export default function CommandPalette({ open, onClose }: Props) {
             </a>
           ))}
           {filteredProjects.length > 0 && <div className="cmdk-group">项目</div>}
-          {filteredProjects.map((p, i) => (
-            <a
-              key={p.id}
-              href={`/#/project/${p.id}`}
-              className={`cmdk-item ${activeIndex === hits.length + i ? 'cmdk-item-active' : ''}`}
-              onMouseEnter={() => setActiveIndex(hits.length + i)}
-              onClick={onClose}
-            >
-              <span className="cmdk-type cmdk-type-project">项</span>
-              <div className="cmdk-item-body">
-                <div className="cmdk-item-title">{p.name}</div>
-                <div className="cmdk-item-sub">{p.repo_count} 个仓库</div>
-              </div>
-            </a>
-          ))}
+          {filteredProjects.map((p, i) => {
+            const idx = hits.length + i
+            return (
+              <a
+                key={p.id}
+                id={`cmdk-opt-${idx}`}
+                href={`/#/project/${p.id}`}
+                className={`cmdk-item ${activeIndex === idx ? 'cmdk-item-active' : ''}`}
+                role="option"
+                aria-selected={activeIndex === idx}
+                tabIndex={-1}
+                onMouseEnter={() => setActiveIndex(idx)}
+                onClick={onClose}
+              >
+                <span className="cmdk-type cmdk-type-project">项</span>
+                <div className="cmdk-item-body">
+                  <div className="cmdk-item-title">{p.name}</div>
+                  <div className="cmdk-item-sub">{p.repo_count} 个仓库</div>
+                </div>
+              </a>
+            )
+          })}
         </div>
         <div className="cmdk-foot">
           <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
+        </div>
+        <div className="visually-hidden" role="status" aria-live="polite">
+          {totalItems > 0 ? `${totalItems} 个结果` : (query.trim() ? '未找到结果' : '')}
         </div>
       </div>
     </div>

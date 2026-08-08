@@ -55,33 +55,35 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const navClass = (active: boolean) => active ? 'active' : ''
 
   return (
-    <nav className="navbar">
-      <div className="nav-left">
-        <Link to="/" className="nav-brand">
-          <span className="nav-brand-mark">▦</span>
-          GitBuddy
-        </Link>
-        <div className="nav-links">
-          <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
-            知识库
+    <header>
+      <nav className="navbar" aria-label="主导航">
+        <div className="nav-left">
+          <Link to="/" className="nav-brand">
+            <span className="nav-brand-mark">▦</span>
+            GitBuddy
           </Link>
-          <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
-            仪表盘
-          </Link>
-          <Link to="/settings" className={navClass(pathname === '/settings')}>
-            设置
-          </Link>
+          <div className="nav-links">
+            <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
+              知识库
+            </Link>
+            <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
+              仪表盘
+            </Link>
+            <Link to="/settings" className={navClass(pathname === '/settings')}>
+              设置
+            </Link>
+          </div>
         </div>
-      </div>
-      <button className="nav-palette-btn" onClick={onOpenPalette} title="搜索 (⌘K)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span>搜索</span>
-        <kbd className="nav-kbd">⌘K</kbd>
-      </button>
-    </nav>
+        <button className="nav-palette-btn" onClick={onOpenPalette} aria-label="打开搜索 (⌘K)" title="搜索 (⌘K)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <span>搜索</span>
+          <kbd className="nav-kbd">⌘K</kbd>
+        </button>
+      </nav>
+    </header>
   )
 }
 
@@ -136,8 +138,21 @@ function App() {
   return (
     <HashRouter>
       <div className="app">
+        <a
+          className="skip-link"
+          href="#main-content"
+          onClick={(e) => {
+            // Focus main without touching location.hash (HashRouter owns the hash).
+            e.preventDefault()
+            const main = document.getElementById('main-content')
+            main?.focus()
+            main?.scrollIntoView({ block: 'start' })
+          }}
+        >
+          跳到主内容
+        </a>
         <NavBar onOpenPalette={() => setPaletteOpen(true)} />
-        <main className="main-content">
+        <main id="main-content" className="main-content" tabIndex={-1}>
           <RoutedApp />
         </main>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
