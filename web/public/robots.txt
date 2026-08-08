@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sky-jiangcheng.github.io/gitboard/sitemap.xml

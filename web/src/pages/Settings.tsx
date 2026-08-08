@@ -3,6 +3,8 @@ import { getConfig, updateConfig, updateScanRoots, triggerScan, importClaudeMemo
   getPluginStatuses, getKnowledgeSources, triggerKnowledgeImport, reloadPlugins,
   type PluginStatus, type SourceStatus } from '../api/client'
 import { applyTheme, getStoredTheme, storeTheme, type ThemeMode } from '../utils/theme'
+import { usePageMeta } from '../utils/seo'
+import { useInstallPrompt } from '../utils/install'
 
 interface ConfigData {
   config: Record<string, string>
@@ -27,6 +29,8 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; description: string }[] 
 ]
 
 function Settings() {
+  usePageMeta({ title: '设置 - GitBuddy', description: 'GitBuddy 设置：扫描目录、代码标准、作者配置、外观、插件与操作。', path: '/settings' })
+  const { canInstall, installed, promptInstall } = useInstallPrompt()
   const [data, setData] = useState<ConfigData | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -457,6 +461,19 @@ function Settings() {
             </button>
             <a href="/#/knowledge" className="btn btn-secondary">前往知识库查看</a>
           </div>
+
+          <h2 style={{ marginTop: 24 }}>安装到桌面</h2>
+          <p className="section-desc">
+            GitBuddy 可作为 PWA 安装到桌面 / 主屏幕，获得独立窗口与离线支持。
+            {installed ? '当前已处于安装模式。' : canInstall ? '您的浏览器支持安装。' : '请使用支持 PWA 安装的浏览器（Chrome / Edge）。'}
+          </p>
+          {canInstall && (
+            <div className="action-row">
+              <button className="btn btn-primary" onClick={() => void promptInstall()}>
+                安装 GitBuddy
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

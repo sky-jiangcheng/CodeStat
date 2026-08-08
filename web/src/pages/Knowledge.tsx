@@ -5,10 +5,12 @@ import {
   NoteWithProject, SearchHit,
 } from '../api/client'
 import { renderMarkdown, stripMarkdown, parseTags } from '../utils/markdown'
+import { usePageMeta } from '../utils/seo'
 
 type KindFilter = 'all' | 'knowledge' | 'other'
 
 function KnowledgePage() {
+  usePageMeta({ title: '知识库 - GitBuddy', description: 'GitBuddy 跨项目知识库：Markdown 笔记、标签、置顶与全文搜索。', path: '/knowledge' })
   const navigate = useNavigate()
   const [notes, setNotes] = useState<NoteWithProject[]>([])
   const [tags, setTags] = useState<string[]>([])
