@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getProjectDetail, getProjectOverview, updateProjectLevel, ProjectDetail, ProjectOverview } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
+import { usePageMeta } from '../utils/seo'
 import TrendChart, { TrendDataset } from '../components/TrendChart'
 import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
@@ -20,6 +21,7 @@ function getLastDays(n: number): string[] {
 
 function ProjectDetailPage() {
   const { id } = useParams<{ id: string }>()
+  usePageMeta({ title: '项目详情 - GitBuddy', description: 'GitBuddy 项目详情：提交趋势、热力图、仓库知识挖掘、待办与笔记。', path: `/project/${id ?? ''}` })
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const dateParam = searchParams.get('date') || ''

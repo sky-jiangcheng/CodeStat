@@ -9,6 +9,7 @@ import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
 import DatePicker from '../components/DatePicker'
 import ProjectCard from '../components/ProjectCard'
+import { usePageMeta } from '../utils/seo'
 
 function getYesterday(): string {
   const d = new Date()
@@ -26,6 +27,7 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
 ]
 
 function Dashboard() {
+  usePageMeta({ title: '仪表盘 - GitBuddy', description: 'GitBuddy 仪表盘：每日提交统计、目标进度、热力图与项目趋势。', path: '/dashboard' })
   const [projects, setProjects] = useState<Project[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [dailyGoal, setDailyGoal] = useState(500)
