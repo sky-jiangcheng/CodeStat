@@ -35,6 +35,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true)
   const [scanning, setScanning] = useState(false)
   const [scanMsg, setScanMsg] = useState('')
+  const [scanDoneMsg, setScanDoneMsg] = useState('')
   const [error, setError] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('my_added')
   const [confirmScan, setConfirmScan] = useState(false)
@@ -85,6 +86,7 @@ function Dashboard() {
               pollTimer.current = null
               setScanning(false)
               setScanMsg('')
+              setScanDoneMsg('扫描完成')
               fetchData(date, showStarredOnly)
             } else {
               setScanMsg(s.message)
@@ -114,6 +116,7 @@ function Dashboard() {
       await triggerScan()
       setScanning(true)
       setScanMsg('正在扫描仓库…')
+      setScanDoneMsg('')
       if (pollTimer.current) clearInterval(pollTimer.current)
       pollTimer.current = window.setInterval(async () => {
         const s = await getScanStatus()
@@ -122,6 +125,7 @@ function Dashboard() {
           pollTimer.current = null
           setScanning(false)
           setScanMsg('')
+          setScanDoneMsg('扫描完成')
           fetchData(date, showStarredOnly)
         } else {
           setScanMsg(s.message)
@@ -273,6 +277,10 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
+      <h1 className="visually-hidden">仪表盘</h1>
+      <div className="visually-hidden" role="status" aria-live="polite">
+        {scanning ? (scanMsg || '正在扫描…') : scanDoneMsg}
+      </div>
       <div className="dashboard-fixed">
         <div className="hero-row">
           <div className="hero-card">
@@ -305,12 +313,13 @@ function Dashboard() {
         <div className="dashboard-controls">
           <DatePicker value={date} onChange={setDate} />
           <div className="dashboard-actions">
-            <div className="search-box" ref={searchRef}>
+            <div className="search-box" ref={searchRef} role="search" aria-label="仪表盘搜索">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearchDebounced(e.target.value)}
                 placeholder="搜索仓库、笔记与待办…"
+                aria-label="搜索仓库、笔记与待办"
                 className="form-input search-input"
               />
               {searchResults !== null && (
@@ -367,8 +376,8 @@ function Dashboard() {
               <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>关注</button>
             </div>
             <div className="sort-control">
-              <label>排序：</label>
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
+              <label htmlFor="dashboard-sort">排序：</label>
+              <select id="dashboard-sort" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
                 {SORT_OPTIONS.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
               </select>
             </div>
