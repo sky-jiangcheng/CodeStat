@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"gitboard/internal/core/git"
-	"gitboard/internal/core/kb"
 	"gitboard/internal/core/storage/sqlite"
 	"gitboard/internal/db"
 
@@ -13,8 +12,8 @@ import (
 )
 
 // setupTestApp creates an in-memory App for integration testing. Uses the
-// production dependency graph (LocalGitProvider + SQLite stores + KB facade)
-// so the new interfaces are exercised alongside the legacy paths.
+// production dependency graph (LocalGitProvider + SQLite stores) so the
+// storage interfaces are exercised alongside the legacy paths.
 func setupTestApp(t *testing.T) *App {
 	t.Helper()
 	database, err := sql.Open("sqlite", ":memory:")
@@ -77,8 +76,7 @@ func setupTestApp(t *testing.T) *App {
 	// Wire dependencies exactly like production
 	gp := git.NewLocalGitProvider()
 	stores := sqlite.New(database)
-	kbf := kb.NewFacade(stores)
-	return NewAppWithDeps(database, "testuser", gp, stores, kbf)
+	return NewAppWithDeps(database, "testuser", gp, stores)
 }
 
 func TestAppCreateAndListTodos(t *testing.T) {
