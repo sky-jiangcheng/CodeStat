@@ -191,7 +191,7 @@ function Dashboard() {
   }, [])
 
   // Debounced search wrapper with proper cleanup
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const handleSearchDebounced = useCallback((query: string) => {
     setSearchQuery(query)
     if (debounceRef.current) clearTimeout(debounceRef.current)

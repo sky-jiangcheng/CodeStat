@@ -46,7 +46,7 @@ function Settings() {
   const [sources, setSources] = useState<SourceStatus[]>([])
   const [importingSource, setImportingSource] = useState<string>('')
   const [autoImport, setAutoImport] = useState(true)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const showMessage = (msg: string) => {
     setMessage(msg)

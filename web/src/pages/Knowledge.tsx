@@ -23,7 +23,7 @@ function KnowledgePage() {
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
   const [newNotePicker, setNewNotePicker] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
