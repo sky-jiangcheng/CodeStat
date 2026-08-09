@@ -9,6 +9,8 @@ export interface ToastItem {
   title: string
   message?: string
   duration?: number
+  actionLabel?: string
+  onAction?: () => void | Promise<void>
 }
 
 function ToastHost({
@@ -30,8 +32,21 @@ function ToastHost({
     <div className="toast-host" role="status" aria-live="polite">
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast-${t.kind}`}>
-          <div className="toast-title">{t.title}</div>
-          {t.message && <div className="toast-message">{t.message}</div>}
+          <div className="toast-body">
+            <div className="toast-title">{t.title}</div>
+            {t.message && <div className="toast-message">{t.message}</div>}
+            {t.actionLabel && (
+              <button
+                type="button"
+                className="toast-action"
+                onClick={async () => {
+                  try { await t.onAction?.() } finally { onDismiss(t.id) }
+                }}
+              >
+                {t.actionLabel}
+              </button>
+            )}
+          </div>
           <button className="toast-close" onClick={() => onDismiss(t.id)} aria-label="关闭">
             ×
           </button>

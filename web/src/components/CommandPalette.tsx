@@ -6,36 +6,37 @@ interface Props {
   onClose: () => void
 }
 
-function itemId(index: number): string {
-  return `cmdk-item-${index}`
-}
-
 // CommandPalette is a Cmd/Ctrl+K quick-switcher: search notes & todos across all
 // projects and jump straight to a project. It surfaces the knowledge-search
-// capability as a first-class keyboard action. Fully accessible per the
-// combobox dialog pattern (issue #11): focus trap + ARIA listbox/option +
-// focus restore on close.
+// capability as a first-class keyboard action.
+//
+// Accessibility: implemented as a combobox-in-dialog (ARIA APG). The dialog traps
+// focus, restores it to the trigger on close, and the input drives selection via
+// aria-activedescendant over a role="listbox" of role="option" items.
 export default function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const overlayRef = useRef<HTMLDivElement>(null)
-  const lastFocusedRef = useRef<Element | null>(null)
+  const previouslyFocused = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
     if (open) {
-      lastFocusedRef.current = document.activeElement
+      // Record the element that had focus (the trigger button) so we can restore it.
+      previouslyFocused.current = document.activeElement as HTMLElement
       setQuery('')
       setHits([])
       setActiveIndex(0)
       getProjects('', false).then(setProjects).catch(() => setProjects([]))
       setTimeout(() => inputRef.current?.focus(), 30)
-    } else if (lastFocusedRef.current instanceof HTMLElement) {
-      // Restore focus to the element that opened the palette.
-      lastFocusedRef.current.focus()
-      lastFocusedRef.current = null
+    } else {
+      // Restore focus to the triggering element when the palette closes.
+      const el = previouslyFocused.current
+      if (el && typeof el.focus === 'function') {
+        el.focus()
+        previouslyFocused.current = null
+      }
     }
   }, [open])
 
@@ -59,94 +60,78 @@ export default function CommandPalette({ open, onClose }: Props) {
   }, [projects, query])
 
   const totalItems = hits.length + filteredProjects.length
-  const activeId = totalItems > 0 ? itemId(activeIndex) : undefined
+  const activeId = totalItems > 0 ? `cmdk-opt-${activeIndex}` : undefined
 
-  // Trap Tab / Shift+Tab focus within the dialog.
-  const trapFocus = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab') return
-    const root = overlayRef.current
-    if (!root) return
-    const focusables = root.querySelectorAll<HTMLElement>(
-      'a[href], button, input, [tabindex]:not([tabindex="-1"])'
-    )
-    if (focusables.length === 0) return
-    const first = focusables[0]
-    const last = focusables[focusables.length - 1]
-    if (e.shiftKey && document.activeElement === first) {
-      e.preventDefault()
-      last.focus()
-    } else if (!e.shiftKey && document.activeElement === last) {
-      e.preventDefault()
-      first.focus()
+  // Keep the active option in view as the user navigates with the arrow keys,
+  // so the visible highlight and aria-activedescendant stay in sync.
+  useEffect(() => {
+    if (!open || !activeId) return
+    document.getElementById(activeId)?.scrollIntoView({ block: 'nearest' })
+  }, [activeId, open])
+
+  const goto = (index: number) => {
+    if (index < hits.length) {
+      const h = hits[index]
+      if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
+    } else {
+      const p = filteredProjects[index - hits.length]
+      if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
     }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => Math.min(i + 1, totalItems - 1)) }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIndex(i => Math.max(i - 1, 0)) }
-    else if (e.key === 'Enter') {
+    else if (e.key === 'Enter') { e.preventDefault(); goto(activeIndex) }
+    else if (e.key === 'Escape') { e.preventDefault(); onClose() }
+    else if (e.key === 'Tab') {
+      // Focus trap: the input is the only tabbable element inside the dialog,
+      // so Tab / Shift+Tab cycles back to it instead of escaping to the page.
       e.preventDefault()
-      if (activeIndex < hits.length) {
-        const h = hits[activeIndex]
-        if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
-      } else {
-        const p = filteredProjects[activeIndex - hits.length]
-        if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
-      }
-    } else if (e.key === 'Escape') { e.preventDefault(); onClose() }
+      inputRef.current?.focus()
+    }
   }
 
   if (!open) return null
 
   return (
-    <div
-      ref={overlayRef}
-      className="cmdk-overlay"
-      onClick={onClose}
-      role="presentation"
-    >
+    <div className="cmdk-overlay" onClick={onClose} tabIndex={-1}>
       <div
         className="cmdk"
         role="dialog"
         aria-modal="true"
         aria-label="全局搜索"
         onClick={e => e.stopPropagation()}
-        onKeyDown={trapFocus}
       >
         <input
           ref={inputRef}
           type="text"
+          role="combobox"
+          aria-label="搜索"
+          aria-expanded={totalItems > 0}
+          aria-controls="cmdk-results"
+          aria-autocomplete="list"
+          aria-activedescendant={activeId}
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="搜索笔记 / 待办 / 跳转项目…"
           className="cmdk-input"
-          role="combobox"
-          aria-expanded="true"
-          aria-controls="cmdk-results"
-          aria-autocomplete="list"
-          aria-activedescendant={activeId}
-          aria-label="全局搜索"
         />
-        <div
-          id="cmdk-results"
-          className="cmdk-results"
-          role="listbox"
-          aria-label="搜索结果"
-          aria-live="polite"
-        >
+        <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label="搜索结果">
           {hits.length === 0 && filteredProjects.length === 0 && (
-            <div className="cmdk-empty" role="status">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
+            <div className="cmdk-empty">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
           )}
-          {hits.length > 0 && <div className="cmdk-group" role="presentation">笔记与待办</div>}
+          {hits.length > 0 && <div className="cmdk-group">笔记与待办</div>}
           {hits.map((h, i) => (
             <a
               key={`${h.type}-${h.id}`}
-              id={itemId(i)}
+              id={`cmdk-opt-${i}`}
               href={`/#/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
               role="option"
               aria-selected={activeIndex === i}
+              tabIndex={-1}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
             >
@@ -157,17 +142,18 @@ export default function CommandPalette({ open, onClose }: Props) {
               </div>
             </a>
           ))}
-          {filteredProjects.length > 0 && <div className="cmdk-group" role="presentation">项目</div>}
+          {filteredProjects.length > 0 && <div className="cmdk-group">项目</div>}
           {filteredProjects.map((p, i) => {
             const idx = hits.length + i
             return (
               <a
                 key={p.id}
-                id={itemId(idx)}
+                id={`cmdk-opt-${idx}`}
                 href={`/#/project/${p.id}`}
                 className={`cmdk-item ${activeIndex === idx ? 'cmdk-item-active' : ''}`}
                 role="option"
                 aria-selected={activeIndex === idx}
+                tabIndex={-1}
                 onMouseEnter={() => setActiveIndex(idx)}
                 onClick={onClose}
               >
@@ -182,6 +168,9 @@ export default function CommandPalette({ open, onClose }: Props) {
         </div>
         <div className="cmdk-foot">
           <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
+        </div>
+        <div className="visually-hidden" role="status" aria-live="polite">
+          {totalItems > 0 ? `${totalItems} 个结果` : (query.trim() ? '未找到结果' : '')}
         </div>
       </div>
     </div>

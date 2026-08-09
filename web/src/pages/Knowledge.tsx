@@ -23,7 +23,7 @@ function KnowledgePage() {
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
   const [newNotePicker, setNewNotePicker] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
@@ -146,12 +146,13 @@ function KnowledgePage() {
 
       {message && <div className="message-banner">{message}</div>}
 
-      <div className="knowledge-search">
+      <div className="knowledge-search" role="search" aria-label="知识库搜索">
         <input
           type="text"
           value={query}
           onChange={e => handleSearch(e.target.value)}
           placeholder="搜索笔记与待办…（首屏即搜）"
+          aria-label="搜索笔记与待办"
           className="form-input knowledge-search-input"
           autoFocus
         />

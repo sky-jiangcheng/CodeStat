@@ -16,7 +16,7 @@ export default defineConfig({
         short_name: 'GitBuddy',
         description: 'Git 代码提交统计面板 - 自动发现本地项目并可视化展示提交量',
         theme_color: '#1a1a1a',
-        background_color: '#1a1a2e',
+        background_color: '#1a1a1a',
         display: 'standalone',
         orientation: 'any',
         scope: '/',

@@ -55,35 +55,37 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const navClass = (active: boolean) => active ? 'active' : ''
 
   return (
-    <nav className="navbar" aria-label="主导航">
-      <div className="nav-left">
-        <Link to="/" className="nav-brand">
-          <span className="nav-brand-mark">▦</span>
-          GitBuddy
-        </Link>
-        <div className="nav-links">
-          <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
-            知识库
+    <header>
+      <nav className="navbar" aria-label="主导航">
+        <div className="nav-left">
+          <Link to="/" className="nav-brand">
+            <span className="nav-brand-mark">▦</span>
+            GitBuddy
           </Link>
-          <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
-            仪表盘
-          </Link>
-          <Link to="/settings" className={navClass(pathname === '/settings')}>
-            设置
-          </Link>
+          <div className="nav-links">
+            <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
+              知识库
+            </Link>
+            <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
+              仪表盘
+            </Link>
+            <Link to="/settings" className={navClass(pathname === '/settings')}>
+              设置
+            </Link>
+          </div>
         </div>
-      </div>
-      <div role="search">
-        <button className="nav-palette-btn" onClick={onOpenPalette} title="搜索 (⌘K)" aria-haspopup="dialog">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="8" />
-          <path d="m21 21-4.3-4.3" />
-        </svg>
-        <span>搜索</span>
-        <kbd className="nav-kbd">⌘K</kbd>
-        </button>
-      </div>
-    </nav>
+        <div role="search">
+          <button className="nav-palette-btn" onClick={onOpenPalette} aria-label="打开搜索 (⌘K)" title="搜索 (⌘K)" aria-haspopup="dialog">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <span>搜索</span>
+            <kbd className="nav-kbd">⌘K</kbd>
+          </button>
+        </div>
+      </nav>
+    </header>
   )
 }
 
@@ -91,11 +93,12 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
+  // Focus main without touching location.hash (HashRouter owns the hash).
   const skipToContent = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
-    const main = document.getElementById('main')
+    const main = document.getElementById('main-content')
     main?.focus()
-    main?.scrollIntoView()
+    main?.scrollIntoView({ block: 'start' })
   }
 
   const pushToast = (t: Omit<ToastItem, 'id'>) => {
@@ -142,14 +145,40 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Intercept beforeinstallprompt so we can surface an install action to the
+  // user as a toast. Once the user dismisses the browser prompt (accept or
+  // cancel) the deferred prompt is consumed.
+  useEffect(() => {
+    let deferredPrompt: any = null
+    const onPrompt = (e: Event) => {
+      e.preventDefault()
+      deferredPrompt = e
+      pushToast({
+        kind: 'info',
+        title: '将 GitBuddy 安装到桌面',
+        message: '点击安装后可像本地应用一样打开，并支持离线使用。',
+        actionLabel: '安装',
+        onAction: async () => {
+          if (!deferredPrompt) return
+          deferredPrompt.prompt?.()
+          try {
+            await deferredPrompt.userChoice
+          } catch { /* ignore */ }
+          deferredPrompt = null
+        },
+        duration: 60_000,
+      })
+    }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+  }, [])
+
   return (
     <HashRouter>
       <div className="app">
-        <a href="#main" className="skip-link" onClick={skipToContent}>跳到主内容</a>
-        <header className="app-header">
-          <NavBar onOpenPalette={() => setPaletteOpen(true)} />
-        </header>
-        <main id="main" className="main-content" tabIndex={-1}>
+        <a className="skip-link" href="#main-content" onClick={skipToContent}>跳到主内容</a>
+        <NavBar onOpenPalette={() => setPaletteOpen(true)} />
+        <main id="main-content" className="main-content" tabIndex={-1}>
           <RoutedApp />
         </main>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
