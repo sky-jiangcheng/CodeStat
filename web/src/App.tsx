@@ -135,6 +135,34 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
+  // Intercept beforeinstallprompt so we can surface an install action to the
+  // user as a toast. Once the user dismisses the browser prompt (accept or
+  // cancel) the deferred prompt is consumed.
+  useEffect(() => {
+    let deferredPrompt: any = null
+    const onPrompt = (e: Event) => {
+      e.preventDefault()
+      deferredPrompt = e
+      pushToast({
+        kind: 'info',
+        title: '将 GitBuddy 安装到桌面',
+        message: '点击安装后可像本地应用一样打开，并支持离线使用。',
+        actionLabel: '安装',
+        onAction: async () => {
+          if (!deferredPrompt) return
+          deferredPrompt.prompt?.()
+          try {
+            await deferredPrompt.userChoice
+          } catch { /* ignore */ }
+          deferredPrompt = null
+        },
+        duration: 60_000,
+      })
+    }
+    window.addEventListener('beforeinstallprompt', onPrompt)
+    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+  }, [])
+
   return (
     <HashRouter>
       <div className="app">

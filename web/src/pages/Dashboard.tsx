@@ -237,18 +237,24 @@ function Dashboard() {
   const sorted = useMemo(() => {
     const list = projects
       .filter(p => {
-        if (showStarredOnly) return p.is_starred
-        const hasActivity = p.my_added > 0 || p.my_deleted > 0 || p.my_files > 0
-        const hasTeamActivity = p.total_added > 0 || p.total_deleted > 0
-        const isStarred = p.is_starred
-        return hasActivity || hasTeamActivity || isStarred
+        if (showStarredOnly) return !!p.is_starred
+        // Numeric fields: || 0 guards so undefined/'' never become NaN in > comparisons.
+        const myAdded = p.my_added || 0
+        const myDeleted = p.my_deleted || 0
+        const myFiles = p.my_files || 0
+        const totalAdded = p.total_added || 0
+        const totalDeleted = p.total_deleted || 0
+        const hasActivity = myAdded > 0 || myDeleted > 0 || myFiles > 0
+        const hasTeamActivity = totalAdded > 0 || totalDeleted > 0
+        const hasRepos = (p.repo_count || 0) > 0
+        return hasActivity || hasTeamActivity || hasRepos || !!p.is_starred
       })
       .sort((a, b) => {
         switch (sortKey) {
           case 'name': return a.name.localeCompare(b.name)
-          case 'my_added': return b.my_added - a.my_added
-          case 'my_files': return b.my_files - a.my_files
-          case 'repo_count': return b.repo_count - a.repo_count
+          case 'my_added': return (b.my_added || 0) - (a.my_added || 0)
+          case 'my_files': return (b.my_files || 0) - (a.my_files || 0)
+          case 'repo_count': return (b.repo_count || 0) - (a.repo_count || 0)
           default: return 0
         }
       })

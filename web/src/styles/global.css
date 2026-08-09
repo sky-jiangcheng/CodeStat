@@ -3339,6 +3339,31 @@ select:focus-visible {
   padding: 2px 4px;
 }
 
+.toast-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toast-action {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 6px 12px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-md);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.toast-action:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
 .toast-close:hover {
   color: var(--text-primary);
 }
