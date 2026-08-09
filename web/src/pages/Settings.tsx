@@ -46,7 +46,7 @@ function Settings() {
   const [sources, setSources] = useState<SourceStatus[]>([])
   const [importingSource, setImportingSource] = useState<string>('')
   const [autoImport, setAutoImport] = useState(true)
-  const timerRef = useRef<ReturnType<typeof setTimeout>>()
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const showMessage = (msg: string) => {
     setMessage(msg)
@@ -255,10 +255,17 @@ function Settings() {
         <div className="settings-section">
           <h2>扫描根目录</h2>
           <div className="form-group">
+<<<<<<< HEAD
             <label htmlFor="new-root-input">添加新目录：</label>
             <div className="input-row">
               <input
                 id="new-root-input"
+=======
+            <label htmlFor="settings-new-root">添加新目录：</label>
+            <div className="input-row">
+              <input
+                id="settings-new-root"
+>>>>>>> origin/master
                 type="text"
                 value={newRoot}
                 onChange={(e) => setNewRoot(e.target.value)}
@@ -294,9 +301,15 @@ function Settings() {
         <div className="settings-section">
           <h2>代码量标准</h2>
           <div className="form-group">
+<<<<<<< HEAD
             <label htmlFor="code-standard-input">工作日每日目标行数：</label>
             <input
               id="code-standard-input"
+=======
+            <label htmlFor="settings-code-standard">工作日每日目标行数：</label>
+            <input
+              id="settings-code-standard"
+>>>>>>> origin/master
               type="number"
               value={codeStandard}
               onChange={(e) => setCodeStandard(e.target.value)}
@@ -307,9 +320,15 @@ function Settings() {
             <span className="form-hint">范围: 100-10000</span>
           </div>
           <div className="form-group">
+<<<<<<< HEAD
             <label htmlFor="scan-depth-input">最大扫描深度：</label>
             <input
               id="scan-depth-input"
+=======
+            <label htmlFor="settings-scan-depth">最大扫描深度：</label>
+            <input
+              id="settings-scan-depth"
+>>>>>>> origin/master
               type="number"
               value={scanDepth}
               onChange={(e) => setScanDepth(e.target.value)}
@@ -330,9 +349,15 @@ function Settings() {
           <h2>Git 作者配置</h2>
           <p className="section-desc">配置用于统计个人代码量的 Git 作者名称。</p>
           <div className="form-group">
+<<<<<<< HEAD
             <label htmlFor="author-name-input">作者名称：</label>
             <input
               id="author-name-input"
+=======
+            <label htmlFor="settings-author">作者名称：</label>
+            <input
+              id="settings-author"
+>>>>>>> origin/master
               type="text"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
@@ -377,13 +402,14 @@ function Settings() {
           </p>
 
           <div className="form-group">
-            <label>启动时自动导入知识源</label>
+            <label id="settings-auto-import-label">启动时自动导入知识源</label>
             <div className="toggle-row">
               <button
                 className={`toggle ${autoImport ? 'toggle-on' : ''}`}
                 onClick={() => handleAutoImportToggle(!autoImport)}
                 disabled={saving}
                 aria-pressed={autoImport}
+                aria-labelledby="settings-auto-import-label"
               >
                 <span className="toggle-knob" />
               </button>
