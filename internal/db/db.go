@@ -138,6 +138,43 @@ func createTables(db *sql.DB) error {
 // migrationVersionKey is the app_config key tracking the applied schema version.
 const migrationVersionKey = "schema_version"
 
+// ftsSchemaStatements creates the FTS5 full-text indexes (issue #18) and the
+// triggers that keep them in sync with their source tables. The indexes are
+// external-content tables backed by project_notes / project_todos, using the
+// trigram tokenizer which gives case-insensitive substring matching for both
+// ASCII and CJK text (queries of 3+ characters per term).
+//
+// All statements are idempotent (IF NOT EXISTS) so they are safe to run from
+// both the schema migration and the test harness.
+var ftsSchemaStatements = []string{
+	`CREATE VIRTUAL TABLE IF NOT EXISTS project_notes_fts USING fts5(title, content, content='project_notes', content_rowid='id', tokenize='trigram')`,
+	`CREATE VIRTUAL TABLE IF NOT EXISTS project_todos_fts USING fts5(title, content='project_todos', content_rowid='id', tokenize='trigram')`,
+	// notes: insert / delete / update
+	`CREATE TRIGGER IF NOT EXISTS project_notes_fts_ai AFTER INSERT ON project_notes BEGIN INSERT INTO project_notes_fts(rowid, title, content) VALUES (new.id, COALESCE(new.title, ''), new.content); END`,
+	`CREATE TRIGGER IF NOT EXISTS project_notes_fts_ad AFTER DELETE ON project_notes BEGIN INSERT INTO project_notes_fts(project_notes_fts, rowid, title, content) VALUES ('delete', old.id, COALESCE(old.title, ''), old.content); END`,
+	`CREATE TRIGGER IF NOT EXISTS project_notes_fts_au AFTER UPDATE ON project_notes BEGIN INSERT INTO project_notes_fts(project_notes_fts, rowid, title, content) VALUES ('delete', old.id, COALESCE(old.title, ''), old.content); INSERT INTO project_notes_fts(rowid, title, content) VALUES (new.id, COALESCE(new.title, ''), new.content); END`,
+	// todos: insert / delete / update
+	`CREATE TRIGGER IF NOT EXISTS project_todos_fts_ai AFTER INSERT ON project_todos BEGIN INSERT INTO project_todos_fts(rowid, title) VALUES (new.id, new.title); END`,
+	`CREATE TRIGGER IF NOT EXISTS project_todos_fts_ad AFTER DELETE ON project_todos BEGIN INSERT INTO project_todos_fts(project_todos_fts, rowid, title) VALUES ('delete', old.id, old.title); END`,
+	`CREATE TRIGGER IF NOT EXISTS project_todos_fts_au AFTER UPDATE ON project_todos BEGIN INSERT INTO project_todos_fts(project_todos_fts, rowid, title) VALUES ('delete', old.id, old.title); INSERT INTO project_todos_fts(rowid, title) VALUES (new.id, new.title); END`,
+}
+
+// EnsureFTSIndex creates the FTS5 full-text indexes and sync triggers. It is
+// safe to call on any database that already has the project_notes and
+// project_todos tables. Exported so tests (and future callers) can set up the
+// index without running the full migration machinery.
+func EnsureFTSIndex(db *sql.DB) error {
+	for _, stmt := range ftsSchemaStatements {
+		if _, err := db.Exec(stmt); err != nil {
+			if isAlreadyExistsErr(err) {
+				continue
+			}
+			return fmt.Errorf("create FTS index: %w", err)
+		}
+	}
+	return nil
+}
+
 // upgradeSchema applies incremental schema changes for existing databases.
 // Migrations are tracked by a monotonically increasing version number stored in
 // app_config, so each migration runs exactly once even if ALTER errors leave a
@@ -212,6 +249,18 @@ func upgradeSchema(db *sql.DB) error {
 			"CREATE INDEX IF NOT EXISTS idx_projects_collected ON projects(collected)",
 			"CREATE INDEX IF NOT EXISTS idx_projects_collected_at ON projects(collected_at)",
 		}},
+		// v7: FTS5 full-text search index (issue #18). External-content tables
+		// with the trigram tokenizer power substring + relevance search over
+		// notes and todos; triggers keep the index in sync. Existing rows are
+		// backfilled idempotently.
+		{id: 7, sql: append(append([]string{}, ftsSchemaStatements...),
+			`INSERT INTO project_notes_fts(rowid, title, content) `+
+				`SELECT id, COALESCE(title, ''), content FROM project_notes `+
+				`WHERE id NOT IN (SELECT rowid FROM project_notes_fts)`,
+			`INSERT INTO project_todos_fts(rowid, title) `+
+				`SELECT id, title FROM project_todos `+
+				`WHERE id NOT IN (SELECT rowid FROM project_todos_fts)`,
+		)},
 	}
 
 	for _, m := range migrations {

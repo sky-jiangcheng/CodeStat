@@ -83,6 +83,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 	if _, err := db.Exec(schema); err != nil {
 		t.Fatalf("failed to create tables: %v", err)
 	}
+	// Create the FTS5 search index + sync triggers (issue #18) so search tests
+	// exercise the same path as production.
+	if err := EnsureFTSIndex(db); err != nil {
+		t.Fatalf("failed to create FTS index: %v", err)
+	}
 	return db
 }
 
