@@ -109,9 +109,16 @@ export default function Heatmap({ onDayClick }: Props) {
                   key={di}
                   className={`heatmap-cell-simple level-${getLevel(day)}`}
                   role={clickable ? 'button' : undefined}
+                  tabIndex={clickable ? 0 : undefined}
                   aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : '无数据'}
                   title={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : ''}
                   onClick={clickable ? () => onDayClick!(day!.date) : undefined}
+                  onKeyDown={clickable ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      onDayClick!(day!.date)
+                    }
+                  } : undefined}
                 />
               )
             })}

@@ -31,7 +31,7 @@ export default function StatusBar() {
   })
 
   return (
-    <div className="status-bar">
+    <div className="status-bar" aria-live="polite">
       <div className="status-left">
         <span className="status-item">
           <span className="status-dot" />

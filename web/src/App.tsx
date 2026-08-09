@@ -55,7 +55,7 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const navClass = (active: boolean) => active ? 'active' : ''
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" aria-label="主导航">
       <div className="nav-left">
         <Link to="/" className="nav-brand">
           <span className="nav-brand-mark">▦</span>
@@ -73,14 +73,16 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
           </Link>
         </div>
       </div>
-      <button className="nav-palette-btn" onClick={onOpenPalette} title="搜索 (⌘K)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <div role="search">
+        <button className="nav-palette-btn" onClick={onOpenPalette} title="搜索 (⌘K)" aria-haspopup="dialog">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8" />
           <path d="m21 21-4.3-4.3" />
         </svg>
         <span>搜索</span>
         <kbd className="nav-kbd">⌘K</kbd>
-      </button>
+        </button>
+      </div>
     </nav>
   )
 }
@@ -88,6 +90,13 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
 function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toasts, setToasts] = useState<ToastItem[]>([])
+
+  const skipToContent = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault()
+    const main = document.getElementById('main')
+    main?.focus()
+    main?.scrollIntoView()
+  }
 
   const pushToast = (t: Omit<ToastItem, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
@@ -136,8 +145,11 @@ function App() {
   return (
     <HashRouter>
       <div className="app">
-        <NavBar onOpenPalette={() => setPaletteOpen(true)} />
-        <main className="main-content">
+        <a href="#main" className="skip-link" onClick={skipToContent}>跳到主内容</a>
+        <header className="app-header">
+          <NavBar onOpenPalette={() => setPaletteOpen(true)} />
+        </header>
+        <main id="main" className="main-content" tabIndex={-1}>
           <RoutedApp />
         </main>
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />

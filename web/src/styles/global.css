@@ -3270,3 +3270,45 @@ body {
 .toast-close:hover {
   color: var(--text-primary);
 }
+
+/* ===========================================================================
+   Accessibility baseline (issue #12)
+   =========================================================================== */
+
+/* Skip link: visually hidden until focused. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 9999;
+  background: var(--accent, #4caf50);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 0 0 8px 0;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.skip-link:focus-visible {
+  left: 0;
+}
+
+/* Focus indicator for keyboard navigation only (WCAG 2.4.7 / 2.2 focus appearance). */
+:focus-visible {
+  outline: 2px solid var(--accent, #4caf50);
+  outline-offset: 2px;
+}
+
+.app-header {
+  flex-shrink: 0;
+}
+
+/* Respect reduced-motion preference (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -6,23 +6,36 @@ interface Props {
   onClose: () => void
 }
 
+function itemId(index: number): string {
+  return `cmdk-item-${index}`
+}
+
 // CommandPalette is a Cmd/Ctrl+K quick-switcher: search notes & todos across all
 // projects and jump straight to a project. It surfaces the knowledge-search
-// capability as a first-class keyboard action.
+// capability as a first-class keyboard action. Fully accessible per the
+// combobox dialog pattern (issue #11): focus trap + ARIA listbox/option +
+// focus restore on close.
 export default function CommandPalette({ open, onClose }: Props) {
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const lastFocusedRef = useRef<Element | null>(null)
 
   useEffect(() => {
     if (open) {
+      lastFocusedRef.current = document.activeElement
       setQuery('')
       setHits([])
       setActiveIndex(0)
       getProjects('', false).then(setProjects).catch(() => setProjects([]))
       setTimeout(() => inputRef.current?.focus(), 30)
+    } else if (lastFocusedRef.current instanceof HTMLElement) {
+      // Restore focus to the element that opened the palette.
+      lastFocusedRef.current.focus()
+      lastFocusedRef.current = null
     }
   }, [open])
 
@@ -46,6 +59,27 @@ export default function CommandPalette({ open, onClose }: Props) {
   }, [projects, query])
 
   const totalItems = hits.length + filteredProjects.length
+  const activeId = totalItems > 0 ? itemId(activeIndex) : undefined
+
+  // Trap Tab / Shift+Tab focus within the dialog.
+  const trapFocus = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab') return
+    const root = overlayRef.current
+    if (!root) return
+    const focusables = root.querySelectorAll<HTMLElement>(
+      'a[href], button, input, [tabindex]:not([tabindex="-1"])'
+    )
+    if (focusables.length === 0) return
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault()
+      last.focus()
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault()
+      first.focus()
+    }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIndex(i => Math.min(i + 1, totalItems - 1)) }
@@ -65,8 +99,20 @@ export default function CommandPalette({ open, onClose }: Props) {
   if (!open) return null
 
   return (
-    <div className="cmdk-overlay" onClick={onClose}>
-      <div className="cmdk" onClick={e => e.stopPropagation()}>
+    <div
+      ref={overlayRef}
+      className="cmdk-overlay"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="cmdk"
+        role="dialog"
+        aria-modal="true"
+        aria-label="全局搜索"
+        onClick={e => e.stopPropagation()}
+        onKeyDown={trapFocus}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -75,17 +121,32 @@ export default function CommandPalette({ open, onClose }: Props) {
           onKeyDown={handleKeyDown}
           placeholder="搜索笔记 / 待办 / 跳转项目…"
           className="cmdk-input"
+          role="combobox"
+          aria-expanded="true"
+          aria-controls="cmdk-results"
+          aria-autocomplete="list"
+          aria-activedescendant={activeId}
+          aria-label="全局搜索"
         />
-        <div className="cmdk-results">
+        <div
+          id="cmdk-results"
+          className="cmdk-results"
+          role="listbox"
+          aria-label="搜索结果"
+          aria-live="polite"
+        >
           {hits.length === 0 && filteredProjects.length === 0 && (
-            <div className="cmdk-empty">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
+            <div className="cmdk-empty" role="status">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
           )}
-          {hits.length > 0 && <div className="cmdk-group">笔记与待办</div>}
+          {hits.length > 0 && <div className="cmdk-group" role="presentation">笔记与待办</div>}
           {hits.map((h, i) => (
             <a
               key={`${h.type}-${h.id}`}
+              id={itemId(i)}
               href={`/#/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
+              role="option"
+              aria-selected={activeIndex === i}
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
             >
@@ -96,22 +157,28 @@ export default function CommandPalette({ open, onClose }: Props) {
               </div>
             </a>
           ))}
-          {filteredProjects.length > 0 && <div className="cmdk-group">项目</div>}
-          {filteredProjects.map((p, i) => (
-            <a
-              key={p.id}
-              href={`/#/project/${p.id}`}
-              className={`cmdk-item ${activeIndex === hits.length + i ? 'cmdk-item-active' : ''}`}
-              onMouseEnter={() => setActiveIndex(hits.length + i)}
-              onClick={onClose}
-            >
-              <span className="cmdk-type cmdk-type-project">项</span>
-              <div className="cmdk-item-body">
-                <div className="cmdk-item-title">{p.name}</div>
-                <div className="cmdk-item-sub">{p.repo_count} 个仓库</div>
-              </div>
-            </a>
-          ))}
+          {filteredProjects.length > 0 && <div className="cmdk-group" role="presentation">项目</div>}
+          {filteredProjects.map((p, i) => {
+            const idx = hits.length + i
+            return (
+              <a
+                key={p.id}
+                id={itemId(idx)}
+                href={`/#/project/${p.id}`}
+                className={`cmdk-item ${activeIndex === idx ? 'cmdk-item-active' : ''}`}
+                role="option"
+                aria-selected={activeIndex === idx}
+                onMouseEnter={() => setActiveIndex(idx)}
+                onClick={onClose}
+              >
+                <span className="cmdk-type cmdk-type-project">项</span>
+                <div className="cmdk-item-body">
+                  <div className="cmdk-item-title">{p.name}</div>
+                  <div className="cmdk-item-sub">{p.repo_count} 个仓库</div>
+                </div>
+              </a>
+            )
+          })}
         </div>
         <div className="cmdk-foot">
           <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>

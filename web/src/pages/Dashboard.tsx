@@ -284,11 +284,11 @@ function Dashboard() {
             />
             <div className="hero-text">
               <div className="hero-eyebrow">{date} · {isWorkday ? '工作日' : '周末'}</div>
-              <div className="hero-title">
+              <h1 className="hero-title">
                 {isWorkday
                   ? (myAdded >= dailyGoal ? '今日目标已达成 🎉' : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
                   : '周末愉快，无达标要求'}
-              </div>
+              </h1>
               <div className="hero-sub">
                 个人新增 <strong className="green">+{myAdded}</strong> ·
                 文件 <strong>{summary?.my_files || 0}</strong> ·
@@ -367,8 +367,8 @@ function Dashboard() {
               <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>关注</button>
             </div>
             <div className="sort-control">
-              <label>排序：</label>
-              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
+              <label htmlFor="sort-select">排序：</label>
+              <select id="sort-select" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
                 {SORT_OPTIONS.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
               </select>
             </div>
@@ -379,7 +379,7 @@ function Dashboard() {
                 <button className="btn btn-sm" onClick={() => setConfirmScan(false)}>取消</button>
               </div>
             ) : (
-              <button className="btn btn-primary" onClick={() => setConfirmScan(true)} disabled={scanning}>
+              <button className="btn btn-primary" onClick={() => setConfirmScan(true)} disabled={scanning} aria-live="polite">
                 {scanning ? (scanMsg || '处理中...') : '重新扫描'}
               </button>
             )}
