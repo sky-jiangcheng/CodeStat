@@ -4,6 +4,12 @@
 
 版本号同步由 `scripts/bump-version.sh` 维护（SSOT：`wails.json` → `info.productVersion`）。
 
+## [1.5.7] - 2026-08-10
+
+### 新增
+- 块编辑器（issue #19）：Markdown 双轨编辑，输入 `/` 呼起 block 面板插入 callout/tabs/details/代码/Mermaid/公式等结构化块，块级拖拽排序与增删，编辑产物仍为可读 Markdown
+- 桌面端深链路由兜底：Wails AssetServer 对未命中的 GET 请求回退 `index.html`，保证 BrowserRouter 深链（如 `/project/123`）直接加载/刷新可访问
+
 ## [Unreleased]
 
 ### 新增
@@ -16,8 +22,6 @@
 - 知识源导入触发：启动自动导入（可开关）+ 设置页手动触发 + 前端 toast 结果通知
 - 知识库升级为首页，支持快速创建笔记（issue #31）
 - 知识库体验增强（issue #37）：首屏搜索框自动聚焦、顶部「最近编辑」快速访问区、空状态引导创建或导入 AI 记忆、编辑器「关联项目」下拉快速迁移笔记（新增 `MoveNote` API）
-- 块编辑器（issue #19）：Markdown 双轨编辑，输入 `/` 呼起 block 面板插入 callout/tabs/details/代码/Mermaid/公式等结构化块，块级拖拽排序与增删，编辑产物仍为可读 Markdown
-- 桌面端深链路由兜底：Wails AssetServer 对未命中的 GET 请求回退 `index.html`，保证 BrowserRouter 深链（如 `/project/123`）直接加载/刷新可访问
 
 ## [1.5.5] - 2026-08-10
 
