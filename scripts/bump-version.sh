@@ -74,9 +74,9 @@ else
   echo "        Consider refactoring Health() to use a package var so -ldflags can inject it."
 fi
 
-# 4. docs/index.html  ->  badge v...
+# 4. docs/index.html  ->  version badge (landing page shows "用户文档 · vX.Y.Z")
 update_file "docs/index.html" \
-  '(badge-version[^>]*>[[:space:]]*v)[0-9][^<]*' \
+  '(用户文档[^<]*·[[:space:]]*v)[0-9][^<]*' \
   "\1$VERSION"
 
 echo
