@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -66,7 +67,8 @@ func main() {
 		MinWidth:  800,
 		MinHeight: 600,
 		AssetServer: &assetserver.Options{
-			Assets: assets,
+			Assets:  assets,
+			Handler: spaFallback{},
 		},
 		OnStartup:  app.startup,
 		OnShutdown: app.shutdown,
@@ -77,6 +79,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error: %v", err)
 	}
+}
+
+// spaFallback serves index.html for any GET request the embedded Assets could
+// not resolve. With BrowserRouter the SPA owns real paths like /project/123, so
+// a direct load or refresh of a deep link must receive the app shell. Wails'
+// AssetServer delegates to Handler whenever Assets returns os.ErrNotExist.
+type spaFallback struct{}
+
+func (spaFallback) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	data, err := assets.ReadFile("web/dist/index.html")
+	if err != nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, _ = w.Write(data)
 }
 
 func ensurePath() {

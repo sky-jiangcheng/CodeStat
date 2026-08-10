@@ -4,8 +4,8 @@ import hljs from 'highlight.js'
 import mermaid from 'mermaid'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
-import 'highlight.js/styles/github.min.js'
-import 'highlight.js/styles/github-dark.min.js'
+import 'highlight.js/styles/github.css'
+import 'highlight.js/styles/github-dark.css'
 
 // Initialize mermaid once at module load.
 mermaid.initialize({
@@ -230,7 +230,7 @@ async function renderMermaidBlocks(text: string): Promise<string> {
 
   while ((match = mermaidRegex.exec(text)) !== null) {
     try {
-      const svg = await mermaid.render(
+      const { svg } = await mermaid.render(
         'mermaid-' + Math.random().toString(36).slice(2),
         match[1].trim()
       )

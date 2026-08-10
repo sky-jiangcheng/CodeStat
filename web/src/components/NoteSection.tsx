@@ -3,6 +3,7 @@ import {
   listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote, getProjects, Note, Project,
 } from '../api/client'
 import { renderMarkdown, renderMarkdownAsync } from '../utils/markdown'
+import BlockEditor from './BlockEditor'
 
 interface Props {
   projectId: number
@@ -57,6 +58,8 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
   const [draftPreviewHtml, setDraftPreviewHtml] = useState('')
   const [editPreviewHtml, setEditPreviewHtml] = useState('')
+  const [draftMode, setDraftMode] = useState<'markdown' | 'block'>('markdown')
+  const [editMode, setEditMode] = useState<'markdown' | 'block'>('markdown')
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
   const [projects, setProjects] = useState<Project[]>([])
@@ -224,13 +227,17 @@ function NoteSection({ projectId, autoNew = false }: Props) {
             className="form-input note-tags-input"
           />
           <div className="note-editor-split">
-            <textarea
-              value={draft.content}
-              onChange={e => setDraft({ ...draft, content: e.target.value })}
-              placeholder="输入 Markdown 内容…"
-              className="form-input note-textarea"
-              rows={10}
-            />
+            {draftMode === 'block' ? (
+              <BlockEditor value={draft.content} onChange={v => setDraft({ ...draft, content: v })} />
+            ) : (
+              <textarea
+                value={draft.content}
+                onChange={e => setDraft({ ...draft, content: e.target.value })}
+                placeholder="输入 Markdown 内容…"
+                className="form-input note-textarea"
+                rows={10}
+              />
+            )}
             {showPreview && (
               <div className="note-preview markdown-body">
                 {draftPreviewHtml
@@ -244,6 +251,9 @@ function NoteSection({ projectId, autoNew = false }: Props) {
           <div className="note-editor-actions">
             <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={saving || !draft.content.trim()}>保存</button>
             <button className="btn btn-sm" onClick={() => setShowPreview(v => !v)}>{showPreview ? '隐藏预览' : '显示预览'}</button>
+            <button className="btn btn-sm" onClick={() => setDraftMode(m => m === 'markdown' ? 'block' : 'markdown')} title="在 Markdown 源码与块编辑间切换">
+              {draftMode === 'markdown' ? '块编辑' : 'Markdown'}
+            </button>
             <button className="btn btn-sm" onClick={() => { setIsNew(false); setDraft({ content: '', title: '', tags: '', kind: 'knowledge' }) }}>取消</button>
             {draft.content && <span className="draft-hint">草稿已自动保存</span>}
           </div>
@@ -299,12 +309,16 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                     className="form-input note-tags-input"
                   />
                   <div className="note-editor-split">
-                    <textarea
-                      value={editContent}
-                      onChange={e => setEditContent(e.target.value)}
-                      className="form-input note-textarea"
-                      rows={10}
-                    />
+                    {editMode === 'block' ? (
+                      <BlockEditor value={editContent} onChange={setEditContent} />
+                    ) : (
+                      <textarea
+                        value={editContent}
+                        onChange={e => setEditContent(e.target.value)}
+                        className="form-input note-textarea"
+                        rows={10}
+                      />
+                    )}
                     {showPreview && (
                       <div className="note-preview markdown-body">
                         {editPreviewHtml
@@ -318,6 +332,9 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                   <div className="note-editor-actions">
                     <button className="btn btn-primary btn-sm" onClick={handleSaveEdit} disabled={saving || !editContent.trim()}>保存</button>
                     <button className="btn btn-sm" onClick={() => setShowPreview(v => !v)}>{showPreview ? '隐藏预览' : '显示预览'}</button>
+                    <button className="btn btn-sm" onClick={() => setEditMode(m => m === 'markdown' ? 'block' : 'markdown')} title="在 Markdown 源码与块编辑间切换">
+                      {editMode === 'markdown' ? '块编辑' : 'Markdown'}
+                    </button>
                     <button className="btn btn-sm" onClick={() => setEditingId(null)}>取消</button>
                   </div>
                 </div>
