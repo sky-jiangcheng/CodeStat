@@ -558,7 +558,7 @@ func GetNoteCounts(db *sql.DB) ([]NoteCount, error) {
 	return counts, rows.Err()
 }
 
-func getNoteByID(db *sql.DB, id int64) (*Note, error) {
+func GetNoteByID(db *sql.DB, id int64) (*Note, error) {
 	n := &Note{}
 	err := db.QueryRow(
 		"SELECT id, project_id, title, content, tags, kind, pinned, source, sort_order, created_at, updated_at FROM project_notes WHERE id = ?", id).
@@ -567,6 +567,11 @@ func getNoteByID(db *sql.DB, id int64) (*Note, error) {
 		return nil, err
 	}
 	return n, nil
+}
+
+// getNoteByID is a deprecated alias for GetNoteByID, kept for backward compatibility.
+func getNoteByID(db *sql.DB, id int64) (*Note, error) {
+	return GetNoteByID(db, id)
 }
 
 // -- Repositories --

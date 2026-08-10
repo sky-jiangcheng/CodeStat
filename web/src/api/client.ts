@@ -501,6 +501,16 @@ export function getStatusBar(): Promise<StatusBarData> {
   })
 }
 
+export function generateLLMsTxt(): Promise<string> {
+  if (isWails()) return wail<string>('GenerateLLMsTxt')
+  return http<string>('/llms')
+}
+
+export function exportNoteAsMarkdown(noteId: number): Promise<string> {
+  if (isWails()) return wail<string>('ExportNoteAsMarkdown', noteId)
+  return http<string>(`/notes/${noteId}/markdown`).then(d => d ?? '')
+}
+
 // --- Plugin API ---
 
 export interface PluginStatus {

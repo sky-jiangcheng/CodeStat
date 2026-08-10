@@ -68,13 +68,14 @@ func (a *App) GenerateLLMsTxt() string {
 		b.WriteString(fmt.Sprintf("- Root path: `%s`\n", p.RootPath))
 		b.WriteString(fmt.Sprintf("- Notes: %d\n", count))
 
-		if meta, ok := metaByRepo[p.ID]; ok {
-			if meta.TechStack != "" && meta.TechStack != "[]" {
-				var techs []string
-				if err := jsonUnmarshalSafe(meta.TechStack, &techs); err == nil && len(techs) > 0 {
-					b.WriteString(fmt.Sprintf("- Tech stack: %s\n", strings.Join(techs, ", ")))
+			if meta, ok := metaByRepo[p.ID]; ok {
+				if meta.TechStack != "" && meta.TechStack != "[]" {
+					var techs []string
+					jsonUnmarshalSafe(meta.TechStack, &techs)
+					if len(techs) > 0 {
+						b.WriteString(fmt.Sprintf("- Tech stack: %s\n", strings.Join(techs, ", ")))
+					}
 				}
-			}
 			if meta.ReadmeExcerpt != "" {
 				excerpt := meta.ReadmeExcerpt
 				if len(excerpt) > 400 {

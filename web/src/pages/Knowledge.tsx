@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory,
+  listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory, exportNoteAsMarkdown,
   NoteWithProject, SearchHit,
 } from '../api/client'
 import { renderMarkdown, stripMarkdown, parseTags } from '../utils/markdown'
@@ -23,6 +23,8 @@ function KnowledgePage() {
   const [importing, setImporting] = useState(false)
   const [message, setMessage] = useState('')
   const [newNotePicker, setNewNotePicker] = useState(false)
+  const [askMode, setAskMode] = useState(false)
+  const [exportingId, setExportingId] = useState<number | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const handleQuickCreate = () => {
@@ -64,6 +66,38 @@ function KnowledgePage() {
   const handlePin = async (id: number, pinned: boolean) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: !pinned } : n))
     try { await pinNote(id, !pinned) } catch { setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned } : n)) }
+  }
+
+  const handleExport = async (id: number) => {
+    setExportingId(id)
+    try {
+      const md = await exportNoteAsMarkdown(id)
+      if (!md) return
+      await navigator.clipboard.writeText(md)
+      setMessage('笔记 Markdown 已复制')
+      setTimeout(() => setMessage(''), 3000)
+    } catch (e) {
+      setMessage('导出失败：' + (e instanceof Error ? e.message : '未知错误'))
+      setTimeout(() => setMessage(''), 3000)
+    } finally {
+      setExportingId(null)
+    }
+  }
+
+  const handleAsk = async (q: string) => {
+    if (!q.trim()) return
+    const trimmed = q.trim()
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const hits = await searchAll(trimmed)
+        setHits(hits)
+        setAskMode(true)
+      } catch {
+        setHits([])
+        setAskMode(true)
+      }
+    }, 300)
   }
 
   const handleImport = async () => {
@@ -150,8 +184,16 @@ function KnowledgePage() {
         <input
           type="text"
           value={query}
-          onChange={e => handleSearch(e.target.value)}
-          placeholder="搜索笔记与待办…（首屏即搜）"
+          onChange={e => {
+            const val = e.target.value
+            setQuery(val)
+            if (askMode) {
+              handleAsk(val)
+            } else {
+              handleSearch(val)
+            }
+          }}
+          placeholder={askMode ? "询问知识库…（本地搜索）" : "搜索笔记与待办…（首屏即搜）"}
           aria-label="搜索笔记与待办"
           className="form-input knowledge-search-input"
           autoFocus
@@ -162,7 +204,7 @@ function KnowledgePage() {
       {hits !== null ? (
         <div className="knowledge-section">
           <div className="section-header">
-            <h2>搜索结果 ({hits.length})</h2>
+            <h2>搜索结果 ({hits.length}) {askMode && <span className="hit-project">（本地 · FTS5）</span>}</h2>
           </div>
           {hits.length === 0 ? (
             <p className="empty-hint">未找到匹配内容</p>
@@ -312,6 +354,15 @@ function KnowledgePage() {
                           {nt.map(t => <span key={t} className="knowledge-tag" onClick={() => setActiveTag(t)}>#{t}</span>)}
                         </div>
                       )}
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        style={{ marginTop: 8, alignSelf: 'flex-start' }}
+                        onClick={() => handleExport(n.id)}
+                        disabled={exportingId === n.id}
+                        title="导出为 Markdown"
+                      >
+                        {exportingId === n.id ? '复制中…' : '导出 .md'}
+                      </button>
                     </div>
                   )
                 })}
