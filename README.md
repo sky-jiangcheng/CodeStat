@@ -218,7 +218,15 @@ Claude 记忆导入已重构为内置 `KnowledgeImporter`（issue #35），与�
 │       │                 # / TrendChart / NoteSection / TodoSection / CommandPalette
 │       ├── api/         # 双模式 API 客户端（Wails 绑定 + HTTP 回退）
 │       └── utils/       # 主题、Markdown 渲染
-├── docs/                # GitHub Pages 落地页（产品介绍）
+├── docs/                  # 用户文档站（GitHub Pages 部署）
+│   ├── index.html         # 文档首页导航
+│   ├── getting-started.md # 快速开始
+│   ├── features/          # 功能手册（仪表盘/知识库/项目详情）
+│   ├── keyboard-shortcuts.md # 快捷键参考
+│   ├── troubleshooting.md # 故障排查
+│   ├── api/               # API 参考文档
+│   ├── adr/               # 架构决策记录
+│   └── rfc/               # RFC 草案
 ├── scripts/             # 构建和安装脚本
 └── .github/workflows/   # 多平台构建发布 + Pages 部署
 ```

@@ -109,6 +109,25 @@ export interface LanguageStat {
   count: number
 }
 
+export interface Dependency {
+  name: string
+  version: string
+  source: string
+}
+
+export interface TopContributor {
+  author: string
+  count: number
+}
+
+export interface ActivityStat {
+  total_commits: number
+  active_days: number
+  last_commit_date: string
+  commit_rate_30d: number
+  active_months: number
+}
+
 export interface RecentCommit {
   time: string
   message: string
@@ -121,6 +140,9 @@ export interface ProjectOverview {
   readme_excerpt: string
   tech_stack: Tech[]
   languages: LanguageStat[]
+  dependencies: Dependency[]
+  top_contributors: TopContributor[]
+  activity: ActivityStat | null
   recent_commits: RecentCommit[]
   cached: boolean
 }
@@ -476,6 +498,7 @@ export function listAllTags(): Promise<string[]> {
 export function getProjectOverview(projectId: number): Promise<ProjectOverview> {
   const empty: ProjectOverview = {
     readme_excerpt: '', tech_stack: [], languages: [], recent_commits: [], cached: false,
+    dependencies: [], top_contributors: [], activity: null,
   }
   if (isWails()) return wail<ProjectOverview>('GetProjectOverview', projectId).then(d => d ?? empty)
   return http<ProjectOverview>(`/projects/${projectId}/overview`).then(d => d ?? empty)

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API 参考 · 详细端点 · GitBuddy 文档</title>
+  <style>:root{--bg:#f8f9fa;--text:#1a1a2e;--muted:#6c757d;--accent:#4caf50;--border:#e2e8f0;--sw:240px}*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.sidebar{width:var(--sw);background:#1a1a2e;color:#fff;padding:24px 0;flex-shrink:0;overflow-y:auto;position:fixed;height:100vh}.sidebar-brand{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:12px}.sidebar-brand h1{font-size:18px;font-weight:700}.sidebar-brand span{color:var(--accent)}.sidebar-brand small{display:block;font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px}.sidebar h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.4);padding:12px 20px 6px}.sidebar nav{padding:0 8px}.sidebar a{display:block;padding:6px 12px;color:rgba(255,255,255,0.75);font-size:13px;border-radius:4px}.sidebar a:hover{background:rgba(255,255,255,0.08);color:#fff;text-decoration:none}.main{margin-left:var(--sw);flex:1;padding:40px 48px;max-width:860px}.main h1{font-size:28px;margin-bottom:8px}.main .subtitle{color:var(--muted);margin-bottom:32px;font-size:15px}.main h2{font-size:20px;margin-top:36px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}.main h3{font-size:16px;margin-top:24px;margin-bottom:8px}.main p{line-height:1.75;margin-bottom:16px;font-size:14px;color:#334155}.main ul{margin-bottom:16px;padding-left:24px;font-size:14px;color:#334155}.main li{margin-bottom:6px}.main code{background:#eef2f7;padding:1px 5px;border-radius:3px;font-size:13px;font-family:'SF Mono',Menlo,monospace}.main pre{background:#1a1a2e;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;margin-bottom:16px;font-size:13px;line-height:1.6}.main pre code{background:none;color:inherit;padding:0}.main table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}.main th,.main td{border:1px solid var(--border);padding:8px 12px;text-align:left}.main th{background:#f1f5f9;font-weight:600}.main blockquote{border-left:3px solid #3b82f6;padding:8px 16px;margin-bottom:16px;background:#eff6ff;border-radius:0 6px 6px 0;font-size:13px;color:#334155}.main hr{border:none;border-top:1px solid var(--border);margin:32px 0}.main .back-link{display:inline-block;font-size:13px;color:var(--muted);margin-top:32px}@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:24px}}</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Git<span>Buddy</span></h1><small>用户文档 · v1.5.7</small></div>
+    <h3>入门</h3>
+    <nav>
+      <a href="getting-started.html">快速开始</a>
+    </nav>
+<h3>功能手册</h3>
+    <nav>
+      <a href="features/dashboard.html">仪表盘</a>
+      <a href="features/knowledge.html">知识库</a>
+      <a href="features/project-detail.html">项目详情</a>
+    </nav>
+<h3>参考</h3>
+    <nav>
+      <a href="keyboard-shortcuts.html">快捷键参考</a>
+      <a href="troubleshooting.html">故障排查</a>
+    </nav>
+<h3>API</h3>
+    <nav>
+      <a href="api/index.html">API 参考</a>
+    </nav>
+
+  </aside>
+  <main class="main">
+    <a href="../index.html" class="back-link">← 返回文档首页</a>
+    <p>title: API 参考</p>
+<h1>API 参考</h1>
+<p>GitBuddy 提供两类接口：Wails 绑定方法（桌面模式下直调）与 HTTP REST API（开发模式代理）。</p>
+<p>以下文档列出所有可用的 API 端点，对应 Wails 绑定方法的签名。</p>
+<h2>鉴权</h2>
+<p>所有请求通过内嵌服务器转发，无需额外鉴权。远程访问需通过防火墙或 SSH 隧道。</p>
+<h2>项目与仓库</h2>
+<h3>获取项目列表</h3>
+<pre><code>
+GET /projects?date=2024-01-01&starred_only=false
+</code></pre>
+<table><tr><th>参数</th><th>类型</th><th>说明</th></tr><tr><td><code>date</code></td><td>string</td><td>查询日期，格式 YYYY-MM-DD，默认昨天</td></tr><tr><td><code>starred_only</code></td><td>boolean</td><td>仅返回收藏的项目</td></tr></table>
+<p><strong>响应</strong>：<code>ProjectResponse[]</code></p>
+<pre><code class="language-json">
+[
+  {
+    "id": 1,
+    "name": "my-project",
+    "root_path": "/Users/me/code/my-project",
+    "is_starred": true,
+    "repo_count": 2,
+    "total_added": 1200,
+    "total_deleted": 300,
+    "my_added": 800,
+    "my_deleted": 200,
+    "my_files": 15,
+    "is_workday": true,
+    "below_standard": false
+  }
+]
+</code></pre>
+<h3>收藏/取消收藏</h3>
+<pre><code>
+POST /projects/:id/star
+</code></pre>
+<p><strong>响应</strong>：<code>{ "starred": true }</code></p>
+<h3>刷新历史记录</h3>
+<pre><code>
+POST /projects/:id/refresh-history
+</code></pre>
+<p>触发指定项目下所有仓库的近 365 天历史数据回填。</p>
+<h3>项目概览（仓库知识挖掘）</h3>
+<pre><code>
+GET /projects/:id/overview
+</code></pre>
+<p>返回 README 摘录、技术栈、语言占比、依赖、贡献者、活跃度等挖掘数据。</p>
+<p><strong>响应</strong>：<code>ProjectOverview</code></p>
+<pre><code class="language-json">
+{
+  "readme_excerpt": "# My Project\n...",
+  "tech_stack": [{"name": "Go", "category": "language"}],
+  "languages": [{"language": "Go", "count": 15000}],
+  "dependencies": [{"name": "gin", "version": "v1.9.1", "source": "go"}],
+  "top_contributors": [{"author": "John Doe", "count": 42}],
+  "activity": {
+    "total_commits": 1580,
+    "active_days": 45,
+    "last_commit_date": "2024-06-15",
+    "commit_rate_30d": 28,
+    "active_months": 11
+  },
+  "recent_commits": [...],
+  "cached": false
+}
+</code></pre>
+<h2>扫描</h2>
+<h3>触发扫描</h3>
+<pre><code>
+POST /scan
+</code></pre>
+<p><strong>响应</strong>：<code>{ "success": true, "repos_found": 12, "projects": 3, "task_id": "1234567890" }</code></p>
+<h3>查询扫描状态</h3>
+<pre><code>
+GET /scan/status
+</code></pre>
+<p><strong>响应</strong>：<code>{ "running": false, "backfilling": false, "progress": 0, "total": 0, "message": "" }</code></p>
+<h2>统计</h2>
+<h3>获取汇总</h3>
+<pre><code>
+GET /summary?date=2024-06-15
+</code></pre>
+<p><strong>响应</strong>：<code>SummaryData</code></p>
+<pre><code class="language-json">
+{
+  "date": "2024-06-15",
+  "repo_count": 12,
+  "total_files": 45,
+  "total_added": 3200,
+  "total_deleted": 800,
+  "my_added": 2100,
+  "my_deleted": 500,
+  "my_files": 28,
+  "is_workday": true
+}
+</code></pre>
+<h3>获取热力图数据</h3>
+<pre><code>
+GET /heatmap
+</code></pre>
+<p><strong>响应</strong>：<code>{ "days": [{ "date": "2024-06-15", "lines_added": 300, "lines_deleted": 50, "commits": 5 }] }</code></p>
+<h3>获取状态栏信息</h3>
+<pre><code>
+GET /status
+</code></pre>
+<p><strong>响应</strong>：<code>StatusBarData</code></p>
+<pre><code class="language-json">
+{
+  "current_time": "2024-06-15 14:30:00",
+  "last_commit_time": "2024-06-15 14:25:00",
+  "last_commit_repo": "my-project",
+  "last_commit_branch": "main",
+  "last_commit_msg": "feat: add search"
+}
+</code></pre>
+<h2>笔记（知识库）</h2>
+<h3>获取项目笔记</h3>
+<pre><code>
+GET /notes?project_id=1
+</code></pre>
+<h3>创建笔记</h3>
+<pre><code>
+POST /notes
+Content-Type: application/json
+
+{ "project_id": 1, "content": "# Hello", "title": "入门笔记", "tags": "guide", "kind": "knowledge" }
+</code></pre>
+<p><strong>响应</strong>：<code>Note</code></p>
+<h3>更新笔记</h3>
+<pre><code>
+PUT /notes/:id
+Content-Type: application/json
+
+{ "content": "# Updated" }
+</code></pre>
+<h3>更新笔记元数据</h3>
+<pre><code>
+PUT /notes/:id/meta
+Content-Type: application/json
+
+{ "title": "新标题", "tags": "new-tag", "kind": "log", "pinned": true }
+</code></pre>
+<h3>置顶/取消置顶</h3>
+<pre><code>
+PUT /notes/:id/pin
+Content-Type: application/json
+
+{ "pinned": true }
+</code></pre>
+<h3>删除笔记</h3>
+<pre><code>
+DELETE /notes/:id
+</code></pre>
+<h3>获取所有笔记</h3>
+<pre><code>
+GET /notes/all
+</code></pre>
+<h3>获取所有标签</h3>
+<pre><code>
+GET /notes/tags
+</code></pre>
+<h3>移动笔记到其他项目</h3>
+<pre><code>
+POST /notes/:id/move
+Content-Type: application/json
+
+{ "project_id": 2 }
+</code></pre>
+<h3>笔记版本历史</h3>
+<pre><code>
+GET /notes/:id/versions
+</code></pre>
+<p><strong>响应</strong>：<code>NoteVersion[]</code></p>
+<pre><code class="language-json">
+[
+  { "id": 1, "note_id": 5, "title": "入门笔记", "content": "...", "tags": "guide", "kind": "knowledge", "created_at": "2024-06-10" }
+]
+</code></pre>
+<h3>回滚笔记到历史版本</h3>
+<pre><code>
+POST /notes/:id/versions/:version_id/restore
+</code></pre>
+<h3>查看笔记版本差异</h3>
+<pre><code>
+GET /notes/:id/versions/:version_id/diff
+</code></pre>
+<p><strong>响应</strong>：<code>string</code>（行级 diff，<code>-</code> 删除，<code>+</code> 新增，<code> </code> 未变）</p>
+<h2>待办</h2>
+<h3>获取项目待办</h3>
+<pre><code>
+GET /todos?project_id=1
+</code></pre>
+<h3>创建待办</h3>
+<pre><code>
+POST /todos
+Content-Type: application/json
+
+{ "project_id": 1, "title": "完成任务", "priority": 1 }
+</code></pre>
+<h3>切换待办完成状态</h3>
+<pre><code>
+POST /todos/:id/toggle
+</code></pre>
+<h3>删除待办</h3>
+<pre><code>
+DELETE /todos/:id
+</code></pre>
+<h2>搜索</h2>
+<h3>搜索笔记</h3>
+<pre><code>
+GET /search/notes?q=关键词
+</code></pre>
+<p><strong>响应</strong>：<code>SearchHit[]</code></p>
+<pre><code class="language-json">
+[
+  { "type": "note", "id": 5, "project_id": 1, "project_name": "my-project", "title": "入门笔记", "snippet": "...关键词...", "tags": "guide", "updated_at": "2024-06-15", "rank": 0.85 }
+]
+</code></pre>
+<h3>综合搜索（笔记 + 待办）</h3>
+<pre><code>
+GET /search/all?q=关键词
+</code></pre>
+<h2>配置</h2>
+<h3>获取配置</h3>
+<pre><code>
+GET /config
+</code></pre>
+<p><strong>响应</strong>：<code>{ "config": { "daily_code_standard": "500", "scan_depth": "2" }, "scan_roots": ["/Users/me/code"] }</code></p>
+<h3>更新配置</h3>
+<pre><code>
+PUT /config
+Content-Type: application/json
+
+{ "key": "daily_code_standard", "value": "800" }
+</code></pre>
+<h3>更新扫描根目录</h3>
+<pre><code>
+PUT /config/scan-roots
+Content-Type: application/json
+
+{ "scan_roots": ["/Users/me/code", "/Users/me/projects"] }
+</code></pre>
+<h2>知识导入</h2>
+<h3>导入 Claude 记忆</h3>
+<pre><code>
+POST /knowledge/import
+</code></pre>
+<p><strong>响应</strong>：<code>{ "synced": 5, "updated": 2, "skipped": 1 }</code></p>
+<h3>获取导入源状态</h3>
+<pre><code>
+GET /knowledge/sources
+</code></pre>
+<h3>触发指定导入源</h3>
+<pre><code>
+POST /knowledge/import/:name
+</code></pre>
+<p><strong>响应</strong>：<code>{ "created": 3, "updated": 1, "skipped": 2 }</code></p>
+<h2>插件</h2>
+<h3>获取插件状态</h3>
+<pre><code>
+GET /plugins
+</code></pre>
+<p><strong>响应</strong>：<code>PluginStatus[]</code></p>
+<pre><code class="language-json">
+[
+  { "name": "my-plugin", "enabled": true, "error": "" }
+]
+</code></pre>
+<h3>重载插件</h3>
+<pre><code>
+POST /plugins/reload
+</code></pre>
+<h2>健康检查</h2>
+<pre><code>
+GET /health
+</code></pre>
+<p><strong>响应</strong>：<code>{ "status": "ok", "version": "1.5.7" }</code></p>
+    <hr>
+    <a href="https://github.com/sky-jiangcheng/gitboard" class="back-link">← 返回 GitHub 仓库</a>
+  </main>
+</body>
+</html>

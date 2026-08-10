@@ -69,6 +69,18 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets:  assets,
 			Handler: spaFallback{},
+			Middleware: func(next http.Handler) http.Handler {
+				return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Security headers on every response
+					w.Header().Set("Content-Security-Policy",
+						"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+					w.Header().Set("X-Content-Type-Options", "nosniff")
+					w.Header().Set("X-Frame-Options", "DENY")
+					w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+					w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), acceleration=()")
+					next.ServeHTTP(w, r)
+				})
+			},
 		},
 		OnStartup:  app.startup,
 		OnShutdown: app.shutdown,
@@ -83,10 +95,10 @@ func main() {
 
 // spaFallback serves index.html for any GET request the embedded Assets could
 // not resolve. With BrowserRouter the SPA owns real paths like /project/123, so
-// a direct load or refresh of a deep link must receive the app shell. Wails'
-// AssetServer delegates to Handler whenever Assets returns os.ErrNotExist.
+// a direct load or refresh of a deep link must receive the app shell.
 type spaFallback struct{}
 
+// ServeHTTP serves the SPA shell for any path not found in the embedded assets.
 func (spaFallback) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		w.WriteHeader(http.StatusMethodNotAllowed)

@@ -188,7 +188,7 @@ function ProjectDetailPage() {
       </div>
 
       <div className="project-scroll">
-        {overview && (overview.readme_excerpt || overview.tech_stack.length > 0 || overview.recent_commits.length > 0) && (
+        {overview && (overview.readme_excerpt || overview.tech_stack.length > 0 || overview.recent_commits.length > 0 || overview.dependencies.length > 0 || overview.top_contributors.length > 0) && (
           <div className="detail-section overview-section">
             <div className="section-header">
               <h2>项目概览</h2>
@@ -220,6 +220,66 @@ function ProjectDetailPage() {
 
             {overview.readme_excerpt && (
               <div className="overview-readme markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(overview.readme_excerpt) }} />
+            )}
+
+            {overview.dependencies.length > 0 && (
+              <div className="overview-deps">
+                <h4 className="overview-sub-title">依赖</h4>
+                <div className="deps-list">
+                  {overview.dependencies.slice(0, 20).map(d => (
+                    <span key={d.name} className="dep-chip">
+                      <span className="dep-name">{d.name}</span>
+                      <span className="dep-version">{d.version}</span>
+                      <span className="dep-source">{d.source}</span>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {overview.top_contributors.length > 0 && (
+              <div className="overview-contribs">
+                <h4 className="overview-sub-title">Top 贡献者</h4>
+                <div className="contrib-list">
+                  {overview.top_contributors.map((c, i) => (
+                    <div key={i} className="contrib-item">
+                      <span className="contrib-rank">#{i + 1}</span>
+                      <span className="contrib-name">{c.author}</span>
+                      <span className="contrib-count">{c.count} commits</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {overview.activity && (overview.activity.total_commits > 0 || overview.activity.commit_rate_30d > 0) && (
+              <div className="overview-activity">
+                <h4 className="overview-sub-title">活跃度</h4>
+                <div className="activity-stats">
+                  <div className="activity-stat">
+                    <span className="activity-value">{overview.activity.total_commits}</span>
+                    <span className="activity-label">总提交</span>
+                  </div>
+                  <div className="activity-stat">
+                    <span className="activity-value">{overview.activity.commit_rate_30d}</span>
+                    <span className="activity-label">近30天</span>
+                  </div>
+                  <div className="activity-stat">
+                    <span className="activity-value">{overview.activity.active_days}</span>
+                    <span className="activity-label">活跃天数(90d)</span>
+                  </div>
+                  <div className="activity-stat">
+                    <span className="activity-value">{overview.activity.active_months}</span>
+                    <span className="activity-label">活跃月</span>
+                  </div>
+                  {overview.activity.last_commit_date && (
+                    <div className="activity-stat">
+                      <span className="activity-value-sm">{overview.activity.last_commit_date}</span>
+                      <span className="activity-label">最近提交</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {overview.recent_commits.length > 0 && (

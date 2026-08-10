@@ -203,6 +203,9 @@ func upgradeSchema(db *sql.DB) error {
 				"tech_stack TEXT DEFAULT '[]'," +
 				"readme_excerpt TEXT DEFAULT ''," +
 				"languages TEXT DEFAULT '{}'," +
+				"dependencies TEXT DEFAULT '[]'," +
+				"top_contributors TEXT DEFAULT '[]'," +
+				"activity TEXT DEFAULT '{}'," +
 				"updated_at DATETIME DEFAULT CURRENT_TIMESTAMP," +
 				"FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE CASCADE)",
 		}},

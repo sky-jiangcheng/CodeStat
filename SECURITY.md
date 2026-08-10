@@ -40,9 +40,30 @@ GitBuddy 在开发中遵循以下安全原则：
 - 配置键白名单（仅允许写入 `daily_code_standard` 与 `scan_depth`）
 - 前端渲染 Markdown 前经过 DOMPurify 消毒
 
+### HTTP 安全响应头
+
+应用内嵌 HTTP 服务器（端口 18731）在所有响应中注入以下安全头：
+
+| 响应头 | 值 | 用途 |
+|--------|-----|------|
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'` | 防止 XSS 与点击劫持 |
+| `X-Content-Type-Options` | `nosniff` | 禁止 MIME 嗅探 |
+| `X-Frame-Options` | `DENY` | 禁止页面被嵌入 iframe |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | 控制 Referrer 泄露 |
+| `Permissions-Policy` | `camera=(), microphone=(), geolocation=(), acceleration=()` | 禁用敏感权限 |
+
+> `unsafe-inline` 仅用于 `style-src`，以支持 CSS-in-JS 与 Tailwind 工具类。无 `unsafe-eval`，不执行动态代码。
+
 ## 依赖安全
 
 仓库启用 Dependabot 每周扫描 Go modules 与 npm 依赖，发现漏洞会自动创建 PR。请及时合并相关升级。
+
+### 远程访问安全
+
+开发模式（`wails dev`）与远程访问模式监听 `localhost:18731`，默认仅本机可访问。如需通过局域网访问，建议：
+
+- 在防火墙层限制端口访问范围
+- 或使用 SSH 隧道：`ssh -L 18731:localhost:18731 user@remote-host`
 
 ## 范围
 

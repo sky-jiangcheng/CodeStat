@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>仪表盘 · GitBuddy 文档</title>
+  <style>:root{--bg:#f8f9fa;--text:#1a1a2e;--muted:#6c757d;--accent:#4caf50;--border:#e2e8f0;--sw:240px}*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}.sidebar{width:var(--sw);background:#1a1a2e;color:#fff;padding:24px 0;flex-shrink:0;overflow-y:auto;position:fixed;height:100vh}.sidebar-brand{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:12px}.sidebar-brand h1{font-size:18px;font-weight:700}.sidebar-brand span{color:var(--accent)}.sidebar-brand small{display:block;font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px}.sidebar h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,0.4);padding:12px 20px 6px}.sidebar nav{padding:0 8px}.sidebar a{display:block;padding:6px 12px;color:rgba(255,255,255,0.75);font-size:13px;border-radius:4px}.sidebar a:hover{background:rgba(255,255,255,0.08);color:#fff;text-decoration:none}.main{margin-left:var(--sw);flex:1;padding:40px 48px;max-width:860px}.main h1{font-size:28px;margin-bottom:8px}.main .subtitle{color:var(--muted);margin-bottom:32px;font-size:15px}.main h2{font-size:20px;margin-top:36px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}.main h3{font-size:16px;margin-top:24px;margin-bottom:8px}.main p{line-height:1.75;margin-bottom:16px;font-size:14px;color:#334155}.main ul{margin-bottom:16px;padding-left:24px;font-size:14px;color:#334155}.main li{margin-bottom:6px}.main code{background:#eef2f7;padding:1px 5px;border-radius:3px;font-size:13px;font-family:'SF Mono',Menlo,monospace}.main pre{background:#1a1a2e;color:#e2e8f0;padding:16px;border-radius:8px;overflow-x:auto;margin-bottom:16px;font-size:13px;line-height:1.6}.main pre code{background:none;color:inherit;padding:0}.main table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px}.main th,.main td{border:1px solid var(--border);padding:8px 12px;text-align:left}.main th{background:#f1f5f9;font-weight:600}.main blockquote{border-left:3px solid #3b82f6;padding:8px 16px;margin-bottom:16px;background:#eff6ff;border-radius:0 6px 6px 0;font-size:13px;color:#334155}.main hr{border:none;border-top:1px solid var(--border);margin:32px 0}.main .back-link{display:inline-block;font-size:13px;color:var(--muted);margin-top:32px}@media(max-width:768px){.sidebar{display:none}.main{margin-left:0;padding:24px}}</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="sidebar-brand"><h1>Git<span>Buddy</span></h1><small>用户文档 · v1.5.7</small></div>
+    <h3>入门</h3>
+    <nav>
+      <a href="getting-started.html">快速开始</a>
+    </nav>
+<h3>功能手册</h3>
+    <nav>
+      <a href="features/dashboard.html">仪表盘</a>
+      <a href="features/knowledge.html">知识库</a>
+      <a href="features/project-detail.html">项目详情</a>
+    </nav>
+<h3>参考</h3>
+    <nav>
+      <a href="keyboard-shortcuts.html">快捷键参考</a>
+      <a href="troubleshooting.html">故障排查</a>
+    </nav>
+<h3>API</h3>
+    <nav>
+      <a href="api/index.html">API 参考</a>
+    </nav>
+
+  </aside>
+  <main class="main">
+    <a href="../index.html" class="back-link">← 返回文档首页</a>
+    <p>title: 仪表盘</p>
+<p>order: 2</p>
+<h1>仪表盘</h1>
+<p>仪表盘是 GitBuddy 的主页面，展示所有收藏仓库的每日提交量统计。</p>
+<h2>页面结构</h2>
+<h3>顶部状态栏</h3>
+<ul><li>当前时间、最近提交时间、最近提交仓库与分支</li><li>全局搜索框，支持仓库名称/路径模糊搜索</li></ul>
+<h3>左侧项目列表</h3>
+<p>已收藏的仓库列表，每个卡片显示：</p>
+<ul><li>仓库名称与路径</li><li>今日提交量（与目标对比的进度环）</li><li>收藏状态（星标）</li><li><strong>刷新历史记录</strong>按钮（按需回填近 365 天数据）</li></ul>
+<h3>主内容区</h3>
+<ul><li><strong>总览卡片</strong>：今日/昨日总提交量、总文件变更数</li><li><strong>趋势折线图</strong>：每日代码提交量趋势（近 30 天）</li><li><strong>提交热力图</strong>：全年每日提交密度（GitHub 风格）</li></ul>
+<h2>功能详解</h2>
+<h3>仓库收藏</h3>
+<p>未收藏的仓库仅显示名称与收藏按钮，不加载统计数据。点击星标后：</p>
+<p>1. 卡片展开显示完整统计信息</p>
+<p>2. 出现「刷新历史记录」按钮</p>
+<p>3. 点击后触发 git log 回填，等待完成后卡片自动刷新</p>
+<h3>目标进度</h3>
+<p>在 <strong>设置</strong> 页面可配置每日代码量标准（默认 500 行）。</p>
+<ul><li>进度环显示今日 vs 目标的完成情况</li><li>未达标时显示告警提示（工作日有效）</li><li>周末/节假日不显示告警</li></ul>
+<h3>项目分组</h3>
+<p>GitBuddy 自动将仓库按父目录名称分组为项目：</p>
+<ul><li>同一目录下的多个仓库归为一个项目（如 <code>github.com/my-org/repo1</code> 与 <code>repo2</code> 属于同一项目）</li><li>支持手动调整项目级别（提升或降低分组粒度）</li><li>项目可合并（将多个项目合并为一个）或拆分（将一个项目拆分为多个）</li></ul>
+<h2>截图</h2>
+<p>!<a href="../screenshots/dashboard.png">仪表盘首页</a></p>
+    <hr>
+    <a href="https://github.com/sky-jiangcheng/gitboard" class="back-link">← 返回 GitHub 仓库</a>
+  </main>
+</body>
+</html>

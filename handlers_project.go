@@ -317,12 +317,15 @@ func (a *App) SearchProjects(query string) []ProjectResponse {
 
 // ProjectOverview is the mined-knowledge payload for a project detail page.
 type ProjectOverview struct {
-	ReadmeExcerpt string                   `json:"readme_excerpt"`
-	TechStack     []knowledge.Tech         `json:"tech_stack"`
-	Languages     []knowledge.LanguageStat `json:"languages"`
-	RecentCommits []stats.RecentCommit     `json:"recent_commits"`
-	Cached        bool                     `json:"cached"`
-	Mining        bool                     `json:"mining,omitempty"`
+	ReadmeExcerpt   string                      `json:"readme_excerpt"`
+	TechStack       []knowledge.Tech            `json:"tech_stack"`
+	Languages       []knowledge.LanguageStat    `json:"languages"`
+	Dependencies    []knowledge.Dependency      `json:"dependencies"`
+	TopContributors []knowledge.TopContributor  `json:"top_contributors"`
+	Activity        *knowledge.ActivityStat     `json:"activity"`
+	RecentCommits   []stats.RecentCommit        `json:"recent_commits"`
+	Cached          bool                        `json:"cached"`
+	Mining          bool                        `json:"mining,omitempty"`
 }
 
 // GetProjectOverview returns mined knowledge for a project: README excerpt,
@@ -346,6 +349,9 @@ func (a *App) GetProjectOverview(projectID int64) (*ProjectOverview, error) {
 		if meta, err := db.GetRepoMeta(a.db, cacheRepoID); err == nil && meta != nil && meta.TechStack != "" {
 			jsonUnmarshalSafe(meta.TechStack, &resp.TechStack)
 			jsonUnmarshalSafe(meta.Languages, &resp.Languages)
+			jsonUnmarshalSafe(meta.Dependencies, &resp.Dependencies)
+			jsonUnmarshalSafe(meta.TopContributors, &resp.TopContributors)
+			jsonUnmarshalSafe(meta.Activity, &resp.Activity)
 			resp.ReadmeExcerpt = meta.ReadmeExcerpt
 			resp.Cached = true
 		}
@@ -384,6 +390,9 @@ func (a *App) mineAndCacheAsync(projectID, cacheRepoID int64, rootPath string, r
 	if cacheRepoID > 0 {
 		ts, _ := marshalJSON(k.TechStack)
 		ls, _ := marshalJSON(k.Languages)
-		_ = db.UpsertRepoMeta(a.db, cacheRepoID, string(ts), k.ReadmeExcerpt, string(ls))
+		ds, _ := marshalJSON(k.Dependencies)
+		tc, _ := marshalJSON(k.TopContributors)
+		aa, _ := marshalJSON(k.Activity)
+		_ = db.UpsertRepoMeta(a.db, cacheRepoID, string(ts), k.ReadmeExcerpt, string(ls), string(ds), string(tc), string(aa))
 	}
 }

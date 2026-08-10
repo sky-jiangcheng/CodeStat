@@ -3,234 +3,121 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a1a1a">
-  <meta name="description" content="GitBuddy - 自动发现本地 Git 仓库并以可视化面板展示提交量统计。支持 Windows / macOS / Linux。">
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
-  <link rel="canonical" href="https://sky-jiangcheng.github.io/gitboard/" />
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="GitBuddy" />
-  <meta property="og:title" content="GitBuddy - Git 代码提交统计面板" />
-  <meta property="og:description" content="自动发现本地 Git 仓库，可视化每日提交量；内置知识库、仓库知识挖掘与命令面板。" />
-  <meta property="og:url" content="https://sky-jiangcheng.github.io/gitboard/" />
-  <meta property="og:image" content="https://sky-jiangcheng.github.io/gitboard/og-image.png" />
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="GitBuddy - Git 代码提交统计面板" />
-  <meta name="twitter:description" content="自动发现本地 Git 仓库，可视化每日提交量；内置知识库、仓库知识挖掘与命令面板。" />
-  <meta name="twitter:image" content="https://sky-jiangcheng.github.io/gitboard/og-image.png" />
-  <title>GitBuddy - Git 代码提交统计面板</title>
+  <title>GitBuddy 文档</title>
   <style>
+    :root {
+      --bg: #f8f9fa;
+      --text: #1a1a2e;
+      --muted: #6c757d;
+      --accent: #4caf50;
+      --border: #e2e8f0;
+      --sidebar-w: 240px;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #f5f7fa; color: #333; line-height: 1.7;
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: #1a1a2e;
+      color: #fff;
+      padding: 24px 0;
+      flex-shrink: 0;
+      overflow-y: auto;
+      position: fixed;
+      height: 100vh;
     }
-    .hero {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      color: #fff; padding: 80px 24px; text-align: center;
+    .sidebar-brand {
+      padding: 0 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      margin-bottom: 12px;
     }
-    .hero h1 { font-size: 48px; font-weight: 800; margin-bottom: 16px; }
-    .hero h1 span { color: #4caf50; }
-    .hero p { font-size: 18px; color: #ccc; max-width: 600px; margin: 0 auto 32px; }
-    .hero .badge { display: inline-block; padding: 4px 12px; margin: 0 4px; border-radius: 4px; font-size: 12px; }
-    .badge-go { background: #00ADD8; color: #fff; }
-    .badge-react { background: #61DAFB; color: #000; }
-    .badge-sqlite { background: #003B57; color: #fff; }
-    .badge-version { background: #4a7d4a; color: #fff; }
-    .cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 12px 28px; border-radius: 8px; font-size: 16px; font-weight: 600;
-      text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
-    .btn-primary { background: #4caf50; color: #fff; }
-    .btn-outline { border: 2px solid #fff; color: #fff; }
-    .section { max-width: 1100px; margin: 0 auto; padding: 64px 24px; }
-    .section h2 { font-size: 32px; text-align: center; margin-bottom: 40px; }
-    .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-    .feature-card {
-      background: #fff; border-radius: 12px; padding: 28px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: transform 0.2s;
-    }
-    .feature-card:hover { transform: translateY(-4px); }
-    .feature-card .icon { font-size: 36px; margin-bottom: 12px; }
-    .feature-card h3 { font-size: 18px; margin-bottom: 8px; }
-    .feature-card p { color: #666; font-size: 14px; }
-    .downloads { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
-    .download-card {
-      background: #fff; border-radius: 12px; padding: 24px; text-align: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .download-card .os { font-size: 32px; margin-bottom: 8px; }
-    .download-card h4 { margin-bottom: 12px; }
-    .download-card .btn { font-size: 14px; padding: 8px 20px; }
-    .install-section { background: #1a1a2e; color: #fff; }
-    .install-section code {
-      display: block; background: #0d1117; color: #4caf50; padding: 16px;
-      border-radius: 8px; font-size: 14px; margin: 8px 0; overflow-x: auto;
-    }
-    footer {
-      text-align: center; padding: 32px; color: #888; font-size: 14px;
-      border-top: 1px solid #eee;
-    }
-    footer a { color: #4caf50; }
+    .sidebar-brand h1 { font-size: 18px; font-weight: 700; }
+    .sidebar-brand span { color: var(--accent); }
+    .sidebar-brand small { display: block; font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 4px; }
+    .sidebar nav { padding: 8px 0; }
+    .sidebar h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.4); padding: 12px 20px 6px; }
+    .sidebar a { display: block; padding: 6px 20px; color: rgba(255,255,255,0.75); font-size: 13px; }
+    .sidebar a:hover { background: rgba(255,255,255,0.08); color: #fff; text-decoration: none; }
+    .sidebar a.active { color: var(--accent); font-weight: 600; }
+
+    /* Main */
+    .main { margin-left: var(--sidebar-w); flex: 1; padding: 40px 48px; max-width: 860px; }
+    .main h1 { font-size: 28px; margin-bottom: 8px; }
+    .main .subtitle { color: var(--muted); margin-bottom: 32px; font-size: 15px; }
+    .main h2 { font-size: 20px; margin-top: 36px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+    .main h3 { font-size: 16px; margin-top: 24px; margin-bottom: 8px; }
+    .main p { line-height: 1.75; margin-bottom: 16px; font-size: 14px; color: #334155; }
+    .main ul, .main ol { margin-bottom: 16px; padding-left: 24px; font-size: 14px; color: #334155; }
+    .main li { margin-bottom: 6px; }
+    .main code { background: #eef2f7; padding: 1px 5px; border-radius: 3px; font-size: 13px; font-family: 'SF Mono', Menlo, monospace; }
+    .main pre { background: #1a1a2e; color: #e2e8f0; padding: 16px; border-radius: 8px; overflow-x: auto; margin-bottom: 16px; font-size: 13px; line-height: 1.6; }
+    .main pre code { background: none; color: inherit; padding: 0; }
+    .main table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
+    .main th, .main td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+    .main th { background: #f1f5f9; font-weight: 600; }
+    .main .callout { background: #eff6ff; border-left: 3px solid #3b82f6; padding: 12px 16px; border-radius: 0 6px 6px 0; margin-bottom: 16px; font-size: 13px; }
+    .main .callout.warning { background: #fef3c7; border-left-color: #f59e0b; }
+    .main .nav-links { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
+    .main .nav-links a { background: var(--bg); border: 1px solid var(--border); padding: 6px 14px; border-radius: 6px; font-size: 13px; color: var(--text); }
+    .main .nav-links a:hover { border-color: var(--accent); color: var(--accent); text-decoration: none; }
+    .main hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+    .main .back-to-top { display: inline-block; font-size: 13px; color: var(--muted); margin-top: 32px; }
+
     @media (max-width: 768px) {
-      .hero h1 { font-size: 32px; }
-      .features { grid-template-columns: 1fr; }
-      .downloads { grid-template-columns: 1fr 1fr; }
+      .sidebar { display: none; }
+      .main { margin-left: 0; padding: 24px; }
     }
   </style>
 </head>
 <body>
-
-  <header class="hero">
-    <h1><span>Git</span>Board</h1>
-    <p>自动发现本地 Git 仓库，可视化每日提交量；内置知识库、仓库知识挖掘与命令面板，把每个项目变成可检索的知识。</p>
-    <div>
-      <span class="badge badge-version">v1.5.7</span>
-      <span class="badge badge-go">Go</span>
-      <span class="badge badge-react">React</span>
-      <span class="badge badge-sqlite">SQLite</span>
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <h1>Git<span>Buddy</span></h1>
+      <small>用户文档 · v1.5.7</small>
     </div>
-    <div class="cta">
-      <a href="#download" class="btn btn-primary">下载应用</a>
-      <a href="https://github.com/sky-jiangcheng/gitboard" class="btn btn-outline" target="_blank">GitHub</a>
-    </div>
-  </header>
+    <nav>
+      <h3>入门</h3>
+      <a href="getting-started.html">快速开始</a>
+      <h3>功能手册</h3>
+      <a href="features/dashboard.html">仪表盘</a>
+      <a href="features/knowledge.html">知识库</a>
+      <a href="features/project-detail.html">项目详情</a>
+      <h3>参考</h3>
+      <a href="keyboard-shortcuts.html">快捷键参考</a>
+      <a href="troubleshooting.html">故障排查</a>
+      <h3>API</h3>
+      <a href="api/reference.html">API 参考</a>
+    </nav>
+  </aside>
 
-  <section class="section">
-    <h2>功能特性</h2>
-    <div class="features">
-      <div class="feature-card">
-        <div class="icon">&#x1F50D;</div>
-        <h3>自动发现仓库</h3>
-        <p>设置扫描根目录后递归发现所有 Git 仓库，平台自适应默认规则；智能分组识别 Monorepo 与单仓库，支持事务安全的拆分/合并。</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#x1F3AF;</div>
-        <h3>每日目标进度</h3>
-        <p>仪表盘首屏以进度环突出「今天达标了吗」。项目卡片展示新增/删除/净增、目标进度与达标状态，工作日未达标即时提醒。</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#x1F4DA;</div>
-        <h3>知识库</h3>
-        <p>跨项目笔记中心：Markdown 笔记、标签、置顶、分类。全文搜索带排序与片段高亮，覆盖笔记与待办，⌘/Ctrl+K 命令面板秒达。</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#x26CF;&#xFE0F;</div>
-        <h3>仓库知识挖掘</h3>
-        <p>自动提取 README、检测技术栈与语言占比、最近提交流，结果缓存避免重复扫描，把仓库本身变成可浏览的知识。</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#x1F4C5;</div>
-        <h3>提交热力图与趋势</h3>
-        <p>GitHub 风格的 52 周提交热力图，点击某天即筛选当日项目；趋势折线图追踪每日代码产出变化。</p>
-      </div>
-      <div class="feature-card">
-        <div class="icon">&#x1F4BB;</div>
-        <h3>跨平台单文件</h3>
-        <p>Wails + Go 编译为单个二进制，无运行时依赖；PWA 可安装到桌面/主屏幕。一键导入 Claude 记忆为知识笔记。</p>
-      </div>
-    </div>
-  </section>
+  <main class="main">
+    <h1>GitBuddy 文档</h1>
+    <p class="subtitle">自动发现本地 Git 仓库，可视化每日提交量；内置知识库、仓库知识挖掘与命令面板。</p>
 
-  <section class="section" id="download">
-    <h2>下载安装</h2>
-    <div style="text-align:center;margin-bottom:24px">
-      <a href="https://github.com/sky-jiangcheng/gitboard/releases/latest" class="btn btn-primary" style="font-size:18px;padding:14px 36px">前往 GitHub Releases 下载</a>
+    <div class="nav-links">
+      <a href="getting-started.html">🚀 快速开始</a>
+      <a href="features/dashboard.html">📊 仪表盘</a>
+      <a href="features/knowledge.html">📝 知识库</a>
+      <a href="features/project-detail.html">🔍 项目详情</a>
+      <a href="keyboard-shortcuts.html">⌨️ 快捷键</a>
+      <a href="troubleshooting.html">🛠️ 故障排查</a>
+      <a href="api/reference.html">📡 API 参考</a>
     </div>
 
-    <div class="downloads">
-      <div class="download-card">
-        <div class="os">&#x1F34E;</div>
-        <h4>macOS</h4>
-        <p style="color:#666;font-size:13px;margin-bottom:12px">Intel / Apple Silicon</p>
-        <p style="color:#999;font-size:12px">下载 <code style="background:#eee;padding:1px 4px;border-radius:4px">.dmg</code>（Intel 或 Apple Silicon）</p>
-      </div>
-      <div class="download-card">
-        <div class="os">&#x1F427;</div>
-        <h4>Windows</h4>
-        <p style="color:#666;font-size:13px;margin-bottom:12px">x64</p>
-        <p style="color:#999;font-size:12px">下载 <code style="background:#eee;padding:1px 4px;border-radius:4px">.zip</code>（含 .exe）</p>
-      </div>
-      <div class="download-card">
-        <div class="os">&#x1F427;</div>
-        <h4>Linux</h4>
-        <p style="color:#666;font-size:13px;margin-bottom:12px">amd64</p>
-        <p style="color:#999;font-size:12px">下载 <code style="background:#eee;padding:1px 4px;border-radius:4px">.tar.gz</code></p>
-      </div>
-    </div>
+    <h2>文档说明</h2>
+    <p>本手册覆盖 GitBuddy 的核心功能与使用场景。文档以 Markdown 编写，存放于仓库 <code>docs/</code> 目录，可通过 GitHub Pages 在线浏览，也支持离线阅读。</p>
 
-    <div class="install-section" style="border-radius:12px; margin-top:32px; padding:32px;">
-      <h3 style="margin-bottom:24px">安装说明</h3>
+    <h3>在线浏览</h3>
+    <p>文档部署在 <a href="https://sky-jiangcheng.github.io/gitboard/getting-started.html">github.io</a>，随 master 分支自动更新。</p>
 
-      <!-- macOS -->
-      <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
-        <h4 style="color:#4caf50;margin-bottom:12px">macOS</h4>
-        <ol style="color:#ccc;font-size:14px;padding-left:20px;line-height:2">
-          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard-darwin-amd64.dmg</code>（Intel）或 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">darwin-arm64.dmg</code>（M 系列）</li>
-          <li>双击 .dmg 打开，将 GitBuddy.app 拖入 Applications</li>
-          <li>首次打开：右键点击 &gt; <strong>打开</strong>（绕过 Gatekeeper 未签名提示）</li>
-        </ol>
-      </div>
+    <h3>本地阅读</h3>
+    <p>直接打开 <code>docs/index.html</code> 即可，无构建依赖。</p>
 
-      <!-- Windows -->
-      <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
-        <h4 style="color:#4caf50;margin-bottom:12px">Windows</h4>
-        <ol style="color:#ccc;font-size:14px;padding-left:20px;line-height:2">
-          <li>从 Releases 下载 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard-windows-amd64.zip</code></li>
-          <li>解压后双击 <code style="background:#333;padding:2px 6px;border-radius:4px;color:#4caf50">gitboard.exe</code> 运行</li>
-          <li>Windows Defender 弹出警告时，点击 <strong>更多信息</strong> &gt; <strong>仍要运行</strong></li>
-        </ol>
-      </div>
-
-      <!-- Linux -->
-      <div style="background:#0d1117;border-radius:8px;padding:20px;margin-bottom:16px">
-        <h4 style="color:#4caf50;margin-bottom:12px">Linux</h4>
-        <p style="color:#ccc;font-size:14px;margin-bottom:8px">下载 .tar.gz 后：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">tar -xzf gitboard-linux-amd64.tar.gz && chmod +x gitboard && ./gitboard</code>
-        <p style="color:#999;font-size:13px;margin-top:12px">系统安装（可选）：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">sudo mv gitboard /usr/local/bin/</code>
-      </div>
-
-      <!-- 一键安装脚本 -->
-      <div style="background:#0d1117;border-radius:8px;padding:20px">
-        <h4 style="color:#4a7d4a;margin-bottom:12px">一键安装（实验性）</h4>
-        <p style="color:#ccc;font-size:14px;margin-bottom:8px">macOS / Linux：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.sh | bash</code>
-        <p style="color:#ccc;font-size:14px;margin-bottom:8px;margin-top:12px">Windows (PowerShell 管理员)：</p>
-        <code style="display:block;background:#000;padding:12px;border-radius:6px;font-size:13px;color:#4caf50">iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitboard/master/scripts/install.ps1 | iex</code>
-      </div>
-    </div>
-  </section>
-
-  <section class="section" style="padding-top:0">
-    <h2>使用说明</h2>
-    <div class="features">
-      <div class="feature-card">
-        <h3>1. 启动应用</h3>
-        <p>下载后双击运行，GitBuddy 以原生窗口打开，自动扫描并展示所有 Git 仓库。</p>
-      </div>
-      <div class="feature-card">
-        <h3>2. 配置与达标</h3>
-        <p>设置扫描目录、每日代码量标准与 Git 作者。仪表盘首屏进度环即时反映今日目标达成情况。</p>
-      </div>
-      <div class="feature-card">
-        <h3>3. 挖掘项目知识</h3>
-        <p>进入项目详情查看自动提取的 README、技术栈、语言占比与最近提交；侧栏管理待办与笔记。</p>
-      </div>
-      <div class="feature-card">
-        <h3>4. 知识库与搜索</h3>
-        <p>「知识库」页跨项目浏览/筛选笔记；⌘/Ctrl+K 呼出命令面板，搜索笔记与待办并跳转项目。</p>
-      </div>
-    </div>
-  </section>
-
-  <footer>
-    <p>GitBuddy - MIT License</p>
-    <p><a href="https://github.com/sky-jiangcheng/gitboard" target="_blank">GitHub</a></p>
-  </footer>
-
+    <hr>
+    <a href="https://github.com/sky-jiangcheng/gitboard" class="back-to-top">← 返回 GitHub 仓库</a>
+  </main>
 </body>
 </html>

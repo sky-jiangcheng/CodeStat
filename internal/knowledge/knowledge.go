@@ -6,11 +6,17 @@ package knowledge
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // Tech is a single detected technology entry.
@@ -19,10 +25,32 @@ type Tech struct {
 	Category string `json:"category"` // "language" | "framework" | "tool"
 }
 
-// LanguageStat is a language with its file count, used for the breakdown list.
+// LanguageStat is a language with its LOC, used for the breakdown list.
 type LanguageStat struct {
 	Language string `json:"language"`
-	Count    int    `json:"count"`
+	Count    int    `json:"count"` // lines of code
+}
+
+// Dependency is a single detected dependency entry.
+type Dependency struct {
+	Name     string `json:"name"`
+	Version  string `json:"version"`
+	Source   string `json:"source"` // "npm" | "go" | "cargo"
+}
+
+// TopContributor is a contributor with their commit count.
+type TopContributor struct {
+	Author string `json:"author"`
+	Count  int    `json:"count"`
+}
+
+// ActivityStat holds recent commit activity metrics for a repository.
+type ActivityStat struct {
+	TotalCommits    int    `json:"total_commits"`
+	ActiveDays      int    `json:"active_days"`
+	LastCommitDate  string `json:"last_commit_date"`
+	CommitRate30d   int    `json:"commit_rate_30d"` // commits in last 30 days
+	ActiveMonths    int    `json:"active_months"`
 }
 
 // RepoKnowledge is the aggregated, mineable knowledge for one repository.
@@ -30,6 +58,9 @@ type RepoKnowledge struct {
 	ReadmeExcerpt string         `json:"readme_excerpt"`
 	TechStack     []Tech         `json:"tech_stack"`
 	Languages     []LanguageStat `json:"languages"`
+	Dependencies  []Dependency   `json:"dependencies,omitempty"`
+	TopContributors []TopContributor `json:"top_contributors,omitempty"`
+	Activity      *ActivityStat  `json:"activity,omitempty"`
 }
 
 // maxReadmeBytes bounds how much of a README we keep (enough to preview).
@@ -185,8 +216,8 @@ func DetectTechStack(repoPath string) ([]Tech, error) {
 	return techs, nil
 }
 
-// DetectLanguages walks the repo counting files per language extension, skipping
-// dependency/build directories. Returns the top languages by file count.
+// DetectLanguages walks the repo counting lines per language extension, skipping
+// dependency/build directories. Returns the top languages by line count.
 func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 	counts := make(map[string]int)
 	scanned := 0
@@ -204,13 +235,17 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 			}
 			return nil
 		}
+		ext := strings.ToLower(filepath.Ext(path))
+		if lang, ok := extLanguage[ext]; ok {
+			data, err := os.ReadFile(path)
+			if err == nil {
+				lines := bytes.Count(data, []byte("\n")) + 1
+				counts[lang] += lines
+			}
+		}
 		scanned++
 		if scanned > maxScanFiles {
 			return filepath.SkipAll
-		}
-		ext := strings.ToLower(filepath.Ext(path))
-		if lang, ok := extLanguage[ext]; ok {
-			counts[lang]++
 		}
 		return nil
 	})
@@ -236,7 +271,229 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 	return stats, nil
 }
 
-// Mine aggregates README, tech stack, and language breakdown for a repository.
+// DetectContributors returns the top N contributors by commit count.
+func DetectContributors(repoPath string, limit int) ([]TopContributor, error) {
+	cmd := exec.Command("git", "-C", repoPath, "shortlog", "-sn", "--no-merges", fmt.Sprintf("-n%d", limit))
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, nil
+	}
+	var contributors []TopContributor
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) < 2 {
+			continue
+		}
+		count, _ := strconv.Atoi(strings.TrimSpace(parts[0]))
+		author := strings.TrimSpace(parts[1])
+		if count > 0 && author != "" {
+			contributors = append(contributors, TopContributor{Author: author, Count: count})
+		}
+	}
+	return contributors, nil
+}
+
+// DetectActivity computes recent commit activity metrics for a repository.
+func DetectActivity(repoPath string) (*ActivityStat, error) {
+	now := time.Now()
+	threeMonthsAgo := now.AddDate(0, -3, 0).Format("2006-01-02")
+	monthAgo := now.AddDate(0, -1, 0).Format("2006-01-02")
+	today := now.Format("2006-01-02")
+
+	// Total commits.
+	totalCmd := exec.Command("git", "-C", repoPath, "rev-list", "--count", "HEAD")
+	totalOut, err := totalCmd.Output()
+	totalCommits := 0
+	if err == nil {
+		totalCommits, _ = strconv.Atoi(strings.TrimSpace(string(totalOut)))
+	}
+
+	// Active days in last 90 days.
+	daysCmd := exec.Command("git", "-C", repoPath, "log", "--format=%ad", "--date=short", threeMonthsAgo+".."+today)
+	daysOut, err2 := daysCmd.Output()
+	activeDays := 0
+	if err2 == nil {
+		daySet := make(map[string]bool)
+		for _, d := range strings.Split(string(daysOut), "\n") {
+			d = strings.TrimSpace(d)
+			if d != "" {
+				daySet[d] = true
+			}
+		}
+		activeDays = len(daySet)
+	}
+
+	// Commits in last 30 days.
+	commitsCmd := exec.Command("git", "-C", repoPath, "rev-list", "--count", monthAgo+"..HEAD")
+	commitsOut, err3 := commitsCmd.Output()
+	commitRate30d := 0
+	if err3 == nil {
+		commitRate30d, _ = strconv.Atoi(strings.TrimSpace(string(commitsOut)))
+	}
+
+	// Last commit date.
+	lastCmd := exec.Command("git", "-C", repoPath, "log", "-1", "--format=%ad", "--date=short")
+	lastOut, err4 := lastCmd.Output()
+	lastDate := ""
+	if err4 == nil {
+		lastDate = strings.TrimSpace(string(lastOut))
+	}
+
+	// Active months (distinct months with at least 1 commit).
+	monthsCmd := exec.Command("git", "-C", repoPath, "log", "--format=%ad", "--date=format:%Y-%m", threeMonthsAgo+".."+today)
+	monthsOut, err5 := monthsCmd.Output()
+	activeMonths := 0
+	if err5 == nil {
+		monthSet := make(map[string]bool)
+		for _, m := range strings.Split(string(monthsOut), "\n") {
+			m = strings.TrimSpace(m)
+			if m != "" {
+				monthSet[m] = true
+			}
+		}
+		activeMonths = len(monthSet)
+	}
+
+	return &ActivityStat{
+		TotalCommits:  totalCommits,
+		ActiveDays:    activeDays,
+		LastCommitDate: lastDate,
+		CommitRate30d: commitRate30d,
+		ActiveMonths:  activeMonths,
+	}, nil
+}
+func DetectDependencies(repoPath string) ([]Dependency, error) {
+	entries, err := os.ReadDir(repoPath)
+	if err != nil {
+		return nil, nil
+	}
+	var deps []Dependency
+	seen := make(map[string]bool)
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		switch name {
+		case "package.json":
+			d, err := parseNpmDeps(repoPath, name)
+			if err == nil {
+				deps = append(deps, d...)
+				for _, dep := range d {
+					seen[dep.Name] = true
+				}
+			}
+		case "go.mod":
+			d, err := parseGoDeps(repoPath)
+			if err == nil {
+				for _, dep := range d {
+					if !seen[dep.Name] {
+						deps = append(deps, dep)
+						seen[dep.Name] = true
+					}
+				}
+			}
+		case "Cargo.toml":
+			d, err := parseCargoDeps(repoPath)
+			if err == nil {
+				for _, dep := range d {
+					if !seen[dep.Name] {
+						deps = append(deps, dep)
+						seen[dep.Name] = true
+					}
+				}
+			}
+		}
+	}
+	if len(deps) > 30 {
+		deps = deps[:30]
+	}
+	sort.Slice(deps, func(i, j int) bool { return deps[i].Name < deps[j].Name })
+	return deps, nil
+}
+
+func parseNpmDeps(repoPath, filename string) ([]Dependency, error) {
+	data, err := os.ReadFile(filepath.Join(repoPath, filename))
+	if err != nil {
+		return nil, err
+	}
+	var raw struct {
+		Dependencies map[string]string `json:"dependencies"`
+		DevDeps      map[string]string `json:"devDependencies"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, err
+	}
+	var deps []Dependency
+	for name, ver := range raw.Dependencies {
+		deps = append(deps, Dependency{Name: name, Version: ver, Source: "npm"})
+	}
+	for name, ver := range raw.DevDeps {
+		deps = append(deps, Dependency{Name: name, Version: ver, Source: "npm"})
+	}
+	return deps, nil
+}
+
+func parseGoDeps(repoPath string) ([]Dependency, error) {
+	data, err := os.ReadFile(filepath.Join(repoPath, "go.mod"))
+	if err != nil {
+		return nil, err
+	}
+	var deps []Dependency
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "require ") {
+			continue
+		}
+		parts := strings.Fields(line)
+		if len(parts) >= 2 {
+			deps = append(deps, Dependency{Name: parts[1], Version: parts[2], Source: "go"})
+		}
+	}
+	return deps, nil
+}
+
+func parseCargoDeps(repoPath string) ([]Dependency, error) {
+	data, err := os.ReadFile(filepath.Join(repoPath, "Cargo.toml"))
+	if err != nil {
+		return nil, err
+	}
+	var deps []Dependency
+	inSection := ""
+	for _, line := range strings.Split(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "[") {
+			inSection = line
+			continue
+		}
+		if (inSection == "[dependencies]" || inSection == "[dev-dependencies]" || inSection == "[build-dependencies]") && strings.Contains(line, "=") {
+			parts := strings.SplitN(line, "=", 2)
+			name := strings.TrimSpace(parts[0])
+			val := strings.TrimSpace(parts[1])
+			version := ""
+			var inner struct{ Version string }
+			if err := json.Unmarshal([]byte(val), &inner); err == nil && inner.Version != "" {
+				version = inner.Version
+			} else {
+				version = strings.Trim(val, `"`)
+			}
+			if name != "" && version != "" {
+				src := "cargo"
+				if inSection == "[dev-dependencies]" || inSection == "[build-dependencies]" {
+					src = "cargo (dev)"
+				}
+				deps = append(deps, Dependency{Name: name, Version: version, Source: src})
+			}
+		}
+	}
+	return deps, nil
+}
+// Mine aggregates README, tech stack, language breakdown, dependencies,
+// top contributors and recent activity for a repository.
 func Mine(repoPath string) (*RepoKnowledge, error) {
 	readme, err := ExtractREADME(repoPath)
 	if err != nil && err != ErrNotARepo {
@@ -253,9 +510,26 @@ func Mine(repoPath string) (*RepoKnowledge, error) {
 		langs = nil
 	}
 
-	return &RepoKnowledge{
+	k := &RepoKnowledge{
 		ReadmeExcerpt: readme,
 		TechStack:     techs,
 		Languages:     langs,
-	}, nil
+	}
+
+	deps, err := DetectDependencies(repoPath)
+	if err == nil {
+		k.Dependencies = deps
+	}
+
+	contribs, err := DetectContributors(repoPath, 5)
+	if err == nil {
+		k.TopContributors = contribs
+	}
+
+	activity, err := DetectActivity(repoPath)
+	if err == nil {
+		k.Activity = activity
+	}
+
+	return k, nil
 }
