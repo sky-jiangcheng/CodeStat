@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Summary } from '../api/client'
 
 interface Props {
@@ -15,6 +16,7 @@ function SkeletonItem() {
 }
 
 function SummaryBar({ summary, globalTodoCount }: Props) {
+  const { t } = useTranslation()
   if (!summary) {
     return (
       <div className="summary-bar">

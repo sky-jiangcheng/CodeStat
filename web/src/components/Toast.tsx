@@ -2,6 +2,7 @@
 // results pushed from the Go runtime via Wails events). Positioned top-right
 // so it does not obstruct the navbar or main content.
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 export interface ToastItem {
   id: string
@@ -20,34 +21,36 @@ function ToastHost({
   toasts: ToastItem[]
   onDismiss: (id: string) => void
 }) {
+  const { t } = useTranslation()
+
   useEffect(() => {
     if (toasts.length === 0) return
-    const timers = toasts.map(t =>
-      setTimeout(() => onDismiss(t.id), t.duration ?? 5000)
+    const timers = toasts.map(item =>
+      setTimeout(() => onDismiss(item.id), item.duration ?? 5000)
     )
     return () => timers.forEach(clearTimeout)
   }, [toasts, onDismiss])
 
   return (
     <div className="toast-host" role="status" aria-live="polite">
-      {toasts.map((t) => (
-        <div key={t.id} className={`toast toast-${t.kind}`}>
+      {toasts.map((toast) => (
+        <div key={toast.id} className={`toast toast-${toast.kind}`}>
           <div className="toast-body">
-            <div className="toast-title">{t.title}</div>
-            {t.message && <div className="toast-message">{t.message}</div>}
-            {t.actionLabel && (
+            <div className="toast-title">{toast.title}</div>
+            {toast.message && <div className="toast-message">{toast.message}</div>}
+            {toast.actionLabel && (
               <button
                 type="button"
                 className="toast-action"
                 onClick={async () => {
-                  try { await t.onAction?.() } finally { onDismiss(t.id) }
+                  try { await toast.onAction?.() } finally { onDismiss(toast.id) }
                 }}
               >
-                {t.actionLabel}
+                {toast.actionLabel}
               </button>
             )}
           </div>
-          <button className="toast-close" onClick={() => onDismiss(t.id)} aria-label="关闭">
+          <button className="toast-close" onClick={() => onDismiss(toast.id)} aria-label={t('common.close', { defaultValue: 'Close' })}>
             ×
           </button>
         </div>

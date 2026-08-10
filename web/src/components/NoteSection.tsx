@@ -6,6 +6,7 @@ import {
 } from '../api/client'
 import { renderMarkdown, renderMarkdownAsync } from '../utils/markdown'
 import BlockEditor from './BlockEditor'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   projectId: number
@@ -45,6 +46,7 @@ function loadDraft(projectId: number): { content: string; title: string; tags: s
 }
 
 function NoteSection({ projectId, autoNew = false }: Props) {
+  const { t } = useTranslation()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -306,7 +308,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
 
       {/* Note list */}
       {filteredNotes.length === 0 && !isNew ? (
-        <p className="empty-hint">{filter !== 'all' ? '暂无匹配的笔记' : '暂无笔记，点击上方按钮新建'}</p>
+        <p className="empty-hint">{filter !== 'all' ? t('knowledge.noMatch', { defaultValue: 'No matching notes' }) : '暂无笔记，点击上方按钮新建'}</p>
       ) : (
         <div className="note-list">
           {filteredNotes.map(note => (
@@ -416,7 +418,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                         onClick={() => handleDelete(note.id)}
                         onBlur={() => setConfirmDeleteId(null)}
                       >
-                        {confirmDeleteId === note.id ? '确认删除' : '删除'}
+                        {confirmDeleteId === note.id ? '确认删除' : t('heatmap.deleted', { defaultValue: 'Deleted' })}
                       </button>
                     </div>
                   </div>
@@ -441,7 +443,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
               {versionHistory.map((v, i) => (
                 <div key={v.id} className="version-item">
                   <span className="version-time">{v.created_at}</span>
-                  <span className="version-title">{v.title || '无标题'}</span>
+                  <span className="version-title">{v.title || t('project.untitled', { defaultValue: 'Untitled' })}</span>
                   <div className="version-actions">
                     <button
                       className="btn btn-sm"

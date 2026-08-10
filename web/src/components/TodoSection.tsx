@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState, useEffect, useCallback } from 'react'
 import { listTodos, createTodo, toggleTodo, deleteTodo, reorderTodos, Todo } from '../api/client'
 
@@ -6,6 +7,7 @@ interface Props {
 }
 
 function TodoSection({ projectId }: Props) {
+  const { t } = useTranslation()
   const [todos, setTodos] = useState<Todo[]>([])
   const [loading, setLoading] = useState(true)
   const [title, setTitle] = useState('')
@@ -115,7 +117,7 @@ function TodoSection({ projectId }: Props) {
                   className={`btn-icon ${confirmDeleteId === todo.id ? 'btn-delete-confirm' : 'btn-delete'}`}
                   onClick={() => handleDelete(todo.id)}
                   onBlur={() => setConfirmDeleteId(null)}
-                  title={confirmDeleteId === todo.id ? '再次点击确认删除' : '删除'}
+                  title={confirmDeleteId === todo.id ? t('common.confirmDelete', { defaultValue: 'Click again to confirm' }) : t('heatmap.deleted', { defaultValue: 'Deleted' })}
                 >
                   {confirmDeleteId === todo.id ? '?' : '\u2715'}
                 </button>

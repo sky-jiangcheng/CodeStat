@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Project } from '../api/client'
@@ -14,6 +15,7 @@ interface Props {
 }
 
 function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWorkday = true, onToggleStar, onRefreshHistory }: Props) {
+  const { t } = useTranslation()
   const [refreshing, setRefreshing] = useState(false)
   const myAdded = project.my_added || 0
   const myDeleted = project.my_deleted || 0
@@ -81,8 +83,8 @@ function ProjectCard({ project, date, todoCount, noteCount, dailyGoal = 0, isWor
         className="card-refresh-btn"
         onClick={handleRefreshClick}
         disabled={refreshing}
-        title={refreshing ? '正在刷新历史记录…' : '刷新历史记录'}
-        aria-label={refreshing ? '正在刷新历史记录…' : '刷新历史记录'}
+        title={refreshing ? t('project.refreshingHistory', { defaultValue: 'Refreshing…' }) : t('project.refreshHistory', { defaultValue: 'Refresh history' })}
+        aria-label={refreshing ? t('project.refreshingHistory', { defaultValue: 'Refreshing…' }) : t('project.refreshHistory', { defaultValue: 'Refresh history' })}
       >
         {refreshing ? (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="spin">

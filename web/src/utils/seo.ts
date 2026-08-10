@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 
 const SITE_URL = 'https://sky-jiangcheng.github.io/gitboard'
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`
@@ -21,14 +22,15 @@ function setMeta(attr: 'name' | 'property', key: string, content: string) {
 }
 
 /**
- * Sets the document title plus the canonical URL, Open Graph and Twitter
- * meta tags for the current page. Used to give each route an indexable,
- * shareable head (issue #21).
+ * Sets document title plus canonical, Open Graph and Twitter meta tags.
+ * Also updates <html lang> to match the current i18n language.
  */
 export function usePageMeta({ title, description, path = '/', image = DEFAULT_IMAGE }: PageMeta) {
+  const { i18n } = useTranslation()
+
   useEffect(() => {
     document.title = title
-    const desc = description ?? 'GitBuddy - Git 代码提交统计面板：自动发现本地 Git 仓库，可视化每日提交量。'
+    const desc = description ?? i18n.t('common.loading', { defaultValue: 'GitBuddy' })
     const url = `${SITE_URL}${path}`
     setMeta('name', 'description', desc)
     setMeta('property', 'og:title', title)
@@ -45,5 +47,13 @@ export function usePageMeta({ title, description, path = '/', image = DEFAULT_IM
       document.head.appendChild(canonical)
     }
     canonical.setAttribute('href', url)
-  }, [title, description, path, image])
+  }, [title, description, path, image, i18n.language])
+
+  // Keep <html lang> in sync
+  useEffect(() => {
+    const lang = i18n.language === 'zh-CN' ? 'zh-CN' : 'en'
+    if (document.documentElement.lang !== lang) {
+      document.documentElement.lang = lang
+    }
+  }, [i18n.language])
 }

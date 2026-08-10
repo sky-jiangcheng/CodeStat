@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 // BlockEditor is a lightweight block-based Markdown editor (gitbook-gap #19).
@@ -133,6 +134,7 @@ interface PaletteState {
 }
 
 export default function BlockEditor({ value, onChange, placeholder }: BlockEditorProps) {
+  const { t } = useTranslation()
   const [blocks, setBlocks] = useState<Block[]>(() => splitBlocks(value))
   const [palette, setPalette] = useState<PaletteState | null>(null)
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
@@ -285,7 +287,7 @@ export default function BlockEditor({ value, onChange, placeholder }: BlockEdito
               })
             }
           }}
-          placeholder={placeholder ?? '输入 Markdown，或输入 / 插入块…'}
+          placeholder={placeholder ?? t('project.contentBlockPlaceholder', { defaultValue: 'Type content or / for blocks' })}
           className="form-input block-input"
           rows={3}
         />
@@ -328,7 +330,7 @@ export default function BlockEditor({ value, onChange, placeholder }: BlockEdito
             onKeyDown={(e) => handleTextareaKeyDown(e, block.id)}
             rows={Math.max(1, block.text.split('\n').length)}
             className="form-input block-input"
-            placeholder={placeholder ?? '输入内容，或输入 / 插入块…'}
+            placeholder={placeholder ?? t('project.contentBlockPlaceholder', { defaultValue: 'Type content or / for blocks' })}
           />
           {palette && palette.blockId === block.id && (
             <div className="block-palette" role="listbox" aria-label="插入块">

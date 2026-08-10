@@ -1,5 +1,6 @@
 import { Component, ReactNode, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import Dashboard from './pages/Dashboard'
 import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
@@ -8,6 +9,14 @@ import CommandPalette from './components/CommandPalette'
 import ToastHost, { type ToastItem } from './components/Toast'
 import { listenImportCompleted } from './api/client'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
+import { setLanguage, getCurrentLanguage } from './i18n'
+
+type LanguageOption = 'zh-CN' | 'en'
+
+const LANG_OPTIONS: { code: LanguageOption; label: string; flag: string }[] = [
+  { code: 'zh-CN', label: '中文', flag: '🇨🇳' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+]
 
 // ErrorBoundary prevents a render crash in any routed page from black-screening
 // the whole app with no way back. It shows a recoverable error and a button that
@@ -39,7 +48,7 @@ class ErrorBoundary extends Component<
       return (
         <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
           <div className="error-banner">
-            <span>页面加载出错：{this.state.error?.message || '未知错误'}</span>
+            <span>页面加载出错：{this.state.error?.message || 'Unknown error'}</span>
           </div>
           <button className="btn btn-primary" onClick={this.handleReset}>返回仪表盘</button>
         </div>
@@ -51,12 +60,13 @@ class ErrorBoundary extends Component<
 
 function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const { pathname } = useLocation()
-
-  const navClass = (active: boolean) => active ? 'active' : ''
+  const { t } = useTranslation()
+  const [langOpen, setLangOpen] = useState(false)
+  const currentLang = getCurrentLanguage()
 
   return (
     <header>
-      <nav className="navbar" aria-label="主导航">
+      <nav className="navbar" aria-label={t('nav.search', { defaultValue: 'main navigation' })}>
         <div className="nav-left">
           <Link to="/" className="nav-brand">
             <span className="nav-brand-mark">▦</span>
@@ -64,32 +74,78 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
           </Link>
           <div className="nav-links">
             <Link to="/" className={navClass(pathname === '/' || pathname === '/knowledge')}>
-              知识库
+              {t('nav.knowledge')}
             </Link>
             <Link to="/dashboard" className={navClass(pathname === '/dashboard' || pathname.startsWith('/project'))}>
-              仪表盘
+              {t('nav.dashboard')}
             </Link>
             <Link to="/settings" className={navClass(pathname === '/settings')}>
-              设置
+              {t('nav.settings')}
             </Link>
           </div>
         </div>
-        <div role="search">
-          <button className="nav-palette-btn" onClick={onOpenPalette} aria-label="打开搜索 (⌘K)" title="搜索 (⌘K)" aria-haspopup="dialog">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <span>搜索</span>
-            <kbd className="nav-kbd">⌘K</kbd>
-          </button>
+        <div className="nav-right">
+          <div className="lang-switcher" ref={(el) => {
+            if (!el) return
+            const handler = (e: MouseEvent) => {
+              if (!el.contains(e.target as Node)) setLangOpen(false)
+            }
+            if (langOpen) document.addEventListener('mousedown', handler)
+            return () => document.removeEventListener('mousedown', handler)
+          }}>
+            <button
+              className="nav-lang-btn"
+              onClick={() => setLangOpen(v => !v)}
+              aria-label={t('nav.searchLabel', { defaultValue: 'Language switch' })}
+              aria-expanded={langOpen}
+              title={t('nav.searchLabel', { defaultValue: 'Switch language' })}
+            >
+              {LANG_OPTIONS.find(o => o.code === currentLang)?.flag ?? '🌐'}
+              <span className="lang-label">{currentLang === 'zh-CN' ? '中文' : 'EN'}</span>
+            </button>
+            {langOpen && (
+              <div className="lang-dropdown">
+                {LANG_OPTIONS.map(opt => (
+                  <button
+                    key={opt.code}
+                    className={`lang-option ${opt.code === currentLang ? 'active' : ''}`}
+                    onClick={() => { setLanguage(opt.code); setLangOpen(false) }}
+                  >
+                    <span className="lang-flag">{opt.flag}</span>
+                    <span>{opt.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div role="search">
+            <button
+              className="nav-palette-btn"
+              onClick={onOpenPalette}
+              aria-label={t('nav.searchLabel', { defaultValue: 'Open search (⌘K)' })}
+              title={t('nav.searchLabel', { defaultValue: 'Open search (⌘K)' })}
+              aria-haspopup="dialog"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+              <span>{t('nav.search')}</span>
+              <kbd className="nav-kbd">⌘K</kbd>
+            </button>
+          </div>
         </div>
       </nav>
     </header>
   )
 }
 
+function navClass(active: boolean) {
+  return active ? 'active' : ''
+}
+
 function App() {
+  const { t } = useTranslation()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
@@ -101,10 +157,10 @@ function App() {
     main?.scrollIntoView({ block: 'start' })
   }
 
-  const pushToast = (t: Omit<ToastItem, 'id'>) => {
+  const pushToast = (item: Omit<ToastItem, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
-    setToasts(prev => [...prev, { ...t, id }])
-    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), t.duration ?? 5000)
+    setToasts(prev => [...prev, { ...item, id }])
+    setTimeout(() => setToasts(prev => prev.filter(x => x.id !== id)), item.duration ?? 5000)
   }
 
   useEffect(() => {
@@ -119,7 +175,7 @@ function App() {
     // Surface knowledge import results as toasts (issue #36).
     const unsubscribe = listenImportCompleted((data) => {
       if (data.error) {
-        pushToast({ kind: 'error', title: `导入 ${data.source} 失败`, message: data.error })
+        pushToast({ kind: 'error', title: `${t('common.importFailed', { defaultValue: 'Import failed' })} ${data.source}`, message: data.error })
         return
       }
       if (data.created === 0 && data.updated === 0 && data.skipped === 0) {
@@ -127,12 +183,12 @@ function App() {
       }
       pushToast({
         kind: 'success',
-        title: `知识源 ${data.source} 已导入`,
-        message: `新增 ${data.created} · 更新 ${data.updated} · 跳过 ${data.skipped}`,
+        title: `${t('common.imported', { defaultValue: 'Imported' })} ${data.source}`,
+        message: `${t('common.add', { defaultValue: '+' })}${data.created} · ${t('common.edit', { defaultValue: '~' })}${data.updated} · ${t('common.remove', { defaultValue: '-' })}${data.skipped}`,
       })
     })
     return unsubscribe
-  }, [])
+  }, [t])
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -155,9 +211,9 @@ function App() {
       deferredPrompt = e
       pushToast({
         kind: 'info',
-        title: '将 GitBuddy 安装到桌面',
-        message: '点击安装后可像本地应用一样打开，并支持离线使用。',
-        actionLabel: '安装',
+        title: t('common.installDesktop', { defaultValue: 'Install GitBuddy to Desktop' }),
+        message: t('common.installMsg', { defaultValue: 'Install for standalone window and offline use.' }),
+        actionLabel: t('common.install', { defaultValue: 'Install' }),
         onAction: async () => {
           if (!deferredPrompt) return
           deferredPrompt.prompt?.()
@@ -171,12 +227,12 @@ function App() {
     }
     window.addEventListener('beforeinstallprompt', onPrompt)
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
-  }, [])
+  }, [t])
 
   return (
     <BrowserRouter>
       <div className="app">
-        <a className="skip-link" href="#main-content" onClick={skipToContent}>跳到主内容</a>
+        <a className="skip-link" href="#main-content" onClick={skipToContent}>{t('common.show', { defaultValue: 'Skip to main content' })}</a>
         <NavBar onOpenPalette={() => setPaletteOpen(true)} />
         <main id="main-content" className="main-content" tabIndex={-1}>
           <RoutedApp />

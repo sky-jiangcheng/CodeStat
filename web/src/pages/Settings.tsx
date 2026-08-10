@@ -4,6 +4,7 @@ import { getConfig, updateConfig, updateScanRoots, triggerScan, importClaudeMemo
   type PluginStatus, type SourceStatus } from '../api/client'
 import { applyTheme, getStoredTheme, storeTheme, type ThemeMode } from '../utils/theme'
 import { usePageMeta } from '../utils/seo'
+import { useTranslation } from 'react-i18next'
 import { useInstallPrompt } from '../utils/install'
 
 interface ConfigData {
@@ -29,6 +30,7 @@ const THEME_OPTIONS: { value: ThemeMode; label: string; description: string }[] 
 ]
 
 function Settings() {
+  const { t } = useTranslation()
   usePageMeta({ title: '设置 - GitBuddy', description: 'GitBuddy 设置：扫描目录、代码标准、作者配置、外观、插件与操作。', path: '/settings' })
   const { canInstall, installed, promptInstall } = useInstallPrompt()
   const [data, setData] = useState<ConfigData | null>(null)
@@ -82,9 +84,9 @@ function Settings() {
       setPlugins(p)
       const s = await getKnowledgeSources()
       setSources(s)
-      showMessage('插件已重新加载')
+      showMessage(t('settings.pluginsReloaded', { defaultValue: 'Plugins reloaded' }))
     } catch (e: unknown) {
-      showMessage('插件重载失败: ' + (e instanceof Error ? e.message : '未知错误'))
+      showMessage('插件重载失败: ' + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
     } finally {
       setSaving(false)
     }
@@ -96,7 +98,7 @@ function Settings() {
       const r = await triggerKnowledgeImport(name)
       showMessage(`导入完成：新增 ${r.created}，更新 ${r.updated}，跳过 ${r.skipped}`)
     } catch (e: unknown) {
-      showMessage('导入失败: ' + (e instanceof Error ? e.message : '未知错误'))
+      showMessage('导入失败: ' + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
     } finally {
       setImportingSource('')
     }
@@ -107,9 +109,9 @@ function Settings() {
     try {
       await updateConfig('auto_import', on ? '1' : '0')
       setAutoImport(on)
-      showMessage(on ? '已开启启动时自动导入' : '已关闭启动时自动导入')
+      showMessage(on ? t('settings.autoImportOn', { defaultValue: 'Auto-import enabled' }) : t('settings.autoImportOff', { defaultValue: 'Auto-import disabled' }))
     } catch (e: unknown) {
-      showMessage('保存失败: ' + (e instanceof Error ? e.message : '未知错误'))
+      showMessage('保存失败: ' + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
     } finally {
       setSaving(false)
     }
@@ -130,9 +132,9 @@ function Settings() {
     try {
       await updateConfig('daily_code_standard', String(num))
       await updateConfig('scan_depth', String(depth))
-      showMessage('配置已保存')
+      showMessage(t('settings.configSaved', { defaultValue: 'Config saved' }))
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '保存失败'
+      const msg = e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Save failed' })
       showMessage('保存失败: ' + msg)
     } finally {
       setSaving(false)
@@ -142,15 +144,15 @@ function Settings() {
   const handleSaveAuthor = async () => {
     const trimmed = authorName.trim()
     if (!trimmed) {
-      showMessage('请输入 Git 作者名称')
+      showMessage(t('settings.enterAuthor', { defaultValue: 'Enter author name' }))
       return
     }
     setSaving(true)
     try {
       await updateConfig('git_author', trimmed)
-      showMessage('作者配置已保存')
+      showMessage(t('settings.authorSaved', { defaultValue: 'Author saved' }))
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '保存失败'
+      const msg = e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Save failed' })
       showMessage('保存失败: ' + msg)
     } finally {
       setSaving(false)
@@ -165,9 +167,9 @@ function Settings() {
       await updateScanRoots(updated)
       setData({ ...data, scan_roots: updated })
       setNewRoot('')
-      showMessage('扫描目录已添加')
+      showMessage(t('settings.added', { defaultValue: 'Added' }))
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '添加失败'
+      const msg = e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Add failed' })
       showMessage('添加失败: ' + msg)
     } finally {
       setSaving(false)
@@ -181,9 +183,9 @@ function Settings() {
       const updated = data.scan_roots.filter((r) => r !== path)
       await updateScanRoots(updated)
       setData({ ...data, scan_roots: updated })
-      showMessage('扫描目录已移除')
+      showMessage(t('settings.removed', { defaultValue: 'Removed' }))
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '移除失败'
+      const msg = e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Remove failed' })
       showMessage('移除失败: ' + msg)
     } finally {
       setSaving(false)
@@ -194,9 +196,9 @@ function Settings() {
     setSaving(true)
     try {
       await triggerScan()
-      showMessage('重新扫描完成')
+      showMessage(t('settings.rescanDone', { defaultValue: 'Rescan done' }))
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '扫描失败'
+      const msg = e instanceof Error ? e.message : t('settings.rescanFailed', { defaultValue: 'Scan failed' })
       showMessage('扫描失败: ' + msg)
     } finally {
       setSaving(false)
@@ -209,7 +211,7 @@ function Settings() {
       const r = await importClaudeMemory()
       showMessage(`导入完成：新增 ${r.synced}，更新 ${r.updated}，跳过 ${r.skipped}`)
     } catch (e: unknown) {
-      showMessage('导入失败: ' + (e instanceof Error ? e.message : '未知错误'))
+      showMessage('导入失败: ' + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
     } finally {
       setImporting(false)
     }
@@ -219,7 +221,7 @@ function Settings() {
     setThemeMode(mode)
     storeTheme(mode)
     applyTheme(mode)
-    showMessage('外观已更新')
+    showMessage(t('settings.themeApplied', { defaultValue: 'Theme applied' }))
   }
 
   if (loading) {
@@ -412,7 +414,7 @@ function Settings() {
                     <span className="plugin-path">{p.path}</span>
                   </div>
                   <span className={`plugin-badge ${p.loaded ? 'badge-ok' : 'badge-err'}`}>
-                    {p.loaded ? '已加载' : '加载失败'}
+                    {p.loaded ? t('settings.loaded', { defaultValue: 'Loaded' }) : t('common.failed', { defaultValue: 'Failed' })}
                   </span>
                   {p.error && <div className="plugin-error">{p.error}</div>}
                 </li>
@@ -436,7 +438,7 @@ function Settings() {
                     onClick={() => handleImportSource(s.name)}
                     disabled={importingSource !== '' || !s.enabled}
                   >
-                    {importingSource === s.name ? '导入中…' : '立即导入'}
+                    {importingSource === s.name ? '导入中…' : t('settings.importNow', { defaultValue: 'Import now' })}
                   </button>
                 </li>
               ))}

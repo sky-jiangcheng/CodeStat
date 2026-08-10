@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { getProjectDetail, getProjectOverview, updateProjectLevel, ProjectDetail, ProjectOverview } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
 import { usePageMeta } from '../utils/seo'
+import { useTranslation } from 'react-i18next'
 import TrendChart, { TrendDataset } from '../components/TrendChart'
 import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
@@ -20,6 +21,7 @@ function getLastDays(n: number): string[] {
 }
 
 function ProjectDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   usePageMeta({ title: '项目详情 - GitBuddy', description: 'GitBuddy 项目详情：提交趋势、热力图、仓库知识挖掘、待办与笔记。', path: `/project/${id ?? ''}` })
   const navigate = useNavigate()
@@ -41,7 +43,7 @@ function ProjectDetailPage() {
         setProject(p)
         getProjectOverview(Number(id)).then(setOverview).catch(() => {})
       })
-      .catch((e) => setError(e instanceof Error ? e.message : '加载失败'))
+      .catch((e) => setError(e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Failed' })))
       .finally(() => setLoading(false))
   }, [id])
 
@@ -52,7 +54,7 @@ function ProjectDetailPage() {
       const updated = await getProjectDetail(Number(id))
       setProject(updated)
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : '操作失败'
+      const msg = e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Operation failed' })
       setError(msg)
     }
   }
@@ -87,9 +89,9 @@ function ProjectDetailPage() {
     return {
       labels: dates,
       datasets: [
-        { label: '新增行数', data: dates.map((d) => stats.get(d)!.added), color: '#4a7d4a' },
+        { label: t('dashboard.sortMyAdded', { defaultValue: 'Lines Added' }), data: dates.map((d) => stats.get(d)!.added), color: '#4a7d4a' },
         { label: '删除行数', data: dates.map((d) => stats.get(d)!.deleted), color: '#c95757' },
-        { label: '文件变更', data: dates.map((d) => stats.get(d)!.files), color: '#5a7fa0' },
+        { label: t('dashboard.sortMyFiles', { defaultValue: 'Files Changed' }), data: dates.map((d) => stats.get(d)!.files), color: '#5a7fa0' },
       ] as TrendDataset[],
     }
   }, [stats, range])
@@ -126,7 +128,7 @@ function ProjectDetailPage() {
       <div className="project-detail">
         <button className="btn btn-secondary back-btn" onClick={() => navigate('/dashboard')}>&larr; 返回仪表盘</button>
         <div className="error-banner">
-          <span>{error || '项目未找到'}</span>
+          <span>{error || t('project.noRepos', { defaultValue: 'Project not found' })}</span>
           <button className="btn btn-sm" onClick={() => id && getProjectDetail(Number(id)).then(setProject).catch(() => {})}>重试</button>
         </div>
         <StatusBar />

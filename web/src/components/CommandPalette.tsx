@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
   open: boolean
@@ -15,6 +16,7 @@ interface Props {
 // focus, restores it to the trigger on close, and the input drives selection via
 // aria-activedescendant over a role="listbox" of role="option" items.
 export default function CommandPalette({ open, onClose }: Props) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
@@ -122,7 +124,7 @@ export default function CommandPalette({ open, onClose }: Props) {
         />
         <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label="搜索结果">
           {hits.length === 0 && filteredProjects.length === 0 && (
-            <div className="cmdk-empty">{query.trim() ? '未找到结果' : '输入关键词开始搜索'}</div>
+            <div className="cmdk-empty">{query.trim() ? t('commandPalette.noResults', { defaultValue: 'No results' }) : t('commandPalette.startSearch', { defaultValue: 'Start searching' })}</div>
           )}
           {hits.length > 0 && <div className="cmdk-group">笔记与待办</div>}
           {hits.map((h, i) => (
@@ -172,7 +174,7 @@ export default function CommandPalette({ open, onClose }: Props) {
           <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">
-          {totalItems > 0 ? `${totalItems} 个结果` : (query.trim() ? '未找到结果' : '')}
+          {totalItems > 0 ? `${totalItems} 个结果` : (query.trim() ? t('commandPalette.noResults', { defaultValue: 'No results' }) : '')}
         </div>
       </div>
     </div>

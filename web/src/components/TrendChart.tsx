@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -25,6 +26,7 @@ interface Props {
 }
 
 function TrendChart({ labels, datasets }: Props) {
+  const { t } = useTranslation()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -39,12 +41,12 @@ function TrendChart({ labels, datasets }: Props) {
       labels: labels.slice(0, 12),
       datasets: [
         {
-          label: '代码提交',
+          label: t('trend.commits', { defaultValue: 'Code Commits' }),
           data: [10, 15, 20, 18, 25, 22, 30, 28, 35, 33, 38, 36],
           color: '#4f46e5'
         },
         {
-          label: '代码审查',
+          label: t('trend.reviews', { defaultValue: 'Code Reviews' }),
           data: [5, 8, 12, 10, 15, 12, 18, 15, 20, 18, 22, 20],
           color: '#10b981'
         }
@@ -102,7 +104,7 @@ function TrendChart({ labels, datasets }: Props) {
         },
         title: {
           display: true,
-          text: '数量',
+          text: t('trend.count', { defaultValue: 'Count' }),
           color: '#666',
           font: { size: 12 }
         },
@@ -114,7 +116,7 @@ function TrendChart({ labels, datasets }: Props) {
         },
         title: {
           display: true,
-          text: '日期',
+          text: t('summaryBar.date', { defaultValue: 'Date' }),
           color: '#666',
           font: { size: 12 }
         },

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, searchAll, searchProjects,
   getScanStatus, toggleStar, refreshProjectHistory, getConfig, Project, Summary, TodoCount, NoteCount, SearchHit,
@@ -19,15 +20,19 @@ function getYesterday(): string {
 
 type SortKey = 'name' | 'my_added' | 'my_files' | 'repo_count'
 
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'name', label: '名称' },
-  { key: 'my_added', label: '新增行数' },
-  { key: 'my_files', label: '文件变更' },
-  { key: 'repo_count', label: '仓库数' },
-]
+const getSortOptions = () => {
+  const { t } = useTranslation()
+  return [
+    { key: 'name', label: t('dashboard.sortName', { defaultValue: 'Name' }) },
+    { key: 'my_added', label: t('dashboard.sortMyAdded', { defaultValue: 'Lines Added' }) },
+    { key: 'my_files', label: t('dashboard.sortMyFiles', { defaultValue: 'Files Changed' }) },
+    { key: 'repo_count', label: t('dashboard.sortRepos', { defaultValue: 'Repo Count' }) },
+  ]
+}
 
 function Dashboard() {
-  usePageMeta({ title: '仪表盘 - GitBuddy', description: 'GitBuddy 仪表盘：每日提交统计、目标进度、热力图与项目趋势。', path: '/dashboard' })
+  const { t } = useTranslation()
+  usePageMeta({ title: '仪表盘 - GitBuddy', description: 'GitBuddy Dashboard: daily commit stats, goal progress, heatmap and project trends.', path: '/dashboard' })
   const [projects, setProjects] = useState<Project[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [dailyGoal, setDailyGoal] = useState(500)
@@ -65,7 +70,7 @@ function Dashboard() {
       setTodoCounts(counts)
       setNoteCounts(noteCountsData)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '加载失败')
+      setError(e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Failed' }))
     } finally {
       setLoading(false)
     }
@@ -86,7 +91,7 @@ function Dashboard() {
               pollTimer.current = null
               setScanning(false)
               setScanMsg('')
-              setScanDoneMsg('扫描完成')
+              setScanDoneMsg(t('dashboard.scanDone', { defaultValue: 'Scan complete' }))
               fetchData(date, showStarredOnly)
             } else {
               setScanMsg(s.message)
@@ -115,7 +120,7 @@ function Dashboard() {
     try {
       await triggerScan()
       setScanning(true)
-      setScanMsg('正在扫描仓库…')
+      setScanMsg(t('dashboard.scanning', { defaultValue: 'Scanning repos…' }))
       setScanDoneMsg('')
       if (pollTimer.current) clearInterval(pollTimer.current)
       pollTimer.current = window.setInterval(async () => {
@@ -125,14 +130,14 @@ function Dashboard() {
           pollTimer.current = null
           setScanning(false)
           setScanMsg('')
-          setScanDoneMsg('扫描完成')
+          setScanDoneMsg(t('dashboard.scanDone', { defaultValue: 'Scan complete' }))
           fetchData(date, showStarredOnly)
         } else {
           setScanMsg(s.message)
         }
       }, 2000)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '扫描失败')
+      setError(e instanceof Error ? e.message : t('settings.rescanFailed', { defaultValue: 'Scan failed' }))
     }
   }
 
@@ -155,7 +160,7 @@ function Dashboard() {
         })
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '操作失败')
+      setError(e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Operation failed' }))
     }
   }
 
@@ -164,7 +169,7 @@ function Dashboard() {
       await refreshProjectHistory(projectId)
       await fetchData(date, showStarredOnly)
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : '刷新历史记录失败')
+      setError(e instanceof Error ? e.message : t('common.failed', { defaultValue: 'Refresh failed' }))
     }
   }, [date, showStarredOnly])
 
@@ -285,7 +290,7 @@ function Dashboard() {
     <div className="dashboard">
       <h1 className="visually-hidden">仪表盘</h1>
       <div className="visually-hidden" role="status" aria-live="polite">
-        {scanning ? (scanMsg || '正在扫描…') : scanDoneMsg}
+        {scanning ? (scanMsg || t('dashboard.scanning', { defaultValue: 'Scanning…' })) : scanDoneMsg}
       </div>
       <div className="dashboard-fixed">
         <div className="hero-row">
@@ -293,15 +298,15 @@ function Dashboard() {
             <GoalRing
               value={myAdded}
               goal={isWorkday ? dailyGoal : 0}
-              label={isWorkday ? '今日目标' : '非工作日'}
+              label={isWorkday ? t('dashboard.todayGoal', { defaultValue: "Today's Goal" }) : t('dashboard.notWorkday', { defaultValue: 'Not a workday' })}
               sublabel={isWorkday ? `${myAdded} / ${dailyGoal} 行` : `${myAdded} 行`}
             />
             <div className="hero-text">
-              <div className="hero-eyebrow">{date} · {isWorkday ? '工作日' : '周末'}</div>
+              <div className="hero-eyebrow">{date} · {isWorkday ? t('dashboard.workday', { defaultValue: 'Workday' }) : '周末'}</div>
               <div className="hero-title">
                 {isWorkday
-                  ? (myAdded >= dailyGoal ? '今日目标已达成 🎉' : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
-                  : '周末愉快，无达标要求'}
+                  ? (myAdded >= dailyGoal ? t('dashboard.goalReached', { defaultValue: "Today's goal reached 🎉" }) : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
+                  : t('dashboard.weekend', { defaultValue: 'Happy weekend' })}
               </div>
               <div className="hero-sub">
                 个人新增 <strong className="green">+{myAdded}</strong> ·
@@ -344,7 +349,7 @@ function Dashboard() {
                               <button
                                 className={`card-star ${p.is_starred ? 'starred' : ''}`}
                                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleToggleStar(p.id) }}
-                                title={p.is_starred ? '取消关注' : '关注项目'}
+                                title={p.is_starred ? t('project.unstar', { defaultValue: 'Unstar project' }) : t('project.star', { defaultValue: 'Star project' })}
                               >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill={p.is_starred ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -363,7 +368,7 @@ function Dashboard() {
                           {searchResults.map(h => (
                             <a key={`${h.type}-${h.id}`} href={`/project/${h.project_id}`} className="search-result-item">
                               <div className="search-result-header">
-                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
+                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : t('summaryBar.todos', { defaultValue: 'Todos' })}</span>
                                 <span className="search-result-project">{h.project_name}</span>
                               </div>
                               <div className="search-result-title">{h.title}</div>
@@ -378,13 +383,13 @@ function Dashboard() {
               )}
             </div>
             <div className="filter-toggle">
-              <button className={`filter-btn ${!showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(false)}>全部</button>
-              <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>关注</button>
+              <button className={`filter-btn ${!showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(false)}>{t('dashboard.all', { defaultValue: 'All' })}</button>
+              <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>{t('dashboard.starred', { defaultValue: 'Starred' })}</button>
             </div>
             <div className="sort-control">
               <label htmlFor="dashboard-sort">排序：</label>
               <select id="dashboard-sort" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
-                {SORT_OPTIONS.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
+                {getSortOptions().map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
               </select>
             </div>
             {confirmScan ? (
@@ -395,7 +400,7 @@ function Dashboard() {
               </div>
             ) : (
               <button className="btn btn-primary" onClick={() => setConfirmScan(true)} disabled={scanning}>
-                {scanning ? (scanMsg || '处理中...') : '重新扫描'}
+                {scanning ? (scanMsg || t('dashboard.scanning', { defaultValue: 'Processing...' })) : t('dashboard.rescan', { defaultValue: 'Rescan' })}
               </button>
             )}
           </div>
@@ -431,11 +436,11 @@ function Dashboard() {
         ) : sorted.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">{showStarredOnly ? '⭐' : '🔍'}</div>
-            <h3>{showStarredOnly ? '暂无关注项目' : '暂无项目数据'}</h3>
+            <h3>{showStarredOnly ? t('dashboard.starredOnly', { defaultValue: 'No starred projects' }) : t('dashboard.noProjects', { defaultValue: 'No project data' })}</h3>
             <p>
               {showStarredOnly
-                ? '你还没有关注任何项目。点击项目卡片右上角的星标即可关注，或切换到「全部」查看所有项目。'
-                : 'GitBuddy 尚未扫描到任何 Git 仓库。请先配置扫描目录。'}
+                ? t('dashboard.starMsg', { defaultValue: 'Star a project to follow it.' })
+                : t('dashboard.scanMsg', { defaultValue: 'No repos found. Configure scan roots first.' })}
             </p>
             <div className="empty-actions">
               {showStarredOnly ? (

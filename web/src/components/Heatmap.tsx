@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import { getHeatmapData, type HeatmapDay } from '../api/client'
 
@@ -49,6 +50,7 @@ function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
 }
 
 export default function Heatmap({ onDayClick }: Props) {
+  const { t } = useTranslation()
   const [days, setDays] = useState<HeatmapDay[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -110,7 +112,7 @@ export default function Heatmap({ onDayClick }: Props) {
                   className={`heatmap-cell-simple level-${getLevel(day)}`}
                   role={clickable ? 'button' : undefined}
                   tabIndex={clickable ? 0 : undefined}
-                  aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : '无数据'}
+                  aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : t('heatmap.noData', { defaultValue: 'No data' })}
                   title={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : ''}
                   onClick={clickable ? () => onDayClick!(day!.date) : undefined}
                   onKeyDown={clickable ? (e) => {

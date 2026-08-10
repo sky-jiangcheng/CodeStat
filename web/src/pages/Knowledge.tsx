@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory, exportNoteAsMarkdown,
   NoteWithProject, SearchHit,
@@ -10,6 +11,7 @@ import { usePageMeta } from '../utils/seo'
 type KindFilter = 'all' | 'knowledge' | 'other'
 
 function KnowledgePage() {
+  const { t } = useTranslation()
   usePageMeta({ title: '知识库 - GitBuddy', description: 'GitBuddy 跨项目知识库：Markdown 笔记、标签、置顶与全文搜索。', path: '/knowledge' })
   const navigate = useNavigate()
   const [notes, setNotes] = useState<NoteWithProject[]>([])
@@ -29,7 +31,7 @@ function KnowledgePage() {
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
-      setMessage('暂无项目，请先在仪表盘配置扫描目录并扫描后新建笔记。')
+      setMessage(t('knowledge.noProjectsMsg', { defaultValue: 'No projects found' }))
       setTimeout(() => setMessage(''), 4000)
       return
     }
@@ -74,10 +76,10 @@ function KnowledgePage() {
       const md = await exportNoteAsMarkdown(id)
       if (!md) return
       await navigator.clipboard.writeText(md)
-      setMessage('笔记 Markdown 已复制')
+      setMessage(t('knowledge.copiedMd', { defaultValue: 'Markdown copied' }))
       setTimeout(() => setMessage(''), 3000)
     } catch (e) {
-      setMessage('导出失败：' + (e instanceof Error ? e.message : '未知错误'))
+      setMessage(t('knowledge.exportFailed', { defaultValue: 'Export failed: ' }) + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
       setTimeout(() => setMessage(''), 3000)
     } finally {
       setExportingId(null)
@@ -107,7 +109,7 @@ function KnowledgePage() {
       setMessage(`导入完成：新增 ${r.synced}，更新 ${r.updated}，跳过 ${r.skipped}`)
       fetchAll()
     } catch (e) {
-      setMessage('导入失败：' + (e instanceof Error ? e.message : '未知错误'))
+      setMessage('导入失败：' + (e instanceof Error ? e.message : t('common.unknownError', { defaultValue: 'Unknown error' })))
     } finally {
       setImporting(false)
       setTimeout(() => setMessage(''), 4000)
@@ -217,7 +219,7 @@ function KnowledgePage() {
                   className="hit-item"
                 >
                   <div className="hit-head">
-                    <span className={`hit-type hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
+                    <span className={`hit-type hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : t('summaryBar.todos', { defaultValue: 'Todos' })}</span>
                     <span className="hit-project">{h.project_name}</span>
                   </div>
                   <div className="hit-title">{h.title}</div>
@@ -361,7 +363,7 @@ function KnowledgePage() {
                         disabled={exportingId === n.id}
                         title="导出为 Markdown"
                       >
-                        {exportingId === n.id ? '复制中…' : '导出 .md'}
+                        {exportingId === n.id ? t('knowledge.copying', { defaultValue: 'Copying…' }) : '导出 .md'}
                       </button>
                     </div>
                   )
