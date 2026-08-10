@@ -44,6 +44,7 @@
 }
 .markdown-body a { color: var(--accent); text-decoration: none; }
 .markdown-body a:hover { text-decoration: underline; }
+.markdown-body mark { background: var(--accent-soft); color: var(--text-primary); padding: 1px 3px; border-radius: 3px; }
 .markdown-body table { border-collapse: collapse; width: 100%; margin: 0.5em 0; }
 .markdown-body th, .markdown-body td { border: 1px solid var(--border-default); padding: 6px 10px; text-align: left; }
 .markdown-body th { background: var(--bg-tertiary); }

@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"unicode/utf8"
 
@@ -72,6 +73,24 @@ type NoteWithProject struct {
 	ProjectName string `json:"project_name"`
 }
 
+// NoteVersion represents a historical snapshot of a note.
+type NoteVersion struct {
+	ID        int64  `json:"id"`
+	NoteID    int64  `json:"note_id"`
+	Title     string `json:"title"`
+	Content   string `json:"content"`
+	Tags      string `json:"tags"`
+	Kind      string `json:"kind"`
+	CreatedAt string `json:"created_at"`
+}
+
+// NoteDiff represents a line-level diff between two versions.
+type NoteDiff struct {
+	VersionID int64  `json:"version_id"`
+	CreatedAt string `json:"created_at"`
+	Diff      string `json:"diff"`
+}
+
 // TodoCount holds incomplete and total todo counts for a project.
 type TodoCount struct {
 	ProjectID int64 `json:"project_id"`
@@ -106,11 +125,12 @@ type HeatmapDay struct {
 
 // SearchHit is a unified search result from notes and todos.
 type SearchHit struct {
-	Type      string `json:"type"`
-	ID        int64  `json:"id"`
-	ProjectID int64  `json:"project_id"`
-	Title     string `json:"title"`
-	Snippet   string `json:"snippet"`
+	Type      string  `json:"type"`
+	ID        int64   `json:"id"`
+	ProjectID int64   `json:"project_id"`
+	Title     string  `json:"title"`
+	Snippet   string  `json:"snippet"`
+	Rank      float64 `json:"rank,omitempty"` // bm25 score; lower = more relevant
 }
 
 // RepoMeta represents a row in the repo_meta table.
@@ -391,6 +411,23 @@ func CreateNoteEx(db *sql.DB, projectID int64, title, content, tags, kind, sourc
 	return getNoteByID(db, id)
 }
 
+// getNoteByID is an unexported helper that returns a single note by its ID.
+func getNoteByID(db *sql.DB, id int64) (*Note, error) {
+	n := &Note{}
+	err := db.QueryRow(
+		"SELECT id, project_id, title, content, tags, kind, pinned, source, sort_order, created_at, updated_at FROM project_notes WHERE id = ?", id).
+		Scan(&n.ID, &n.ProjectID, &n.Title, &n.Content, &n.Tags, &n.Kind, &n.Pinned, &n.Source, &n.SortOrder, &n.CreatedAt, &n.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return n, nil
+}
+
+// GetNoteByID is the exported version of getNoteByID, exposed for external callers.
+func GetNoteByID(db *sql.DB, id int64) (*Note, error) {
+	return getNoteByID(db, id)
+}
+
 // ListNotes returns all notes for a project, pinned first then by recency.
 func ListNotes(db *sql.DB, projectID int64) ([]Note, error) {
 	rows, err := db.Query(
@@ -558,20 +595,114 @@ func GetNoteCounts(db *sql.DB) ([]NoteCount, error) {
 	return counts, rows.Err()
 }
 
-func GetNoteByID(db *sql.DB, id int64) (*Note, error) {
-	n := &Note{}
-	err := db.QueryRow(
-		"SELECT id, project_id, title, content, tags, kind, pinned, source, sort_order, created_at, updated_at FROM project_notes WHERE id = ?", id).
-		Scan(&n.ID, &n.ProjectID, &n.Title, &n.Content, &n.Tags, &n.Kind, &n.Pinned, &n.Source, &n.SortOrder, &n.CreatedAt, &n.UpdatedAt)
+// ListNoteVersions returns the recent version history for a note, ordered by
+// created_at descending. At most 50 versions are kept by the cleanup trigger.
+func ListNoteVersions(db *sql.DB, noteID int64) ([]NoteVersion, error) {
+	rows, err := db.Query(
+		"SELECT id, note_id, title, content, tags, kind, created_at FROM note_versions WHERE note_id = ? ORDER BY created_at DESC LIMIT 50",
+		noteID)
 	if err != nil {
 		return nil, err
 	}
-	return n, nil
+	defer rows.Close()
+	var versions []NoteVersion
+	for rows.Next() {
+		var v NoteVersion
+		if err := rows.Scan(&v.ID, &v.NoteID, &v.Title, &v.Content, &v.Tags, &v.Kind, &v.CreatedAt); err != nil {
+			return nil, err
+		}
+		versions = append(versions, v)
+	}
+	return versions, rows.Err()
 }
 
-// getNoteByID is a deprecated alias for GetNoteByID, kept for backward compatibility.
-func getNoteByID(db *sql.DB, id int64) (*Note, error) {
-	return GetNoteByID(db, id)
+// GetNoteVersion returns a single version by ID.
+func GetNoteVersion(db *sql.DB, versionID int64) (*NoteVersion, error) {
+	v := &NoteVersion{}
+	err := db.QueryRow(
+		"SELECT id, note_id, title, content, tags, kind, created_at FROM note_versions WHERE id = ?", versionID).
+		Scan(&v.ID, &v.NoteID, &v.Title, &v.Content, &v.Tags, &v.Kind, &v.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// RestoreNoteVersion restores a note to the content of a previous version.
+// It updates the note's content and metadata from the version snapshot.
+func RestoreNoteVersion(db *sql.DB, noteID, versionID int64) error {
+	v, err := GetNoteVersion(db, versionID)
+	if err != nil {
+		return err
+	}
+	if v.NoteID != noteID {
+		return fmt.Errorf("version %d does not belong to note %d", versionID, noteID)
+	}
+	_, err = db.Exec(
+		"UPDATE project_notes SET content = ?, title = ?, tags = ?, kind = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?",
+		v.Content, v.Title, v.Tags, v.Kind, noteID)
+	return err
+}
+
+// DiffNoteVersions produces a simple line-based diff between two note versions.
+// Returns the unified diff string. If either version is not found, returns empty.
+func DiffNoteVersions(db *sql.DB, noteID int64, versionID int64) (string, error) {
+	current, err := GetNoteByID(db, noteID)
+	if err != nil {
+		return "", err
+	}
+	v, err := GetNoteVersion(db, versionID)
+	if err != nil {
+		return "", err
+	}
+	if v.NoteID != noteID {
+		return "", fmt.Errorf("version %d does not belong to note %d", versionID, noteID)
+	}
+	return computeLineDiff(v.Content, current.Content), nil
+}
+
+// computeLineDiff produces a simple line-based diff between old and new content.
+// Output format: lines prefixed with '-' for removals, '+' for additions.
+func computeLineDiff(old, new string) string {
+	oldLines := strings.Split(old, "\n")
+	newLines := strings.Split(new, "\n")
+	// Simple LCS-based diff (O(n*m) space, acceptable for note-sized content).
+	m, n := len(oldLines), len(newLines)
+	// Build LCS table.
+	dp := make([][]int, m+1)
+	for i := range dp {
+		dp[i] = make([]int, n+1)
+	}
+	for i := m - 1; i >= 0; i-- {
+		for j := n - 1; j >= 0; j-- {
+			if oldLines[i] == newLines[j] {
+				dp[i][j] = dp[i+1][j+1] + 1
+			} else {
+				if dp[i+1][j] > dp[i][j+1] {
+					dp[i][j] = dp[i+1][j]
+				} else {
+					dp[i][j] = dp[i][j+1]
+				}
+			}
+		}
+	}
+	// Backtrack to produce diff.
+	var result []string
+	i, j := 0, 0
+	for i < m || j < n {
+		if i < m && j < n && oldLines[i] == newLines[j] {
+			result = append(result, " "+oldLines[i])
+			i++
+			j++
+		} else if j < n && (i == m || dp[i][j+1] >= dp[i+1][j]) {
+			result = append(result, "+"+newLines[j])
+			j++
+		} else {
+			result = append(result, "-"+oldLines[i])
+			i++
+		}
+	}
+	return strings.Join(result, "\n")
 }
 
 // -- Repositories --
@@ -878,7 +1009,8 @@ func SearchNotes(db *sql.DB, query string) ([]SearchHit, error) {
 // searchNotesFTS matches the query against the FTS5 index, ranked by bm25.
 func searchNotesFTS(db *sql.DB, q string) ([]SearchHit, error) {
 	rows, err := db.Query(
-		"SELECT n.id, n.project_id, n.title, n.content FROM project_notes_fts f "+
+		"SELECT n.id, n.project_id, n.title, n.content, bm25(project_notes_fts) "+
+			"FROM project_notes_fts f "+
 			"JOIN project_notes n ON n.id = f.rowid "+
 			"WHERE project_notes_fts MATCH ? "+
 			"ORDER BY bm25(project_notes_fts), n.pinned DESC, n.updated_at DESC LIMIT ?",
@@ -891,10 +1023,12 @@ func searchNotesFTS(db *sql.DB, q string) ([]SearchHit, error) {
 	for rows.Next() {
 		var h SearchHit
 		var content string
-		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &content); err != nil {
+		var rank float64
+		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &content, &rank); err != nil {
 			return nil, err
 		}
 		h.Type = "note"
+		h.Rank = rank
 		h.Snippet = makeSnippet(content, q)
 		hits = append(hits, h)
 	}
@@ -919,6 +1053,7 @@ func searchNotesLike(db *sql.DB, q string) ([]SearchHit, error) {
 			return nil, err
 		}
 		h.Type = "note"
+		h.Rank = 0 // LIKE fallback has no bm25 score
 		h.Snippet = makeSnippet(content, q)
 		hits = append(hits, h)
 	}
@@ -1050,5 +1185,8 @@ func makeSnippet(content, query string) string {
 	if end > len(content) {
 		end = len(content)
 	}
-	return content[start:end]
+	snippet := content[start:end]
+	// Highlight matched query text with <mark> tags for visual emphasis.
+	snippet = strings.ReplaceAll(snippet, query, "<mark>"+query+"</mark>")
+	return snippet
 }

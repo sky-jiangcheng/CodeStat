@@ -106,3 +106,36 @@ func (a *App) PinNote(noteID int64, pinned bool) error {
 func (a *App) MoveNote(noteID, projectID int64) error {
 	return db.MoveNote(a.db, noteID, projectID)
 }
+
+// ListNoteVersions returns the recent version history for a note.
+func (a *App) ListNoteVersions(noteID int64) []db.NoteVersion {
+	versions, err := db.ListNoteVersions(a.db, noteID)
+	if err != nil {
+		log.Printf("list note versions error: %v", err)
+		return nil
+	}
+	if versions == nil {
+		return []db.NoteVersion{}
+	}
+	return versions
+}
+
+// GetNoteVersion returns a single version by ID.
+func (a *App) GetNoteVersion(versionID int64) *db.NoteVersion {
+	v, err := db.GetNoteVersion(a.db, versionID)
+	if err != nil {
+		log.Printf("get note version error: %v", err)
+		return nil
+	}
+	return v
+}
+
+// RestoreNoteVersion restores a note to the content of a previous version.
+func (a *App) RestoreNoteVersion(noteID, versionID int64) error {
+	return db.RestoreNoteVersion(a.db, noteID, versionID)
+}
+
+// DiffNoteVersions returns a line-based diff between a version and the current note.
+func (a *App) DiffNoteVersions(noteID, versionID int64) (string, error) {
+	return db.DiffNoteVersions(a.db, noteID, versionID)
+}

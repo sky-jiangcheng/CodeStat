@@ -221,7 +221,7 @@ function KnowledgePage() {
                     <span className="hit-project">{h.project_name}</span>
                   </div>
                   <div className="hit-title">{h.title}</div>
-                  <div className="hit-snippet">{h.snippet}</div>
+                  <div className="hit-snippet" dangerouslySetInnerHTML={{ __html: h.snippet }} />
                 </a>
               ))}
             </div>

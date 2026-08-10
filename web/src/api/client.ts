@@ -434,6 +434,33 @@ export function moveNote(noteId: number, projectId: number): Promise<void> {
   })
 }
 
+// --- Note version history API ---
+
+export interface NoteVersion {
+  id: number
+  note_id: number
+  title: string
+  content: string
+  tags: string
+  kind: string
+  created_at: string
+}
+
+export function listNoteVersions(noteId: number): Promise<NoteVersion[]> {
+  if (isWails()) return wail<NoteVersion[]>('ListNoteVersions', noteId).then(d => d ?? [])
+  return http<NoteVersion[]>(`/notes/${noteId}/versions`).then(d => d ?? [])
+}
+
+export function restoreNoteVersion(noteId: number, versionId: number): Promise<void> {
+  if (isWails()) return wail<void>('RestoreNoteVersion', noteId, versionId)
+  return http<void>(`/notes/${noteId}/versions/${versionId}/restore`, { method: 'POST' })
+}
+
+export function diffNoteVersions(noteId: number, versionId: number): Promise<string> {
+  if (isWails()) return wail<string>('DiffNoteVersions', noteId, versionId)
+  return http<string>(`/notes/${noteId}/versions/${versionId}/diff`).then(d => d ?? '')
+}
+
 // --- Knowledge hub API ---
 
 export function listAllNotes(): Promise<NoteWithProject[]> {

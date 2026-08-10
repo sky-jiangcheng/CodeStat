@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote, getProjects, Note, Project,
+  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote,
+  listNoteVersions, restoreNoteVersion, diffNoteVersions,
+  getProjects, Note, NoteVersion, Project,
 } from '../api/client'
 import { renderMarkdown, renderMarkdownAsync } from '../utils/markdown'
 import BlockEditor from './BlockEditor'
@@ -63,6 +65,11 @@ function NoteSection({ projectId, autoNew = false }: Props) {
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
   const [projects, setProjects] = useState<Project[]>([])
+  const [versionHistory, setVersionHistory] = useState<NoteVersion[] | null>(null)
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
+  const [verifyingId, setVerifyingId] = useState<number | null>(null)
+  const [diffText, setDiffText] = useState<string | null>(null)
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
@@ -165,6 +172,43 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const handlePin = async (note: Note) => {
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !note.pinned } : n))
     try { await pinNote(note.id, !note.pinned) } catch { setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
+  }
+
+  const openVersionHistory = async (noteId: number) => {
+    if (showVersionHistory && currentNoteId === noteId && versionHistory !== null) {
+      setShowVersionHistory(false)
+      setVersionHistory(null)
+      setCurrentNoteId(null)
+      setDiffText(null)
+      return
+    }
+    setCurrentNoteId(noteId)
+    setShowVersionHistory(true)
+    setVersionHistory(null)
+    setDiffText(null)
+    const versions = await listNoteVersions(noteId)
+    setVersionHistory(versions)
+  }
+
+  const handleRestoreVersion = async (noteId: number, versionId: number) => {
+    setVerifyingId(versionId)
+    try {
+      await restoreNoteVersion(noteId, versionId)
+      setVersionHistory(null)
+      setShowVersionHistory(false)
+      setCurrentNoteId(null)
+      fetchNotes()
+    } catch { /* ignore */ }
+    finally { setVerifyingId(null) }
+  }
+
+  const handleShowDiff = async (noteId: number, versionId: number) => {
+    if (diffText !== null && diffText.startsWith(`${noteId}-${versionId}`)) {
+      setDiffText(null)
+      return
+    }
+    const diff = await diffNoteVersions(noteId, versionId)
+    setDiffText(`${noteId}-${versionId}\n${diff}`)
   }
 
   const filteredNotes = notes.filter(n => {
@@ -361,6 +405,13 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                     <div className="note-actions">
                       <button className="btn btn-sm" onClick={() => startEdit(note)}>编辑</button>
                       <button
+                        className="btn btn-sm"
+                        onClick={() => openVersionHistory(note.id)}
+                        title="查看版本历史"
+                      >
+                        历史
+                      </button>
+                      <button
                         className={`btn btn-sm ${confirmDeleteId === note.id ? 'btn-delete-confirm' : 'btn-danger'}`}
                         onClick={() => handleDelete(note.id)}
                         onBlur={() => setConfirmDeleteId(null)}
@@ -373,6 +424,50 @@ function NoteSection({ projectId, autoNew = false }: Props) {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Version history panel */}
+      {showVersionHistory && versionHistory !== null && (
+        <div className="version-history-panel">
+          <div className="version-history-header">
+            <h4>版本历史</h4>
+            <button className="btn btn-sm" onClick={() => { setShowVersionHistory(false); setVersionHistory(null); setDiffText(null); }}>关闭</button>
+          </div>
+          {versionHistory.length === 0 ? (
+            <p className="empty-hint">暂无历史版本</p>
+          ) : (
+            <div className="version-list">
+              {versionHistory.map((v, i) => (
+                <div key={v.id} className="version-item">
+                  <span className="version-time">{v.created_at}</span>
+                  <span className="version-title">{v.title || '无标题'}</span>
+                  <div className="version-actions">
+                    <button
+                      className="btn btn-sm"
+                      onClick={() => currentNoteId && handleShowDiff(currentNoteId, v.id)}
+                      title="查看差异"
+                    >
+                      差异
+                    </button>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => currentNoteId && handleRestoreVersion(currentNoteId, v.id)}
+                      disabled={verifyingId === v.id}
+                      title="恢复到此版本"
+                    >
+                      {verifyingId === v.id ? '恢复中…' : '恢复'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {diffText !== null && (
+            <div className="diff-panel">
+              <pre className="diff-pre"><code>{diffText}</code></pre>
+            </div>
+          )}
         </div>
       )}
     </div>

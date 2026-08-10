@@ -261,6 +261,37 @@ func upgradeSchema(db *sql.DB) error {
 				`SELECT id, title FROM project_todos `+
 				`WHERE id NOT IN (SELECT rowid FROM project_todos_fts)`,
 		)},
+		// v8: note version history (issue #16). Creates note_versions table with
+		// trigger to snapshot on content changes, plus cleanup to keep recent
+		// versions.
+		{id: 8, sql: []string{
+			`CREATE TABLE IF NOT EXISTS note_versions (` +
+				`id INTEGER PRIMARY KEY AUTOINCREMENT,` +
+				`note_id INTEGER NOT NULL,` +
+				`title TEXT DEFAULT '',` +
+				`content TEXT NOT NULL,` +
+				`tags TEXT DEFAULT '',` +
+				`kind TEXT DEFAULT 'other',` +
+				`created_at DATETIME DEFAULT CURRENT_TIMESTAMP,` +
+				`FOREIGN KEY (note_id) REFERENCES project_notes(id) ON DELETE CASCADE)`,
+			`CREATE INDEX IF NOT EXISTS idx_note_versions_note_id ON note_versions(note_id, created_at DESC)`,
+			// Snapshot current content when note is updated.
+			`CREATE TRIGGER IF NOT EXISTS note_versions_snap AFTER UPDATE ON project_notes` +
+				` BEGIN` +
+				`  INSERT INTO note_versions(note_id, title, content, tags, kind)` +
+				`  VALUES (new.id, COALESCE(new.title, ''), new.content, new.tags, new.kind);` +
+				` END`,
+			// Cleanup: keep at most 50 versions per note.
+			`CREATE TRIGGER IF NOT EXISTS note_versions_cleanup AFTER INSERT ON note_versions` +
+				` BEGIN` +
+				`  DELETE FROM note_versions WHERE id IN (` +
+				`   SELECT id FROM note_versions` +
+				`   WHERE note_id = new.note_id` +
+				`   ORDER BY created_at DESC` +
+				`   LIMIT -1 OFFSET 50` +
+				`  );` +
+				` END`,
+		}},
 	}
 
 	for _, m := range migrations {
