@@ -1,0 +1,118 @@
+/* ============================================
+   Inputs, selects, form controls
+   ============================================ */
+
+.form-input,
+.form-select,
+.search-input,
+.note-textarea,
+.note-title-input,
+.note-tags-input,
+.date-input,
+.sort-select,
+.cmdk-input {
+  padding: 9px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  font-family: inherit;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.form-input:hover,
+.search-input:hover,
+.note-textarea:hover,
+.note-title-input:hover,
+.note-tags-input:hover,
+.date-input:hover,
+.sort-select:hover {
+  border-color: var(--text-muted);
+}
+
+.form-input:focus,
+.form-select:focus,
+.search-input:focus,
+.note-textarea:focus,
+.note-title-input:focus,
+.note-tags-input:focus,
+.date-input:focus,
+.sort-select:focus {
+  border-color: var(--accent-light);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.form-input::placeholder,
+.search-input::placeholder,
+.note-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.input-row .form-input {
+  flex: 1;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggle {
+  width: 42px;
+  height: 24px;
+  border-radius: 999px;
+  border: 1px solid var(--border-default);
+  background: var(--bg-tertiary);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.toggle .toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--text-muted);
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.toggle.toggle-on {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.toggle.toggle-on .toggle-knob {
+  transform: translateX(18px);
+  background: #fff;
+}

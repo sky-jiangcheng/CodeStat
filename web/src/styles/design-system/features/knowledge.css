@@ -1,0 +1,330 @@
+/* ============================================
+   Knowledge hub
+   ============================================ */
+
+.knowledge h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.knowledge-search {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.knowledge-search-input {
+  width: 100%;
+  max-width: 560px;
+  padding: 11px 16px;
+  font-size: 14px;
+}
+
+.search-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.knowledge-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.knowledge-filters .filter-btn.pinned-active {
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.tag-chip {
+  padding: 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: 14px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.tag-chip:hover {
+  border-color: var(--text-muted);
+  color: var(--text-primary);
+}
+
+.tag-chip-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.project-jump {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 12px;
+}
+
+.project-jump-label {
+  color: var(--text-tertiary);
+}
+
+.project-jump-item {
+  color: var(--accent);
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  transition: background var(--transition-fast);
+}
+
+.project-jump-item:hover {
+  background: var(--accent-light);
+  color: white;
+}
+
+.new-note-picker {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.new-note-picker-title {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+
+.new-note-picker-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.new-note-picker-item {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: none;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.new-note-picker-item:hover {
+  background: var(--accent-light);
+  color: white;
+}
+
+.note-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.knowledge-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all var(--transition-base);
+}
+
+.knowledge-card:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.knowledge-card.pinned {
+  border-color: var(--warning);
+  box-shadow: 0 0 0 1px var(--warning-soft);
+}
+
+.knowledge-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.kind-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.kind-badge.kind-knowledge {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.kind-badge.kind-idea {
+  background: var(--info-soft);
+  color: var(--info);
+}
+
+.kind-badge.kind-log {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+
+.pin-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 15px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.pin-btn:hover {
+  color: var(--warning);
+  background: var(--warning-soft);
+}
+
+.pin-btn.pinned {
+  color: var(--warning);
+}
+
+.knowledge-card-body {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.knowledge-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-card-snippet {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-height: 60px;
+  overflow: hidden;
+}
+
+.knowledge-card-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: auto;
+}
+
+.knowledge-project-name {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.knowledge-time {
+  font-family: var(--font-mono);
+}
+
+.knowledge-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.knowledge-tag {
+  font-size: 10px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+}
+
+.knowledge-tag:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.recent-section {
+  margin-bottom: 18px;
+}
+
+.recent-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recent-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--bg-tertiary, var(--bg-secondary));
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-primary);
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.recent-item:hover {
+  border-color: var(--accent);
+  background: var(--bg-hover, var(--bg-secondary));
+}
+
+.recent-title {
+  font-weight: 500;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recent-project {
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.recent-time {
+  color: var(--text-tertiary);
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .knowledge-search-input {
+    font-size: 13px;
+  }
+}
