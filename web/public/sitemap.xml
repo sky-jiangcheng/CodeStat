@@ -5,15 +5,15 @@
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://sky-jiangcheng.github.io/gitboard/#/knowledge</loc>
+    <loc>https://sky-jiangcheng.github.io/gitboard/knowledge</loc>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://sky-jiangcheng.github.io/gitboard/#/dashboard</loc>
+    <loc>https://sky-jiangcheng.github.io/gitboard/dashboard</loc>
     <changefreq>monthly</changefreq>
   </url>
   <url>
-    <loc>https://sky-jiangcheng.github.io/gitboard/#/settings</loc>
+    <loc>https://sky-jiangcheng.github.io/gitboard/settings</loc>
     <changefreq>monthly</changefreq>
   </url>
 </urlset>

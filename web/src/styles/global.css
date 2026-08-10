@@ -3367,3 +3367,96 @@ select:focus-visible {
 .toast-close:hover {
   color: var(--text-primary);
 }
+
+/* --- Markdown enhancements: callout, syntax highlight, mermaid, math --- */
+.markdown-body .callout {
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  margin: 0.75em 0;
+  border-left: 4px solid var(--accent);
+  background: var(--bg-secondary);
+}
+.markdown-body .callout-note { border-left-color: var(--accent); }
+.markdown-body .callout-tip { border-left-color: #2d6a4f; }
+.markdown-body .callout-important { border-left-color: #e07b00; }
+.markdown-body .callout-warning { border-left-color: #c95757; }
+.markdown-body .callout-caution { border-left-color: #9b2c2c; }
+.markdown-body .callout-question { border-left-color: #5a7fa0; }
+.markdown-body .callout-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 0.95em;
+  margin-bottom: 6px;
+  color: var(--text-primary);
+}
+.markdown-body .callout-content { font-size: 0.9em; }
+.markdown-body .callout-content p { margin: 0.3em 0; }
+
+/* Code highlighting */
+.markdown-body pre { position: relative; border-radius: var(--radius-md); overflow: hidden; }
+.markdown-body pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 16px;
+  background: transparent !important;
+  color: inherit;
+}
+.markdown-body pre code.hljs::before {
+  content: attr(class);
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding: 4px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.markdown-body code {
+  background: var(--bg-tertiary);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 0.88em;
+  font-family: var(--font-mono);
+}
+
+/* Mermaid diagrams */
+.markdown-body .mermaid-render {
+  display: flex;
+  justify-content: center;
+  margin: 1em 0;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+}
+.markdown-body .mermaid-render svg { max-width: 100%; height: auto; }
+
+/* Math (KaTeX) */
+.markdown-body .katex { font-size: 1em; }
+.markdown-body .katex-display { margin: 0.75em 0; overflow-x: auto; }
+.markdown-body .math-error {
+  color: var(--text-danger);
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+}
+
+/* Task lists */
+.markdown-body ul.task-list { list-style: none; padding-left: 0.5em; }
+.markdown-body ul.task-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0.2em 0;
+}
+.markdown-body ul.task-list li input[type="checkbox"] { margin-top: 4px; flex-shrink: 0; }
+
+/* Dark theme callout backgrounds */
+[data-theme="dark"] .markdown-body .callout-note { background: rgba(88, 165, 255, 0.08); }
+[data-theme="dark"] .markdown-body .callout-tip { background: rgba(45, 106, 79, 0.12); }
+[data-theme="dark"] .markdown-body .callout-important { background: rgba(224, 123, 0, 0.1); }
+[data-theme="dark"] .markdown-body .callout-warning { background: rgba(201, 87, 87, 0.1); }
+[data-theme="dark"] .markdown-body .callout-caution { background: rgba(155, 44, 44, 0.12); }
+[data-theme="dark"] .markdown-body .callout-question { background: rgba(90, 127, 160, 0.1); }

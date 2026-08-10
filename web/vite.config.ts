@@ -25,12 +25,12 @@ export default defineConfig({
         shortcuts: [
           {
             name: '知识库',
-            url: '/#/knowledge',
+            url: '/knowledge',
             icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
           {
             name: '仪表盘',
-            url: '/#/dashboard',
+            url: '/dashboard',
             icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
         ],

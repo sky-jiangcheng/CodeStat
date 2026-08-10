@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote, getProjects, Note, Project,
 } from '../api/client'
-import { renderMarkdown } from '../utils/markdown'
+import { renderMarkdown, renderMarkdownAsync } from '../utils/markdown'
 
 interface Props {
   projectId: number
@@ -55,6 +55,8 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState<KindFilter>('all')
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
+  const [draftPreviewHtml, setDraftPreviewHtml] = useState('')
+  const [editPreviewHtml, setEditPreviewHtml] = useState('')
 
   const [draft, setDraft] = useState(() => loadDraft(projectId))
   const [projects, setProjects] = useState<Project[]>([])
@@ -79,6 +81,18 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   useEffect(() => {
     try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
   }, [draft, projectId])
+
+  // Async preview for draft: renderMarkdownAsync supports mermaid diagrams.
+  useEffect(() => {
+    if (!showPreview || !draft.content) { setDraftPreviewHtml(''); return }
+    renderMarkdownAsync(draft.content).then(setDraftPreviewHtml).catch(() => setDraftPreviewHtml(''))
+  }, [draft.content, showPreview])
+
+  // Async preview for edit: renderMarkdownAsync supports mermaid diagrams.
+  useEffect(() => {
+    if (!showPreview || !editContent) { setEditPreviewHtml(''); return }
+    renderMarkdownAsync(editContent).then(setEditPreviewHtml).catch(() => setEditPreviewHtml(''))
+  }, [editContent, showPreview])
 
   const startNew = () => {
     setIsNew(true)
@@ -218,7 +232,13 @@ function NoteSection({ projectId, autoNew = false }: Props) {
               rows={10}
             />
             {showPreview && (
-              <div className="note-preview markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(draft.content) }} />
+              <div className="note-preview markdown-body">
+                {draftPreviewHtml
+                  ? <div dangerouslySetInnerHTML={{ __html: draftPreviewHtml }} />
+                  : draft.content
+                    ? <span className="draft-hint">渲染中…</span>
+                    : null}
+              </div>
             )}
           </div>
           <div className="note-editor-actions">
@@ -286,7 +306,13 @@ function NoteSection({ projectId, autoNew = false }: Props) {
                       rows={10}
                     />
                     {showPreview && (
-                      <div className="note-preview markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(editContent) }} />
+                      <div className="note-preview markdown-body">
+                        {editPreviewHtml
+                          ? <div dangerouslySetInnerHTML={{ __html: editPreviewHtml }} />
+                          : editContent
+                            ? <span className="draft-hint">渲染中…</span>
+                            : null}
+                      </div>
                     )}
                   </div>
                   <div className="note-editor-actions">

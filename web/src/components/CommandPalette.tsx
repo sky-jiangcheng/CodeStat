@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 // focus, restores it to the trigger on close, and the input drives selection via
 // aria-activedescendant over a role="listbox" of role="option" items.
 export default function CommandPalette({ open, onClose }: Props) {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -72,10 +74,10 @@ export default function CommandPalette({ open, onClose }: Props) {
   const goto = (index: number) => {
     if (index < hits.length) {
       const h = hits[index]
-      if (h) { window.location.hash = `#/project/${h.project_id}`; onClose() }
+      if (h) { navigate(`/project/${h.project_id}`); onClose() }
     } else {
       const p = filteredProjects[index - hits.length]
-      if (p) { window.location.hash = `#/project/${p.id}`; onClose() }
+      if (p) { navigate(`/project/${p.id}`); onClose() }
     }
   }
 
@@ -127,7 +129,7 @@ export default function CommandPalette({ open, onClose }: Props) {
             <a
               key={`${h.type}-${h.id}`}
               id={`cmdk-opt-${i}`}
-              href={`/#/project/${h.project_id}`}
+              href={`/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
               role="option"
               aria-selected={activeIndex === i}
@@ -149,7 +151,7 @@ export default function CommandPalette({ open, onClose }: Props) {
               <a
                 key={p.id}
                 id={`cmdk-opt-${idx}`}
-                href={`/#/project/${p.id}`}
+                href={`/project/${p.id}`}
                 className={`cmdk-item ${activeIndex === idx ? 'cmdk-item-active' : ''}`}
                 role="option"
                 aria-selected={activeIndex === idx}

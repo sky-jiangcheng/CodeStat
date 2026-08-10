@@ -171,7 +171,7 @@ function KnowledgePage() {
               {hits.map(h => (
                 <a
                   key={`${h.type}-${h.id}`}
-                  href={`/#/project/${h.project_id}`}
+                  href={`/project/${h.project_id}`}
                   className="hit-item"
                 >
                   <div className="hit-head">
@@ -194,7 +194,7 @@ function KnowledgePage() {
               </div>
               <div className="recent-list">
                 {recentNotes.map(n => (
-                  <a key={n.id} href={`/#/project/${n.project_id}`} className="recent-item">
+                  <a key={n.id} href={`/project/${n.project_id}`} className="recent-item">
                     <span className="recent-title">{n.title || stripMarkdown(n.content, 40)}</span>
                     <span className="recent-project">{n.project_name}</span>
                     <span className="recent-time">{n.updated_at.slice(0, 10)}</span>
@@ -256,7 +256,7 @@ function KnowledgePage() {
               <div className="project-jump">
                 <span className="project-jump-label">跳转项目：</span>
                 {projectNames.slice(0, 8).map(([name, id]) => (
-                  <a key={id} href={`/#/project/${id}`} className="project-jump-item" title={name}>{name}</a>
+                  <a key={id} href={`/project/${id}`} className="project-jump-item" title={name}>{name}</a>
                 ))}
               </div>
             )}
@@ -299,7 +299,7 @@ function KnowledgePage() {
                           ★
                         </button>
                       </div>
-                      <a href={`/#/project/${n.project_id}`} className="knowledge-card-body">
+                      <a href={`/project/${n.project_id}`} className="knowledge-card-body">
                         <div className="knowledge-card-title">{n.title || stripMarkdown(n.content, 40)}</div>
                         <div className="knowledge-card-snippet markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(stripMarkdown(n.content, 120)) }} />
                         <div className="knowledge-card-foot">

@@ -1,5 +1,5 @@
 import { Component, ReactNode, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import ProjectDetail from './pages/ProjectDetail'
 import Settings from './pages/Settings'
@@ -31,7 +31,7 @@ class ErrorBoundary extends Component<
 
   handleReset = () => {
     this.setState({ hasError: false, error: null })
-    window.location.hash = '#/dashboard'
+    window.location.href = '/'
   }
 
   render() {
@@ -93,7 +93,7 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
-  // Focus main without touching location.hash (HashRouter owns the hash).
+  // Focus main without touching location (BrowserRouter owns the history).
   const skipToContent = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     const main = document.getElementById('main-content')
@@ -174,7 +174,7 @@ function App() {
   }, [])
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <div className="app">
         <a className="skip-link" href="#main-content" onClick={skipToContent}>跳到主内容</a>
         <NavBar onOpenPalette={() => setPaletteOpen(true)} />
@@ -184,7 +184,7 @@ function App() {
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
         <ToastHost toasts={toasts} onDismiss={(id) => setToasts(prev => prev.filter(x => x.id !== id))} />
       </div>
-    </HashRouter>
+    </BrowserRouter>
   )
 }
 

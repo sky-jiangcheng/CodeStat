@@ -17,7 +17,7 @@
 - 知识库升级为首页，支持快速创建笔记（issue #31）
 - 知识库体验增强（issue #37）：首屏搜索框自动聚焦、顶部「最近编辑」快速访问区、空状态引导创建或导入 AI 记忆、编辑器「关联项目」下拉快速迁移笔记（新增 `MoveNote` API）
 
-## [1.5.4] - 2026-08-02
+## [1.5.5] - 2026-08-10
 
 ### 新增
 - 启动时历史回填、收藏同步及默认扫描根目录播种
@@ -75,8 +75,8 @@
 ### 新增
 - 首个正式版本：Wails 桌面应用骨架、GitHub Actions 多平台构建发布
 
-[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.5.4...HEAD
-[1.5.4]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.4
+[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.5.5...HEAD
+[1.5.5]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.5
 [1.5.3]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.3
 [1.5.2]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.2
 [1.5.1]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.1

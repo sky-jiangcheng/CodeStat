@@ -350,7 +350,7 @@ function Dashboard() {
                                   <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
                                 </svg>
                               </button>
-                              <a href={`/#/project/${p.id}`} className="search-project-name">
+                              <a href={`/project/${p.id}`} className="search-project-name">
                                 {p.name}
                               </a>
                             </div>
@@ -361,7 +361,7 @@ function Dashboard() {
                         <div className="search-group">
                           <div className="search-group-header">笔记与待办</div>
                           {searchResults.map(h => (
-                            <a key={`${h.type}-${h.id}`} href={`/#/project/${h.project_id}`} className="search-result-item">
+                            <a key={`${h.type}-${h.id}`} href={`/project/${h.project_id}`} className="search-result-item">
                               <div className="search-result-header">
                                 <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : '待办'}</span>
                                 <span className="search-result-project">{h.project_name}</span>
@@ -443,7 +443,7 @@ function Dashboard() {
               ) : (
                 <>
                   <button className="btn btn-primary" onClick={() => setConfirmScan(true)}>开始扫描</button>
-                  <a href="/#/settings" className="btn btn-secondary">配置目录</a>
+                  <a href="/settings" className="btn btn-secondary">配置目录</a>
                 </>
               )}
             </div>
