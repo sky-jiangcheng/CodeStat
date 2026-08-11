@@ -140,8 +140,10 @@ func (a *App) refreshAllStatsWithCancel(ctx context.Context) {
 		if err == nil && allEntries != nil {
 			for _, e := range allEntries {
 				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-					_ = a.Stores.DailyStat.Upsert(repo.ID, e.Date, "all",
-						e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+					if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, "all",
+						e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
+						log.Printf("upsert stats error (repo %s, %s, all): %v", repo.Path, e.Date, err)
+					}
 				}
 			}
 		}
@@ -151,8 +153,10 @@ func (a *App) refreshAllStatsWithCancel(ctx context.Context) {
 			if err == nil && myEntries != nil {
 				for _, e := range myEntries {
 					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						_ = a.Stores.DailyStat.Upsert(repo.ID, e.Date, a.gitUser,
-							e.FilesChanged, e.LinesAdded, e.LinesDeleted)
+						if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, a.gitUser,
+							e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
+							log.Printf("upsert stats error (repo %s, %s, mine): %v", repo.Path, e.Date, err)
+						}
 					}
 				}
 			}

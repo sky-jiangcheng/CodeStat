@@ -207,7 +207,8 @@ func (a *App) UpdateProjectLevel(id int64, direction string) (*LevelUpdateResult
 		// Up / merge: absorb sibling projects that share the same parent directory.
 		parentDir := pathDir(project.RootPath)
 		if parentDir != "" && parentDir != "/" && parentDir != "." {
-			rows, err := tx.Query("SELECT id, root_path FROM projects WHERE id != ? AND root_path LIKE ?", id, parentDir+"/%")
+			escapedParent := escapeLikeQuery(parentDir)
+			rows, err := tx.Query("SELECT id, root_path FROM projects WHERE id != ? AND root_path LIKE ? ESCAPE '\\'", id, escapedParent+"/%")
 			if err != nil {
 				return nil, fmt.Errorf("failed to query siblings: %w", err)
 			}

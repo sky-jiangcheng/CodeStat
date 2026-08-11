@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 
 	"gitboard/internal/db"
 	"gitboard/internal/platform"
@@ -117,18 +119,27 @@ func ensurePath() {
 	path := os.Getenv("PATH")
 	if path == "" {
 		path = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-	} else {
-		path = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + path
+		return
 	}
-	os.Setenv("PATH", path)
+	// Prepend standard directories if not already present.
+	standardDirs := []string{"/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"}
+	seen := make(map[string]bool)
+	for _, dir := range strings.Split(path, string(os.PathListSeparator)) {
+		seen[dir] = true
+	}
+	var toAdd []string
+	for _, dir := range standardDirs {
+		if !seen[dir] {
+			toAdd = append(toAdd, dir)
+		}
+	}
+	if len(toAdd) > 0 {
+		os.Setenv("PATH", strings.Join(toAdd, string(os.PathListSeparator))+string(os.PathListSeparator)+path)
+	}
 }
 
 func setupLogging() {
-	logDir, err := os.UserHomeDir()
-	if err != nil {
-		logDir = os.TempDir()
-	}
-	logDir = filepath.Join(logDir, "Library", "Logs")
+	logDir := getLogDir()
 	_ = os.MkdirAll(logDir, 0750)
 	logFile := filepath.Join(logDir, "gitboard.log")
 	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
@@ -138,4 +149,34 @@ func setupLogging() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("=== GitBuddy log started ===")
 	log.Printf("PATH=%s", os.Getenv("PATH"))
+}
+
+// getLogDir returns a platform-appropriate log directory.
+func getLogDir() string {
+	switch runtime.GOOS {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return os.TempDir()
+		}
+		return filepath.Join(home, "Library", "Logs")
+	case "windows":
+		if dir := os.Getenv("LOCALAPPDATA"); dir != "" {
+			return filepath.Join(dir, "GitBuddy", "Logs")
+		}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return os.TempDir()
+		}
+		return filepath.Join(home, "AppData", "Local", "GitBuddy", "Logs")
+	default: // linux and others
+		if dir := os.Getenv("XDG_STATE_HOME"); dir != "" {
+			return filepath.Join(dir, "gitboard")
+		}
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return os.TempDir()
+		}
+		return filepath.Join(home, ".local", "state", "gitboard")
+	}
 }

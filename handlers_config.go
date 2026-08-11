@@ -15,7 +15,7 @@ type ConfigData struct {
 func (a *App) GetConfig() (*ConfigData, error) {
 	configs, err := a.Stores.Config.All()
 	if err != nil {
-		return nil, fmt.Errorf("failed to load config")
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 	roots, _ := a.Stores.ScanRoot.Get()
 	return &ConfigData{Config: configs, ScanRoots: roots}, nil

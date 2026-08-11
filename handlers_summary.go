@@ -87,15 +87,16 @@ type StatusBarData struct {
 const statusCacheTTL = 30 * time.Second
 
 // GetStatusBar returns current status bar information with 30-second caching
-// to avoid running git log on every UI render.
+// to avoid running git log on every UI render. Uses double-check locking to
+// avoid holding the mutex during the (potentially slow) git command.
 func (a *App) GetStatusBar() *StatusBarData {
 	a.statusCacheMu.Lock()
-	defer a.statusCacheMu.Unlock()
-
-	now := time.Now()
-	if a.statusCache != nil && now.Sub(a.statusCacheTime) < statusCacheTTL {
-		return a.statusCache
+	if a.statusCache != nil && time.Now().Sub(a.statusCacheTime) < statusCacheTTL {
+		cached := a.statusCache
+		a.statusCacheMu.Unlock()
+		return cached
 	}
+	a.statusCacheMu.Unlock()
 
 	repos, _ := a.Stores.Repository.GetAll()
 	repoPaths := make([]string, 0, len(repos))
@@ -103,6 +104,7 @@ func (a *App) GetStatusBar() *StatusBarData {
 		repoPaths = append(repoPaths, r.Path)
 	}
 
+	now := time.Now()
 	data := &StatusBarData{
 		CurrentTime: now.Format("2006-01-02 15:04:05"),
 	}
@@ -115,8 +117,10 @@ func (a *App) GetStatusBar() *StatusBarData {
 		data.LastCommitMsg = recent.Message
 	}
 
+	a.statusCacheMu.Lock()
 	a.statusCache = data
 	a.statusCacheTime = now
+	a.statusCacheMu.Unlock()
 	return data
 }
 
@@ -197,7 +201,7 @@ func (a *App) ExportProjectStats(projectID int64) string {
 	sb.WriteString("date,author,files_changed,lines_added,lines_deleted\n")
 	for _, st := range statsList {
 		sb.WriteString(fmt.Sprintf("%s,%s,%d,%d,%d\n",
-			st.StatDate, st.Author, st.FilesChanged, st.LinesAdded, st.LinesDeleted))
+			st.StatDate, csvSafe(st.Author), st.FilesChanged, st.LinesAdded, st.LinesDeleted))
 	}
 	return sb.String()
 }
