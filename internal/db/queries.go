@@ -225,9 +225,10 @@ func SearchProjects(db *sql.DB, query string) ([]Project, error) {
 // the new value. Uses a single UPDATE with NOT to avoid TOCTOU race conditions
 // between the read and write.
 func ToggleProjectStar(db *sql.DB, projectID int64) (bool, error) {
-	res, err := db.Exec(
+	var newStarred bool
+	err := db.QueryRow(
 		"UPDATE projects SET is_starred = NOT is_starred WHERE id = ? RETURNING is_starred",
-		projectID)
+		projectID).Scan(&newStarred)
 	if err != nil {
 		// Fallback for SQLite < 3.35 which lacks RETURNING: use a transaction.
 		tx, txErr := db.Begin()
@@ -240,20 +241,13 @@ func ToggleProjectStar(db *sql.DB, projectID int64) (bool, error) {
 		if err := tx.QueryRow("SELECT is_starred FROM projects WHERE id = ?", projectID).Scan(&starred); err != nil {
 			return false, err
 		}
-		newStarred := !starred
+		newStarred = !starred
 		if _, err := tx.Exec("UPDATE projects SET is_starred = ? WHERE id = ?", newStarred, projectID); err != nil {
 			return false, err
 		}
 		if err := tx.Commit(); err != nil {
 			return false, err
 		}
-		return newStarred, nil
-	}
-	_ = res
-	// Re-read the new value since RETURNING isn't directly scannable from Exec.
-	var newStarred bool
-	if err := db.QueryRow("SELECT is_starred FROM projects WHERE id = ?", projectID).Scan(&newStarred); err != nil {
-		return false, err
 	}
 	return newStarred, nil
 }

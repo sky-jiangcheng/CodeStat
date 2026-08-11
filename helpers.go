@@ -46,3 +46,11 @@ func csvSafe(s string) string {
 	}
 	return s
 }
+
+// firstNonEmpty returns the first non-empty, non-whitespace string.
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return a
+	}
+	return b
+}

@@ -32,7 +32,7 @@ const getSortOptions = () => {
 
 function Dashboard() {
   const { t } = useTranslation()
-  usePageMeta({ title: '仪表盘 - GitBuddy', description: 'GitBuddy Dashboard: daily commit stats, goal progress, heatmap and project trends.', path: '/dashboard' })
+  usePageMeta({ title: t('dashboard.title') + ' - GitBuddy', description: 'GitBuddy Dashboard: daily commit stats, goal progress, heatmap and project trends.', path: '/dashboard' })
   const [projects, setProjects] = useState<Project[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [dailyGoal, setDailyGoal] = useState(500)
@@ -288,9 +288,9 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      <h1 className="visually-hidden">仪表盘</h1>
+      <h1 className="visually-hidden">{t('dashboard.title')}</h1>
       <div className="visually-hidden" role="status" aria-live="polite">
-        {scanning ? (scanMsg || t('dashboard.scanning', { defaultValue: 'Scanning…' })) : scanDoneMsg}
+              {scanning ? (scanMsg || t('dashboard.scanning')) : scanDoneMsg}
       </div>
       <div className="dashboard-fixed">
         <div className="hero-row">
@@ -298,20 +298,20 @@ function Dashboard() {
             <GoalRing
               value={myAdded}
               goal={isWorkday ? dailyGoal : 0}
-              label={isWorkday ? t('dashboard.todayGoal', { defaultValue: "Today's Goal" }) : t('dashboard.notWorkday', { defaultValue: 'Not a workday' })}
-              sublabel={isWorkday ? `${myAdded} / ${dailyGoal} 行` : `${myAdded} 行`}
+              label={isWorkday ? t('dashboard.todayGoal') : t('dashboard.notWorkday')}
+              sublabel={isWorkday ? `${myAdded} / ${dailyGoal} ${t('dashboard.lines', { defaultValue: 'lines' })}` : `${myAdded} ${t('dashboard.lines', { defaultValue: 'lines' })}`}
             />
             <div className="hero-text">
-              <div className="hero-eyebrow">{date} · {isWorkday ? t('dashboard.workday', { defaultValue: 'Workday' }) : '周末'}</div>
+              <div className="hero-eyebrow">{date} · {isWorkday ? t('dashboard.workday') : t('dashboard.weekend')}</div>
               <div className="hero-title">
                 {isWorkday
-                  ? (myAdded >= dailyGoal ? t('dashboard.goalReached', { defaultValue: "Today's goal reached 🎉" }) : `还差 ${Math.max(dailyGoal - myAdded, 0)} 行达标`)
-                  : t('dashboard.weekend', { defaultValue: 'Happy weekend' })}
+                  ? (myAdded >= dailyGoal ? t('dashboard.goalReached') : t('dashboard.goalMissing', { needed: Math.max(dailyGoal - myAdded, 0) }))
+                  : t('dashboard.weekend')}
               </div>
               <div className="hero-sub">
-                个人新增 <strong className="green">+{myAdded}</strong> ·
-                文件 <strong>{summary?.my_files || 0}</strong> ·
-                涉及 <strong>{summary?.repo_count || 0}</strong> 个仓库
+                {t('dashboard.personalAdded')} <strong className="green">+{myAdded}</strong> ·
+                {t('dashboard.files')} <strong>{summary?.my_files || 0}</strong> ·
+                {t('dashboard.repos')} <strong>{summary?.repo_count || 0}</strong>
               </div>
             </div>
           </div>
@@ -324,26 +324,26 @@ function Dashboard() {
         <div className="dashboard-controls">
           <DatePicker value={date} onChange={setDate} />
           <div className="dashboard-actions">
-            <div className="search-box" ref={searchRef} role="search" aria-label="仪表盘搜索">
+              <div className="search-box" ref={searchRef} role="search" aria-label={t('dashboard.searchAria')}>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => handleSearchDebounced(e.target.value)}
-                placeholder="搜索仓库、笔记与待办…"
-                aria-label="搜索仓库、笔记与待办"
+placeholder={t('dashboard.searchPlaceholder')}
+aria-label={t('dashboard.searchAria')}
                 className="form-input search-input"
               />
               {searchResults !== null && (
                 <div className="search-dropdown">
                   {searching || searchingProjects ? (
-                    <div className="search-loading">搜索中...</div>
+                    <div className="search-loading">{t('dashboard.searching')}</div>
                   ) : searchResults.length === 0 && (!searchProjectsResults || searchProjectsResults.length === 0) ? (
-                    <div className="search-empty">未找到匹配内容</div>
+                    <div className="search-empty">{t('dashboard.noResults')}</div>
                   ) : (
                     <>
                       {searchProjectsResults && searchProjectsResults.length > 0 && (
                         <div className="search-group">
-                          <div className="search-group-header">仓库</div>
+                          <div className="search-group-header">{t('dashboard.projectsLabel')}</div>
                           {searchProjectsResults.map(p => (
                             <div key={`project-${p.id}`} className="search-result-item search-result-project-item">
                               <button
@@ -364,11 +364,11 @@ function Dashboard() {
                       )}
                       {searchResults.length > 0 && (
                         <div className="search-group">
-                          <div className="search-group-header">笔记与待办</div>
+                          <div className="search-group-header">{t('dashboard.notesTodosLabel')}</div>
                           {searchResults.map(h => (
                             <a key={`${h.type}-${h.id}`} href={`/project/${h.project_id}`} className="search-result-item">
                               <div className="search-result-header">
-                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? '笔记' : t('summaryBar.todos', { defaultValue: 'Todos' })}</span>
+                                <span className={`hit-type-mini hit-type-${h.type}`}>{h.type === 'note' ? t('dashboard.note') : t('dashboard.todo')}</span>
                                 <span className="search-result-project">{h.project_name}</span>
                               </div>
                               <div className="search-result-title">{h.title}</div>
@@ -383,24 +383,24 @@ function Dashboard() {
               )}
             </div>
             <div className="filter-toggle">
-              <button className={`filter-btn ${!showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(false)}>{t('dashboard.all', { defaultValue: 'All' })}</button>
-              <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>{t('dashboard.starred', { defaultValue: 'Starred' })}</button>
+              <button className={`filter-btn ${!showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(false)}>{t('dashboard.all')}</button>
+              <button className={`filter-btn ${showStarredOnly ? 'active' : ''}`} onClick={() => setShowStarredOnly(true)}>{t('dashboard.starred')}</button>
             </div>
             <div className="sort-control">
-              <label htmlFor="dashboard-sort">排序：</label>
+              <label htmlFor="dashboard-sort">{t('dashboard.sort')}</label>
               <select id="dashboard-sort" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
                 {getSortOptions().map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
               </select>
             </div>
             {confirmScan ? (
               <div className="confirm-group">
-                <span className="confirm-text">确定重新扫描？</span>
-                <button className="btn btn-primary btn-sm" onClick={handleScan} disabled={scanning}>确认</button>
-                <button className="btn btn-sm" onClick={() => setConfirmScan(false)}>取消</button>
+                <span className="confirm-text">{t('dashboard.confirmRescan')}</span>
+                <button className="btn btn-primary btn-sm" onClick={handleScan} disabled={scanning}>{t('confirm', { defaultValue: 'Confirm' })}</button>
+                <button className="btn btn-sm" onClick={() => setConfirmScan(false)}>{t('cancel', { defaultValue: 'Cancel' })}</button>
               </div>
             ) : (
               <button className="btn btn-primary" onClick={() => setConfirmScan(true)} disabled={scanning}>
-                {scanning ? (scanMsg || t('dashboard.scanning', { defaultValue: 'Processing...' })) : t('dashboard.rescan', { defaultValue: 'Rescan' })}
+                {scanning ? (scanMsg || t('dashboard.scanning')) : t('dashboard.rescan')}
               </button>
             )}
           </div>
@@ -409,7 +409,7 @@ function Dashboard() {
         {error && (
           <div className="error-banner">
             <span>{error}</span>
-            <button className="btn btn-sm" onClick={() => fetchData(date)}>重试</button>
+            <button className="btn btn-sm" onClick={() => fetchData(date)}>{t('dashboard.retry')}</button>
           </div>
         )}
       </div>
@@ -436,19 +436,19 @@ function Dashboard() {
         ) : sorted.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">{showStarredOnly ? '⭐' : '🔍'}</div>
-            <h3>{showStarredOnly ? t('dashboard.starredOnly', { defaultValue: 'No starred projects' }) : t('dashboard.noProjects', { defaultValue: 'No project data' })}</h3>
+            <h3>{showStarredOnly ? t('dashboard.starredOnly') : t('dashboard.noProjects')}</h3>
             <p>
               {showStarredOnly
-                ? t('dashboard.starMsg', { defaultValue: 'Star a project to follow it.' })
-                : t('dashboard.scanMsg', { defaultValue: 'No repos found. Configure scan roots first.' })}
+                ? t('dashboard.starMsg')
+                : t('dashboard.scanMsg')}
             </p>
             <div className="empty-actions">
               {showStarredOnly ? (
-                <button className="btn btn-primary" onClick={() => setShowStarredOnly(false)}>查看全部项目</button>
+                <button className="btn btn-primary" onClick={() => setShowStarredOnly(false)}>{t('dashboard.viewAll')}</button>
               ) : (
                 <>
-                  <button className="btn btn-primary" onClick={() => setConfirmScan(true)}>开始扫描</button>
-                  <a href="/settings" className="btn btn-secondary">配置目录</a>
+                  <button className="btn btn-primary" onClick={() => setConfirmScan(true)}>{t('dashboard.startScan')}</button>
+                  <a href="/settings" className="btn btn-secondary">{t('dashboard.configDir')}</a>
                 </>
               )}
             </div>
@@ -458,7 +458,7 @@ function Dashboard() {
             {starredProjects.length > 0 && (
               <div className="project-section">
                 <div className="project-section-header">
-                  <h2 className="project-section-title">已收藏仓库</h2>
+                  <h2 className="project-section-title">{t('dashboard.starredRepos')}</h2>
                   <span className="project-section-count">{starredProjects.length}</span>
                 </div>
                 <div className="project-grid">
@@ -482,7 +482,7 @@ function Dashboard() {
             {unstarredProjects.length > 0 && (
               <div className="project-section">
                 <div className="project-section-header">
-                  <h2 className="project-section-title">其他仓库</h2>
+                  <h2 className="project-section-title">{t('dashboard.otherRepos')}</h2>
                   <span className="project-section-count">{unstarredProjects.length}</span>
                 </div>
                 <div className="project-grid project-grid-minimal">

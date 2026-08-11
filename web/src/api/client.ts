@@ -218,7 +218,10 @@ const isWails = (): boolean => {
 
 function wail<T>(method: string, ...args: unknown[]): Promise<T> {
   const w = window as unknown as WailsGlobal
-  const app = w.go!.main!.App!
+  const app = w.go?.main?.App
+  if (!app) {
+    throw new Error('Wails runtime not available')
+  }
   return app[method](...args) as Promise<T>
 }
 

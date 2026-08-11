@@ -43,7 +43,10 @@
     "notesTodosLabel": "笔记与待办",
     "note": "笔记",
     "todo": "待办",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "lines": "行",
+    "starredRepos": "已收藏仓库",
+    "otherRepos": "其他仓库"
   },
   "knowledge": {
     "title": "知识库",

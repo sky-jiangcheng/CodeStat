@@ -28,12 +28,12 @@ func (a *App) GetSummary(date string) (*SummaryData, error) {
 		date = a.Git.GetYesterdayDate()
 	}
 	if err := a.Git.ValidateDate(date); err != nil {
-		return nil, fmt.Errorf("invalid date format")
+		return nil, fmt.Errorf("invalid date format: %w", err)
 	}
 
 	allStats, err := a.Stores.DailyStat.GetByDate(date)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load summary")
+		return nil, fmt.Errorf("failed to load summary: %w", err)
 	}
 
 	summary := &SummaryData{Date: date, IsWorkday: a.Git.IsWorkday(date)}

@@ -41,7 +41,7 @@ function loadDraft(projectId: number): { content: string; title: string; tags: s
       }
     }
     if (raw) return JSON.parse(raw)
-  } catch { /* ignore */ }
+  } catch (e) { console.error('Failed to load draft:', e) }
   return { content: '', title: '', tags: '', kind: 'knowledge' }
 }
 
@@ -91,19 +91,19 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   }, [autoNew])
 
   useEffect(() => {
-    try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
+    try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch (e) { console.error('Failed to save draft:', e) }
   }, [draft, projectId])
 
   // Async preview for draft: renderMarkdownAsync supports mermaid diagrams.
   useEffect(() => {
     if (!showPreview || !draft.content) { setDraftPreviewHtml(''); return }
-    renderMarkdownAsync(draft.content).then(setDraftPreviewHtml).catch(() => setDraftPreviewHtml(''))
+      renderMarkdownAsync(draft.content).then(setDraftPreviewHtml).catch((e) => { console.error('Draft preview error:', e); setDraftPreviewHtml('') })
   }, [draft.content, showPreview])
 
   // Async preview for edit: renderMarkdownAsync supports mermaid diagrams.
   useEffect(() => {
     if (!showPreview || !editContent) { setEditPreviewHtml(''); return }
-    renderMarkdownAsync(editContent).then(setEditPreviewHtml).catch(() => setEditPreviewHtml(''))
+      renderMarkdownAsync(editContent).then(setEditPreviewHtml).catch((e) => { console.error('Edit preview error:', e); setEditPreviewHtml('') })
   }, [editContent, showPreview])
 
   const startNew = () => {
@@ -121,10 +121,10 @@ function NoteSection({ projectId, autoNew = false }: Props) {
         kind: draft.kind,
       })
       setDraft({ content: '', title: '', tags: '', kind: 'knowledge' })
-      try { localStorage.removeItem(draftKey(projectId)) } catch { /* ignore */ }
+      try { localStorage.removeItem(draftKey(projectId)) } catch (e) { console.error('Failed to clear draft:', e) }
       setIsNew(false)
       fetchNotes()
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to create note:', e) }
     finally { setSaving(false) }
   }
 
@@ -146,7 +146,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       await updateNoteMeta(editingId, editTitle.trim(), editTags.trim(), editKind, editPinned)
       setEditingId(null)
       fetchNotes()
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to update note:', e) }
     finally { setSaving(false) }
   }
 
@@ -156,7 +156,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       await moveNote(noteId, targetProjectId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
       if (editingId === noteId) setEditingId(null)
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to move note:', e) }
   }
 
   const handleDelete = async (id: number) => {
@@ -168,12 +168,12 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       await deleteNote(id)
       setNotes(prev => prev.filter(n => n.id !== id))
       setConfirmDeleteId(null)
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to delete note:', e) }
   }
 
   const handlePin = async (note: Note) => {
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !note.pinned } : n))
-    try { await pinNote(note.id, !note.pinned) } catch { setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
+    try { await pinNote(note.id, !note.pinned) } catch (e) { console.error('Failed to toggle pin:', e); setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
   }
 
   const openVersionHistory = async (noteId: number) => {
@@ -200,7 +200,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       setShowVersionHistory(false)
       setCurrentNoteId(null)
       fetchNotes()
-    } catch { /* ignore */ }
+    } catch (e) { console.error('Failed to restore version:', e) }
     finally { setVerifyingId(null) }
   }
 

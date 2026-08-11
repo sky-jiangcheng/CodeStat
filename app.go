@@ -110,18 +110,49 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
+// HealthResponse is the health-check payload for the frontend.
+type HealthResponse struct {
+	Status  string `json:"status"`
+	Version string `json:"version,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
 // Health returns a health-check payload for the frontend.
-func (a *App) Health() map[string]interface{} {
+func (a *App) Health() *HealthResponse {
 	if err := a.db.Ping(); err != nil {
-		return map[string]interface{}{"status": "error", "message": "database unavailable"}
+		return &HealthResponse{Status: "error", Message: "database unavailable"}
 	}
-	return map[string]interface{}{"status": "ok", "version": version}
+	return &HealthResponse{Status: "ok", Version: version}
+}
+
+// refreshStatsForRepo queries git stats for a single repo and upserts them into
+// the database. It filters the "all" stats when author is empty, or the "mine"
+// stats when author is non-empty. Only entries with actual changes are persisted.
+func (a *App) refreshStatsForRepo(ctx context.Context, repo db.Repository, startDate, endDate, author string) error {
+	entries, err := a.Git.QueryStatsRange(repo.Path, startDate, endDate, author)
+	if err != nil {
+		return fmt.Errorf("query stats (repo %s, author %q): %w", repo.Path, author, err)
+	}
+	for _, e := range entries {
+		if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
+			label := "all"
+			if author != "" {
+				label = "mine"
+			}
+			if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, author,
+				e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
+				log.Printf("upsert stats error (repo %s, %s, %s): %v", repo.Path, e.Date, label, err)
+			}
+		}
+	}
+	return nil
 }
 
 // refreshAllStatsWithCancel refreshes stats for all repos, respecting cancellation.
 func (a *App) refreshAllStatsWithCancel(ctx context.Context) {
 	repos, err := a.Stores.Repository.GetAll()
 	if err != nil {
+		log.Printf("refresh all stats: failed to list repos: %v", err)
 		return
 	}
 
@@ -136,30 +167,9 @@ func (a *App) refreshAllStatsWithCancel(ctx context.Context) {
 		default:
 		}
 
-		allEntries, err := a.Git.QueryStatsRange(repo.Path, startDate, endDate, "")
-		if err == nil && allEntries != nil {
-			for _, e := range allEntries {
-				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-					if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, "all",
-						e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
-						log.Printf("upsert stats error (repo %s, %s, all): %v", repo.Path, e.Date, err)
-					}
-				}
-			}
-		}
-
+		_ = a.refreshStatsForRepo(ctx, repo, startDate, endDate, "")
 		if a.gitUser != "" {
-			myEntries, err := a.Git.QueryStatsRange(repo.Path, startDate, endDate, a.gitUser)
-			if err == nil && myEntries != nil {
-				for _, e := range myEntries {
-					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, a.gitUser,
-							e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
-							log.Printf("upsert stats error (repo %s, %s, mine): %v", repo.Path, e.Date, err)
-						}
-					}
-				}
-			}
+			_ = a.refreshStatsForRepo(ctx, repo, startDate, endDate, a.gitUser)
 		}
 	}
 }
@@ -187,37 +197,12 @@ func (a *App) refreshProjectHistory(ctx context.Context, projectID int64) error 
 		default:
 		}
 
-		allEntries, err := a.Git.QueryStatsRange(repo.Path, startDate, endDate, "")
-		if err != nil {
-			log.Printf("refresh history query error (repo %s, all): %v", repo.Path, err)
-			continue
+		if err := a.refreshStatsForRepo(ctx, repo, startDate, endDate, ""); err != nil {
+			log.Printf("refresh history: %v", err)
 		}
-		if allEntries != nil {
-			for _, e := range allEntries {
-				if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-					if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, "all",
-						e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
-						log.Printf("refresh history upsert error (repo %s, %s): %v", repo.Path, e.Date, err)
-					}
-				}
-			}
-		}
-
 		if a.gitUser != "" {
-			myEntries, err := a.Git.QueryStatsRange(repo.Path, startDate, endDate, a.gitUser)
-			if err != nil {
-				log.Printf("refresh history query error (repo %s, mine): %v", repo.Path, err)
-				continue
-			}
-			if myEntries != nil {
-				for _, e := range myEntries {
-					if e.FilesChanged > 0 || e.LinesAdded > 0 || e.LinesDeleted > 0 {
-						if err := a.Stores.DailyStat.Upsert(repo.ID, e.Date, a.gitUser,
-							e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil {
-							log.Printf("refresh history upsert error (repo %s, %s, mine): %v", repo.Path, e.Date, err)
-						}
-					}
-				}
+			if err := a.refreshStatsForRepo(ctx, repo, startDate, endDate, a.gitUser); err != nil {
+				log.Printf("refresh history: %v", err)
 			}
 		}
 		if err := a.Stores.Repository.UpdateLastScanned(repo.ID); err != nil {

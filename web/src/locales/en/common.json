@@ -43,7 +43,10 @@
     "notesTodosLabel": "Notes & Todos",
     "note": "Note",
     "todo": "Todo",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "lines": "lines",
+    "starredRepos": "Starred Repos",
+    "otherRepos": "Other Repos"
   },
   "knowledge": {
     "title": "Knowledge Base",

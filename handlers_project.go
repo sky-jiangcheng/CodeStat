@@ -11,6 +11,8 @@ import (
 	"gitboard/internal/stats"
 )
 
+const defaultDailyCodeStandard = 500
+
 // ProjectResponse is the enriched project payload sent to the frontend.
 type ProjectResponse struct {
 	db.Project
@@ -22,6 +24,29 @@ type ProjectResponse struct {
 	MyFiles       int  `json:"my_files"`
 	IsWorkday     bool `json:"is_workday"`
 	BelowStandard bool `json:"below_standard"`
+}
+
+// buildProjectResponse enriches a project with stats, repo count, and workday info.
+func (a *App) buildProjectResponse(p db.Project, date string, codeStd, isWorkday int) ProjectResponse {
+	statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
+	repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
+
+	pr := ProjectResponse{
+		Project:   p,
+		RepoCount: len(repos),
+		IsWorkday: isWorkday == 1,
+	}
+	for _, st := range statsList {
+		pr.TotalAdded += st.LinesAdded
+		pr.TotalDeleted += st.LinesDeleted
+		if st.Author == a.gitUser {
+			pr.MyAdded += st.LinesAdded
+			pr.MyDeleted += st.LinesDeleted
+			pr.MyFiles += st.FilesChanged
+		}
+	}
+	pr.BelowStandard = isWorkday == 1 && pr.MyAdded < codeStd
+	return pr
 }
 
 // GetProjects returns enriched project summaries, optionally filtered by date.
@@ -50,43 +75,29 @@ func (a *App) GetProjects(date string, starredOnly bool) []ProjectResponse {
 	codeStdStr, _ := db.GetConfig(a.db, "daily_code_standard")
 	codeStd, _ := strconv.Atoi(codeStdStr)
 	if codeStd == 0 {
-		codeStd = 500
+		codeStd = defaultDailyCodeStandard
 	}
-	isWorkday := stats.IsWorkday(date)
+	isWorkday := 0
+	if stats.IsWorkday(date) {
+		isWorkday = 1
+	}
 
-	// Only auto-refresh for today or yesterday to avoid triggering git scans on historical dates
 	today := stats.GetTodayDate()
 	yesterday := stats.GetYesterdayDate()
 	shouldRefresh := (date == today || date == yesterday)
 
 	var result []ProjectResponse
 	for _, p := range projects {
-		statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
-		if len(statsList) == 0 && shouldRefresh {
-			repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
-			if len(repos) > 0 {
-				a.refreshProjectStats(p.ID, date)
-				statsList, _ = db.GetStatsByProject(a.db, p.ID, date)
+		if shouldRefresh {
+			statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
+			if len(statsList) == 0 {
+				repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
+				if len(repos) > 0 {
+					a.refreshProjectStats(p.ID, date)
+				}
 			}
 		}
-		repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
-
-		pr := ProjectResponse{
-			Project:   p,
-			RepoCount: len(repos),
-			IsWorkday: isWorkday,
-		}
-		for _, st := range statsList {
-			pr.TotalAdded += st.LinesAdded
-			pr.TotalDeleted += st.LinesDeleted
-			if st.Author == a.gitUser {
-				pr.MyAdded += st.LinesAdded
-				pr.MyDeleted += st.LinesDeleted
-				pr.MyFiles += st.FilesChanged
-			}
-		}
-		pr.BelowStandard = isWorkday && pr.MyAdded < codeStd
-		result = append(result, pr)
+		result = append(result, a.buildProjectResponse(p, date, codeStd, isWorkday))
 	}
 	return result
 }
@@ -287,31 +298,16 @@ func (a *App) SearchProjects(query string) []ProjectResponse {
 	codeStdStr, _ := db.GetConfig(a.db, "daily_code_standard")
 	codeStd, _ := strconv.Atoi(codeStdStr)
 	if codeStd == 0 {
-		codeStd = 500
+		codeStd = defaultDailyCodeStandard
 	}
-	isWorkday := stats.IsWorkday(date)
+	isWorkday := 0
+	if stats.IsWorkday(date) {
+		isWorkday = 1
+	}
 
 	var result []ProjectResponse
 	for _, p := range projects {
-		statsList, _ := db.GetStatsByProject(a.db, p.ID, date)
-		repos, _ := db.GetRepositoriesByProjectID(a.db, p.ID)
-
-		pr := ProjectResponse{
-			Project:   p,
-			RepoCount: len(repos),
-			IsWorkday: isWorkday,
-		}
-		for _, st := range statsList {
-			pr.TotalAdded += st.LinesAdded
-			pr.TotalDeleted += st.LinesDeleted
-			if st.Author == a.gitUser {
-				pr.MyAdded += st.LinesAdded
-				pr.MyDeleted += st.LinesDeleted
-				pr.MyFiles += st.FilesChanged
-			}
-		}
-		pr.BelowStandard = isWorkday && pr.MyAdded < codeStd
-		result = append(result, pr)
+		result = append(result, a.buildProjectResponse(p, date, codeStd, isWorkday))
 	}
 	return result
 }
