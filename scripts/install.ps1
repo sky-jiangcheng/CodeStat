@@ -5,7 +5,7 @@ $ErrorActionPreference = "Stop"
 
 $InstallDir = "$env:LOCALAPPDATA\GitBuddy"
 $BinaryName = "gitboard.exe"
-$Repo = "sky-jiangcheng/gitboard"
+$Repo = "sky-jiangcheng/gitbuddy"
 $Target = "windows-amd64"
 
 Write-Host "Downloading GitBuddy for Windows..."

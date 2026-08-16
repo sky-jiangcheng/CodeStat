@@ -11,7 +11,7 @@ order: 10
 
 **原因**：扫描根目录未配置或指定目录内无 Git 仓库。
 
-**解决**：进入 **设置** 页面，添加包含 Git 仓库的目录，点击 **重新扫描**。
+**解决**：进入 **设置 → 扫描目录**，添加包含 Git 仓库的目录，点击 **重新扫描**。
 
 > 首次扫描仅登记仓库名称，不扫描历史提交数据。
 
@@ -23,63 +23,65 @@ order: 10
 
 **解决**：
 1. 点击卡片上的星标收藏仓库
-2. 点击 **刷新历史记录** 按钮，等待 git log 回填完成
+2. 点击 **刷新历史** 按钮，等待 git log 回填完成
 
 ---
 
 ### 统计数据显示为零
 
-**原因**：历史记录尚未回填。
+**原因**：历史记录尚未回填，或所选日期无提交。
 
-**解决**：在仓库卡片上点击 **刷新历史记录**，系统会扫描该仓库近 365 天的 git log。
+**解决**：在仓库卡片上点击 **刷新历史**，系统会扫描该仓库近 365 天的 git log。确认 git 已安装且在 PATH 中（从 Finder/Dock 启动时应用会自动补全常见 PATH）。
 
 ---
 
 ### 如何快速找到某个仓库？
 
-使用顶部搜索框，支持按仓库名称或路径模糊搜索。搜索结果中可直接点击星标切换收藏状态。
+仪表盘搜索框联合搜索仓库 / 笔记 / 待办；或使用 `⌘/Ctrl+K` 命令面板（见[命令面板](features/command-palette.md)）。搜索结果中可直接点击星标切换收藏状态。
 
 ---
 
 ### 如何调整项目分组？
 
-多个仓库被错误归为一组时（如 Monorepo 识别不准），进入项目详情页，点击 **级别调整** 按钮：
+多个仓库被错误归为一组（或相反）时，进入项目详情页，点击头部操作按钮：
 
-- **提升级别**：将项目拆分为更细粒度（按目录名）
-- **降低级别**：将多个项目合并为粗粒度
+- **向下拆分**：多仓库项目拆分为每仓库一个项目（原项目保留首个仓库的笔记与待办）
+- **向上合并**：合并同父目录的兄弟项目（仓库、笔记、待办随迁）
 
----
-
-### 端口被占用怎么办？
-
-设置环境变量后启动：
-
-```bash
-PORT=8080 ./gitboard
-```
-
-或在源码中修改 `internal/platform/platform.go` 的默认端口。
+两个操作均为单事务，失败时不会留下半完成状态。
 
 ---
 
-### 日志文件位置
+### 知识库搜索搜不到两字中文词？
 
-应用日志写入系统日志目录：
+FTS5 trigram 索引最短匹配 3 字符；更短的查询自动降级为 LIKE 全表扫描（仍可命中，只是无相关性排序）。无需处理。
+
+---
+
+### 插件没有加载？
+
+1. 确认插件目录结构：`<配置目录>/plugins/<插件名>/plugin.go`，导出 `Name` 与 `Init`
+2. **设置 → 插件 → 重新加载**，查看加载状态与错误信息
+3. 详见[插件手册](plugins/overview.md)
+
+---
+
+## 日志文件位置
 
 | 平台 | 日志路径 |
 |------|---------|
 | macOS | `~/Library/Logs/gitboard.log` |
-| Linux | `~/.local/share/logs/gitboard.log` |
-| Windows | `%APPDATA%/gitboard/logs/gitboard.log` |
+| Linux | `$XDG_STATE_HOME/gitboard/gitboard.log`（默认 `~/.local/state/gitboard/gitboard.log`） |
+| Windows | `%APPDATA%\gitboard\logs\gitboard.log` |
 
----
+日志同时记录 PATH 环境与插件运行时状态，报告问题时请附带。
 
-## 安全须知
+## 数据安全须知
 
-- GitBuddy 默认仅监听 `localhost`，局域网不可访问
-- 如需远程访问，建议使用 SSH 隧道：`ssh -L 18731:localhost:18731 user@host`
-- 配置文件和数据库存储在用户配置目录下，不上传任何数据到远程服务器
+- GitBuddy 是**本地优先**桌面应用：不监听网络端口、不上传任何数据；统计通过本机 `git` CLI 读取
+- 数据库与配置存储在用户应用数据目录（位置见[快速开始](getting-started.md)），卸载不会自动删除
+- 桌面 WebView 响应带 CSP 等安全头（`default-src 'self'` 等）
 
 ## 报告问题
 
-如发现 Bug 或有功能建议，请在 [GitHub Issues](https://github.com/sky-jiangcheng/gitboard/issues) 提交。
+如发现 Bug 或有功能建议，请在 [GitHub Issues](https://github.com/sky-jiangcheng/gitbuddy/issues) 提交（含版本号、平台、日志片段）。安全漏洞请走[私密报告渠道](https://github.com/sky-jiangcheng/gitbuddy/security/advisories/new)。

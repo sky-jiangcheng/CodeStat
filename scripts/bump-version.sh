@@ -4,7 +4,7 @@
 # SSOT (single source of truth): wails.json -> info.productVersion
 # This script writes the new version into wails.json, then propagates it to:
 #   - web/package.json           (version field)
-#   - app.go                     (var version = "..." for ldflags injection)
+#   - internal/version/version.go                     (var version = "..." for ldflags injection)
 #   - docs/index.html            (badge text)
 #
 # Usage:
@@ -64,24 +64,17 @@ update_file "web/package.json" \
   '("version"[[:space:]]*:[[:space:]]*")[^"]+' \
   "\1$VERSION"
 
-# 3. app.go  ->  var version = "..."  (overridable by -ldflags -X main.version)
-if grep -q 'var version' app.go; then
-  update_file "app.go" \
-    '(var version[[:space:]]*=[[:space:]]*")[^"]+' \
-    "\1$VERSION"
-else
-  echo "  NOTE: 'var version' not found in app.go; the Health() endpoint still returns a literal."
-  echo "        Consider refactoring Health() to use a package var so -ldflags can inject it."
-fi
-
-# 4. docs/index.html  ->  version badge (landing page shows "用户文档 · vX.Y.Z")
-update_file "docs/index.html" \
-  '(用户文档[^<]*·[[:space:]]*v)[0-9][^<]*' \
+# 3. internal/version/version.go  ->  const Version = "..."  (SSOT for app/CLI/MCP)
+update_file "internal/version/version.go" \
+  '(const Version[[:space:]]*=[[:space:]]*")[^"]+' \
   "\1$VERSION"
+
+# 4. docs 站版本徽章随生成脚本读取 web/package.json，无需手工更新：
+#    node scripts/build-docs.mjs
 
 echo
 echo "Done. Verify with:"
-echo "  grep -rn '$VERSION' wails.json web/package.json app.go docs/index.html"
+echo "  grep -rn '$VERSION' wails.json web/package.json internal/version/version.go docs/index.html"
 echo "  go build ./... && (cd web && npm run build)"
 echo
 echo "Then commit & tag:"

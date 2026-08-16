@@ -1,3 +1,8 @@
+---
+status: Superseded（已被 ADR-0002 取代）
+date: 2026-08（原 RFC 0001）
+---
+
 # RFC 0001: GitBuddy 架构演进 & 插件平台化
 
 > **⚠️ Superseded by [ADR 0002](../adr/0002-c-end-repositioning.md)**

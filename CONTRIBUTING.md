@@ -4,28 +4,28 @@
 
 ## 开发环境
 
-- **Go** 1.23+
-- **Node.js** 18+（前端构建）
+- **Go** 1.25+
+- **Node.js** 20+（前端构建）
 - **Git** 必须可用且在 PATH 中（应用依赖 git 命令解析统计）
+- 可选：[Wails CLI](https://wails.io) v2.13+（开发调试）
 
 ## 本地开发
 
 ```bash
-# 1. 安装前端依赖
-cd web && npm install && cd ..
+# 1. 安装前端依赖并构建（产物由 go:embed 打进二进制）
+cd web && npm install && npm run build && cd ..
 
-# 2. 构建前端（编译为静态资源）
-cd web && npm run build && cd ..
+# 2. 开发模式（Wails：前端热更新 + 绑定注入）
+wails dev
 
-# 3. 开发模式（两个终端）
-# 终端1：启动后端开发服务器
-go run . -dev
-
-# 终端2：启动前端热更新开发服务器
-cd web && npm run dev
+# 3. 测试
+go test ./...           # Go 全量
+cd web && npm test      # vitest
 ```
 
-前端开发服务器 `http://localhost:5173` 会将 `/api` 请求代理到后端 `http://localhost:18731`。
+架构约定（1.7.0 起）：业务逻辑写在 `internal/service`（Wails 桌面、CLI、MCP 三端共享）；`internal/app` 只做 1-3 行委托；数据访问仅 service 层触达 `internal/db`。详见 `docs/architecture.md` 与 `docs/adr/`。
+
+文档：`docs/**/*.md` 为唯一内容源，`node scripts/build-docs.mjs` 生成 HTML 站点（勿手写 .html）；新页面需登记 `docs/sidebar.json`。
 
 ## 代码规范
 

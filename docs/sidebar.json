@@ -1,0 +1,36 @@
+{
+  "sections": [
+    {
+      "title": "入门",
+      "items": [
+        { "file": "getting-started", "label": "快速开始" }
+      ]
+    },
+    {
+      "title": "功能手册",
+      "items": [
+        { "file": "features/dashboard", "label": "仪表盘" },
+        { "file": "features/knowledge", "label": "知识库与笔记" },
+        { "file": "features/project-detail", "label": "项目详情" },
+        { "file": "features/settings", "label": "设置" },
+        { "file": "features/command-palette", "label": "命令面板与快捷键" }
+      ]
+    },
+    {
+      "title": "进阶",
+      "items": [
+        { "file": "features/ai-integration", "label": "AI 集成（CLI/MCP/llms.txt）" },
+        { "file": "plugins/overview", "label": "插件手册" }
+      ]
+    },
+    {
+      "title": "参考",
+      "items": [
+        { "file": "architecture", "label": "架构说明" },
+        { "file": "api/reference", "label": "API 参考" },
+        { "file": "troubleshooting", "label": "故障排查" },
+        { "file": "adr/index", "label": "架构决策（ADR）" }
+      ]
+    }
+  ]
+}

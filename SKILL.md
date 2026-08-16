@@ -1,18 +1,20 @@
 # GitBuddy Skill
 
-GitBuddy is a local Git dashboard that tracks commit activity across all your repositories. It also maintains a cross-project knowledge base with Markdown notes, full-text search (FTS5), and AI-ready content distribution.
+GitBuddy is a local-first desktop "second brain" for code projects. It tracks commit activity across all local repositories, maintains a cross-project knowledge base (Markdown notes, block editor, FTS5 search, version history), mines repository knowledge, and exposes it all to AI agents via CLI, MCP and llms.txt.
 
 ## What GitBuddy Does
 
 - **Repository discovery**: Automatically finds Git repos under configurable scan roots
-- **Daily activity tracking**: Lines added/deleted, files changed, commit counts per repo
-- **Knowledge base**: Cross-project Markdown notes with tags, pins, and search
-- **Claude memory import**: One-click import of `~/.claude/projects/*/memory/*.md`
-- **AI-ready exports**: `llms.txt` and per-note `.md` export for LLM consumption
+- **Daily activity tracking**: Lines added/deleted, files changed, commit counts per repo (365-day backfill on demand)
+- **Knowledge base**: Cross-project Markdown notes with block editor, tags, pins, version history + LCS diff
+- **Full-text search**: SQLite FTS5 trigram + bm25 ranking across notes and todos
+- **Claude memory import**: Idempotent import of `~/.claude/projects/*/memory/*.md`
+- **Repo knowledge mining**: README excerpt, tech stack, languages, dependencies, contributors, activity
+- **AI-ready exports**: `llms.txt` and per-note `.md` export
 
 ## CLI (`gitboard`)
 
-A standalone CLI built from the same binary. Outputs JSON for agent consumption.
+Standalone binary sharing the same service layer as the desktop app. JSON output for agent consumption.
 
 ```bash
 # Install
@@ -28,16 +30,12 @@ gitboard ask "what is this project about?"  # top-5 search hits as text
 gitboard config                          # config + scan roots (JSON)
 ```
 
-## MCP Server
+## MCP Server (`gitboard-mcp`)
 
-Exposes GitBuddy as MCP tools for Claude Code, Cursor, etc.
+stdio MCP server, opens the database once per process. Build and register:
 
 ```bash
-# Run as stdio MCP server
-go run ./cmd/mcp/
-
-# Or built binary
-/tmp/gitboard-mcp
+go build -o /usr/local/bin/gitboard-mcp ./cmd/mcp/
 ```
 
 ### MCP Tools
@@ -51,42 +49,54 @@ go run ./cmd/mcp/
 | `gitboard_projects_stats` | Project stats by ID |
 | `gitboard_ask` | Ask a question, get top-5 results |
 
-### Claude Code Configuration
+### Registering with clients
 
-Add to `.cursor/rules/gitbuddy.mdc` or equivalent:
+**Claude Code** (recommended):
+
+```bash
+claude mcp add gitboard -- /usr/local/bin/gitboard-mcp
+```
+
+Or in a project-level `.mcp.json` / user-level MCP config (Cursor: Settings → MCP → Add Server):
 
 ```json
 {
   "mcpServers": {
-    "gitboard": {
-      "command": "/tmp/gitboard-mcp",
-      "args": []
-    }
+    "gitboard": { "command": "/usr/local/bin/gitboard-mcp", "args": [] }
   }
 }
 ```
 
+> Windows path example: `"command": "C:\\Tools\\gitboard-mcp.exe"`.
+
 ## Agent Score
 
-Check AI-readiness of your GitBuddy install:
+Check AI-readiness of the local install:
 
 ```bash
-go build -o /tmp/gitboard-agent-score ./tools/agent-score/
-/tmp/gitboard-agent-score
+go build -o gitboard-agent-score ./tools/agent-score/
+./gitboard-agent-score
 ```
 
-Outputs a scored report: database health, notes count, search coverage, llms.txt status, and export readiness.
+Scores 8 checks: database health, notes count, FTS5 search, Claude memory sources, CLI binary, MCP binary, SKILL.md, i18n locales.
 
 ## Key File Paths
 
-- Database: `~/Library/Application Support/gitboard/dashboard.db` (macOS)
-- Plugins: `~/Library/Application Support/gitboard/plugins/`
-- Claude memory sources: `~/.claude/projects/*/memory/*.md`
+| Content | macOS | Linux | Windows |
+|---------|-------|-------|---------|
+| Database | `~/Library/Application Support/gitboard/dashboard.db` | `~/.config/gitboard/dashboard.db` | `%APPDATA%\gitboard\dashboard.db` |
+| Plugins | `…/gitboard/plugins/` | `…/gitboard/plugins/` | `…\gitboard\plugins\` |
+| Log | `~/Library/Logs/gitboard.log` | `$XDG_STATE_HOME/gitboard/gitboard.log` (default `~/.local/state/gitboard/`) | `%APPDATA%\gitboard\logs\gitboard.log` |
+| Claude memory | `~/.claude/projects/*/memory/*.md` | same | same |
 
-## Architecture
+## Architecture (v1.7.0)
 
-- **Backend**: Go + SQLite (modernc), Wails v2 desktop app
-- **Frontend**: React 19 + Vite 8 + PWA
-- **Search**: FTS5 with trigram tokenizer + bm25 ranking
-- **i18n**: react-i18next, zh-CN + en locales
-- **Markdown**: Mermaid, KaTeX, callout blocks supported
+- **Backend**: Go + SQLite (modernc, zero CGO), Wails v2 desktop app
+- **Layering**: `internal/app` (thin Wails bindings) → `internal/service` (business core, shared by desktop/CLI/MCP) → `internal/db` + `internal/core/git`
+- **Frontend**: React 19 + Vite 8 + TypeScript 7, PWA, hand-rolled CSS design system
+- **Search**: FTS5 trigram + bm25, LIKE fallback for short CJK queries
+- **i18n**: react-i18next, zh-CN + en
+- **Markdown**: Mermaid, KaTeX, callouts, highlight.js
+- **Plugins**: yaegi in-process Go scripts (see docs/plugins/overview.md)
+
+Docs: <https://sky-jiangcheng.github.io/gitbuddy/> · Repo: <https://github.com/sky-jiangcheng/gitbuddy>
