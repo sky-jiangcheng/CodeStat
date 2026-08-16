@@ -140,3 +140,10 @@ func (s *Service) ExportNoteAsMarkdown(noteID int64) string {
 	b.WriteString("\n")
 	return b.String()
 }
+
+func firstNonEmpty(a, b string) string {
+	if strings.TrimSpace(a) != "" {
+		return a
+	}
+	return b
+}

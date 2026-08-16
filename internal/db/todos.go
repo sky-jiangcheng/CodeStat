@@ -66,13 +66,20 @@ func DeleteTodo(db *sql.DB, todoID int64) error {
 }
 
 // ReorderTodos assigns sort_order by the position of each id in the slice.
+// All updates run in a single transaction to prevent partial writes on failure.
 func ReorderTodos(db *sql.DB, todoIDs []int64) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback() //nolint:errcheck
+
 	for i, id := range todoIDs {
-		if _, err := db.Exec("UPDATE project_todos SET sort_order = ? WHERE id = ?", i, id); err != nil {
+		if _, err := tx.Exec("UPDATE project_todos SET sort_order = ? WHERE id = ?", i, id); err != nil {
 			return err
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 // GetTodoCounts returns per-project incomplete (Count) and total (Total) todos.

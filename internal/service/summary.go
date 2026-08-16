@@ -29,7 +29,7 @@ func (s *Service) GetSummary(date string) (*SummaryData, error) {
 		date = s.git.GetYesterdayDate()
 	}
 	if err := s.git.ValidateDate(date); err != nil {
-		return nil, fmt.Errorf("invalid date format")
+		return nil, fmt.Errorf("invalid date format: %w", err)
 	}
 
 	allStats, err := db.GetStatsByDate(s.db, date)
@@ -90,15 +90,16 @@ type StatusBarData struct {
 const statusCacheTTL = 30 * time.Second
 
 // GetStatusBar returns current status bar information with 30-second caching
-// to avoid running git log on every UI render.
+// to avoid running git log on every UI render. Uses double-check locking to
+// avoid holding the mutex during the (potentially slow) git command.
 func (s *Service) GetStatusBar() *StatusBarData {
 	s.statusCacheMu.Lock()
-	defer s.statusCacheMu.Unlock()
-
-	now := time.Now()
-	if s.statusCache != nil && now.Sub(s.statusCacheTime) < statusCacheTTL {
-		return s.statusCache
+	if s.statusCache != nil && time.Now().Sub(s.statusCacheTime) < statusCacheTTL {
+		cached := s.statusCache
+		s.statusCacheMu.Unlock()
+		return cached
 	}
+	s.statusCacheMu.Unlock()
 
 	repos, _ := db.GetAllRepositories(s.db)
 	repoPaths := make([]string, 0, len(repos))
@@ -106,6 +107,7 @@ func (s *Service) GetStatusBar() *StatusBarData {
 		repoPaths = append(repoPaths, r.Path)
 	}
 
+	now := time.Now()
 	data := &StatusBarData{
 		CurrentTime: now.Format("2006-01-02 15:04:05"),
 	}
@@ -118,8 +120,10 @@ func (s *Service) GetStatusBar() *StatusBarData {
 		data.LastCommitMsg = recent.Message
 	}
 
+	s.statusCacheMu.Lock()
 	s.statusCache = data
 	s.statusCacheTime = now
+	s.statusCacheMu.Unlock()
 	return data
 }
 

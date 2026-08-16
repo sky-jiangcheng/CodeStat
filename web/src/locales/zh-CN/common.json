@@ -18,7 +18,7 @@
     "files": "文件",
     "repos": "个仓库",
     "searchPlaceholder": "搜索仓库、笔记与待办…",
-    "searchAria": "仪表盘搜索",
+    "searchAria": "搜索仓库、笔记与待办",
     "all": "全部",
     "starred": "关注",
     "sort": "排序：",
@@ -37,16 +37,27 @@
     "viewAll": "查看全部项目",
     "startScan": "开始扫描",
     "configDir": "配置目录",
-    "searching": "搜索中...",
+    "searching": "搜索中…",
     "noResults": "未找到匹配内容",
     "projectsLabel": "仓库",
     "notesTodosLabel": "笔记与待办",
     "note": "笔记",
     "todo": "待办",
     "loading": "加载中...",
-    "lines": "行",
-    "starredRepos": "已收藏仓库",
-    "otherRepos": "其他仓库"
+    "noMatches": "未找到匹配内容",
+    "groupRepos": "仓库",
+    "groupNotesTodos": "笔记与待办",
+    "noteType": "笔记",
+    "sortBy": "排序：",
+    "viewAllProjects": "查看全部项目",
+    "configureDirs": "配置目录",
+    "starredSection": "已收藏仓库",
+    "otherSection": "其他仓库",
+    "linesUnit": "行",
+    "goalRemaining": "还差 {{count}} 行达标",
+    "filesShort": "文件",
+    "reposInvolved": "涉及 {{count}} 个仓库",
+    "weekendShort": "周末"
   },
   "knowledge": {
     "title": "知识库",
@@ -81,7 +92,8 @@
     "copiedMd": "笔记 Markdown 已复制",
     "exportFailed": "导出失败：",
     "importFailed": "导入失败：",
-    "importDone": "导入完成：新增 {{created}}，更新 {{updated}}，跳过 {{skipped}}"
+    "importDone": "导入完成：新增 {{created}}，更新 {{updated}}，跳过 {{skipped}}",
+    "notesTitle": "知识笔记"
   },
   "settings": {
     "title": "设置",
@@ -152,7 +164,21 @@
     "installed": "当前已处于安装模式。",
     "supportsInstall": "您的浏览器支持安装。",
     "browserSupport": "请使用支持 PWA 安装的浏览器（Chrome / Edge）。",
-    "installApp": "安装 GitBuddy"
+    "installApp": "安装 GitBuddy",
+    "importDone": "导入完成：新增 {{created}}，更新 {{updated}}，跳过 {{skipped}}",
+    "importing": "导入中…",
+    "importFailed": "导入失败: {{msg}}",
+    "saveFailedMsg": "保存失败: {{msg}}",
+    "addFailedMsg": "添加失败: {{msg}}",
+    "removeFailedMsg": "移除失败: {{msg}}",
+    "rescanFailedMsg": "扫描失败: {{msg}}",
+    "reloadFailedMsg": "插件重载失败: {{msg}}",
+    "unnnamed": "(未命名)",
+    "fromPlugin": "来自 {{name}}",
+    "gotoKnowledge": "前往知识库查看",
+    "installedMode": "当前已处于安装模式。",
+    "autoImportOnHint": "应用启动时自动导入所有知识源",
+    "autoImportOffHint": "仅在手动点击时导入"
   },
   "project": {
     "title": "项目详情",
@@ -217,7 +243,42 @@
     "realtimeMining": "实时挖掘",
     "fromCache": "来自缓存",
     "noRepos": "项目未找到",
-    "overview": "概览"
+    "overview": "概览",
+    "subRepos": "子仓库",
+    "activeDays": "活跃天数",
+    "fileChanges": "文件变更",
+    "datePill": "日期",
+    "dependencies": "依赖",
+    "topContributors": "Top 贡献者",
+    "activity": "活跃度",
+    "totalCommits": "总提交",
+    "last30d": "近30天",
+    "activeDays90": "活跃天数(90d)",
+    "activeMonths": "活跃月",
+    "lastCommit": "最近提交",
+    "recentCommits": "最近提交",
+    "commitsUnit": "commits",
+    "trendTitle": "趋势图",
+    "rangeWeek": "近7天",
+    "rangeMonth": "近30天",
+    "rangeAll": "全部",
+    "noDataInRange": "该时间范围内暂无数据",
+    "deletedLines": "删除行数",
+    "moreCount": "+{{count}} 更多",
+    "backToDashboard": "返回仪表盘",
+    "noNotesHint": "暂无笔记，点击上方按钮新建",
+    "updatedAtPrefix": "更新于",
+    "createdAtPrefix": "创建于",
+    "noteWord": "笔记",
+    "linkedProject": "关联项目",
+    "versionHistory": "版本历史",
+    "filterAll": "全部",
+    "todayAdded": "今日新增",
+    "goalPct": "{{pct}}% 目标",
+    "goalBadge": "达标",
+    "belowBadge": "未达标",
+    "nonWorkdayBadge": "非工作日",
+    "noteBadgeTitle": "知识笔记"
   },
   "common": {
     "unknownError": "未知错误",
@@ -282,7 +343,8 @@
     "today": "今日",
     "yesterday": "昨日",
     "week": "本周",
-    "month": "本月"
+    "month": "本月",
+    "pageError": "页面加载出错"
   },
   "status": {
     "time": "当前时间：",
@@ -339,7 +401,32 @@
     "moveUp": "上移",
     "moveDown": "下移",
     "insertAfter": "下方插入块",
-    "deleteBlock": "删除块"
+    "deleteBlock": "删除块",
+    "desc": {
+      "plainText": "普通文本",
+      "heading": "# 一级标题",
+      "code": "```js 代码",
+      "mermaidFlow": "```mermaid 流程图",
+      "todoItem": "- [ ] 待办事项",
+      "tableCols": "| 列 1 | 列 2 |",
+      "detailsFold": "<details> 可折叠",
+      "tabsMulti": "{% tabs %} 多标签",
+      "hrSplit": "--- 水平分割"
+    },
+    "samples": {
+      "paragraph": "新段落",
+      "heading": "## 标题",
+      "tipBody": "提示内容",
+      "warnBody": "警告内容",
+      "noteBody": "说明内容",
+      "codeComment": "// 代码",
+      "todoItem": "待办事项",
+      "tableCell": "内容",
+      "detailsSummary": "点击展开",
+      "detailsBody": "折叠内容",
+      "tabTitle": "标签",
+      "tabBody": "内容"
+    }
   },
   "commandPalette": {
     "title": "全局搜索",
@@ -351,7 +438,19 @@
     "repoCount": "个仓库",
     "noResults": "未找到结果",
     "startSearch": "输入关键词开始搜索",
-    "results": "{{count}} 个结果"
+    "results": "{{count}} 个结果",
+    "searchLabel": "搜索",
+    "placeholder": "搜索笔记 / 待办 / 跳转项目…",
+    "groupNotes": "笔记与待办",
+    "groupProjects": "项目",
+    "noteMark": "笔",
+    "todoMark": "办",
+    "projectMark": "项",
+    "reposCount": "{{count}} 个仓库",
+    "footSelect": "↑↓ 选择",
+    "footOpen": "↵ 打开",
+    "footClose": "esc 关闭",
+    "resultsCount": "{{count}} 个结果"
   },
   "summaryBar": {
     "repos": "仓库",
@@ -366,5 +465,13 @@
   },
   "goalRing": {
     "pct": "{{pct}}%"
+  },
+  "todo": {
+    "title": "待办事项",
+    "addPlaceholder": "添加待办…",
+    "add": "添加",
+    "empty": "暂无待办，输入内容按回车添加",
+    "moveUp": "上移",
+    "moveDown": "下移"
   }
 }

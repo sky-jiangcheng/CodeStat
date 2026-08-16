@@ -85,18 +85,33 @@ func SearchProjects(db *sql.DB, query string) ([]Project, error) {
 	return projects, rows.Err()
 }
 
-// ToggleProjectStar flips the starred flag of a project and returns the new value.
+// ToggleProjectStar flips the starred flag of a project atomically and returns
+// the new value. Uses a single UPDATE with NOT to avoid TOCTOU race conditions
+// between the read and write.
 func ToggleProjectStar(db *sql.DB, projectID int64) (bool, error) {
+	var newStarred bool
+	err := db.QueryRow(
+		"UPDATE projects SET is_starred = NOT is_starred WHERE id = ? RETURNING is_starred",
+		projectID).Scan(&newStarred)
+	if err == nil {
+		return newStarred, nil
+	}
+	// Fallback for SQLite < 3.35 which lacks RETURNING: use a transaction.
+	tx, txErr := db.Begin()
+	if txErr != nil {
+		return false, txErr
+	}
+	defer tx.Rollback() //nolint:errcheck
+
 	var starred bool
-	err := db.QueryRow("SELECT is_starred FROM projects WHERE id = ?", projectID).Scan(&starred)
-	if err != nil {
+	if err := tx.QueryRow("SELECT is_starred FROM projects WHERE id = ?", projectID).Scan(&starred); err != nil {
 		return false, err
 	}
-	newStarred := !starred
-	if _, err := db.Exec("UPDATE projects SET is_starred = ? WHERE id = ?", newStarred, projectID); err != nil {
+	newStarred = !starred
+	if _, err := tx.Exec("UPDATE projects SET is_starred = ? WHERE id = ?", newStarred, projectID); err != nil {
 		return false, err
 	}
-	return newStarred, nil
+	return newStarred, tx.Commit()
 }
 
 // SyncProjectTx inserts a project for rootPath if absent, or updates an existing

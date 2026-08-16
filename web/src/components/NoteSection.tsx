@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
   listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote,
-  listNoteVersions, restoreNoteVersion, diffNoteVersions,
-  getProjects, Note, NoteVersion, Project,
+  listNoteVersions, restoreNoteVersion, diffNoteVersions, getProjects,
+  type Note, type NoteVersion, type Project,
 } from '../api/client'
-import { renderMarkdown, renderMarkdownAsync } from '../utils/markdown'
-import BlockEditor from './BlockEditor'
-import { useTranslation } from 'react-i18next'
+import { renderMarkdown } from '../utils/markdown'
+import NoteEditor, { type NoteDraft } from './notes/NoteEditor'
+import VersionHistoryPanel from './notes/VersionHistoryPanel'
+import { useConfirmClick } from '../hooks/useConfirmClick'
 
 interface Props {
   projectId: number
@@ -14,13 +16,6 @@ interface Props {
 }
 
 type KindFilter = 'all' | 'knowledge' | 'other'
-
-const KINDS = [
-  { value: 'knowledge', label: '知识' },
-  { value: 'log', label: '日志' },
-  { value: 'idea', label: '想法' },
-  { value: 'other', label: '其他' },
-]
 
 function draftKey(projectId: number) {
   return `gitbuddy-note-draft-${projectId}`
@@ -30,7 +25,9 @@ function legacyDraftKey(projectId: number) {
   return `gitboard-note-draft-${projectId}`
 }
 
-function loadDraft(projectId: number): { content: string; title: string; tags: string; kind: string } {
+const emptyDraft: NoteDraft = { content: '', title: '', tags: '', kind: 'knowledge' }
+
+function loadDraft(projectId: number): NoteDraft {
   try {
     let raw = localStorage.getItem(draftKey(projectId))
     if (!raw) {
@@ -41,8 +38,8 @@ function loadDraft(projectId: number): { content: string; title: string; tags: s
       }
     }
     if (raw) return JSON.parse(raw)
-  } catch (e) { console.error('Failed to load draft:', e) }
-  return { content: '', title: '', tags: '', kind: 'knowledge' }
+  } catch { /* ignore */ }
+  return { ...emptyDraft }
 }
 
 function NoteSection({ projectId, autoNew = false }: Props) {
@@ -50,27 +47,16 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editContent, setEditContent] = useState('')
-  const [editTitle, setEditTitle] = useState('')
-  const [editTags, setEditTags] = useState('')
-  const [editKind, setEditKind] = useState('knowledge')
-  const [editPinned, setEditPinned] = useState(false)
-  const [showPreview, setShowPreview] = useState(true)
+  const [editDraft, setEditDraft] = useState<NoteDraft>({ ...emptyDraft })
   const [isNew, setIsNew] = useState(false)
   const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState<KindFilter>('all')
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null)
-  const [draftPreviewHtml, setDraftPreviewHtml] = useState('')
-  const [editPreviewHtml, setEditPreviewHtml] = useState('')
-  const [draftMode, setDraftMode] = useState<'markdown' | 'block'>('markdown')
-  const [editMode, setEditMode] = useState<'markdown' | 'block'>('markdown')
 
-  const [draft, setDraft] = useState(() => loadDraft(projectId))
+  const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))
   const [projects, setProjects] = useState<Project[]>([])
   const [versionHistory, setVersionHistory] = useState<NoteVersion[] | null>(null)
-  const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
-  const [verifyingId, setVerifyingId] = useState<number | null>(null)
+  const [restoringId, setRestoringId] = useState<number | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
 
   const fetchNotes = useCallback(() => {
@@ -91,20 +77,8 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   }, [autoNew])
 
   useEffect(() => {
-    try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch (e) { console.error('Failed to save draft:', e) }
+    try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
   }, [draft, projectId])
-
-  // Async preview for draft: renderMarkdownAsync supports mermaid diagrams.
-  useEffect(() => {
-    if (!showPreview || !draft.content) { setDraftPreviewHtml(''); return }
-      renderMarkdownAsync(draft.content).then(setDraftPreviewHtml).catch((e) => { console.error('Draft preview error:', e); setDraftPreviewHtml('') })
-  }, [draft.content, showPreview])
-
-  // Async preview for edit: renderMarkdownAsync supports mermaid diagrams.
-  useEffect(() => {
-    if (!showPreview || !editContent) { setEditPreviewHtml(''); return }
-      renderMarkdownAsync(editContent).then(setEditPreviewHtml).catch((e) => { console.error('Edit preview error:', e); setEditPreviewHtml('') })
-  }, [editContent, showPreview])
 
   const startNew = () => {
     setIsNew(true)
@@ -120,33 +94,35 @@ function NoteSection({ projectId, autoNew = false }: Props) {
         tags: draft.tags.trim(),
         kind: draft.kind,
       })
-      setDraft({ content: '', title: '', tags: '', kind: 'knowledge' })
-      try { localStorage.removeItem(draftKey(projectId)) } catch (e) { console.error('Failed to clear draft:', e) }
+      setDraft({ ...emptyDraft })
+      try { localStorage.removeItem(draftKey(projectId)) } catch { /* ignore */ }
       setIsNew(false)
       fetchNotes()
-    } catch (e) { console.error('Failed to create note:', e) }
+    } catch { /* ignore */ }
     finally { setSaving(false) }
   }
 
   const startEdit = (note: Note) => {
     setEditingId(note.id)
-    setEditContent(note.content)
-    setEditTitle(note.title)
-    setEditTags(note.tags)
-    setEditKind(note.kind || 'other')
-    setEditPinned(note.pinned)
+    setEditDraft({
+      content: note.content,
+      title: note.title,
+      tags: note.tags,
+      kind: note.kind || 'other',
+      pinned: note.pinned,
+    })
     setIsNew(false)
   }
 
   const handleSaveEdit = async () => {
-    if (editingId === null || !editContent.trim()) return
+    if (editingId === null || !editDraft.content.trim()) return
     setSaving(true)
     try {
-      await updateNote(editingId, editContent.trim())
-      await updateNoteMeta(editingId, editTitle.trim(), editTags.trim(), editKind, editPinned)
+      await updateNote(editingId, editDraft.content.trim())
+      await updateNoteMeta(editingId, editDraft.title.trim(), editDraft.tags.trim(), editDraft.kind, !!editDraft.pinned)
       setEditingId(null)
       fetchNotes()
-    } catch (e) { console.error('Failed to update note:', e) }
+    } catch { /* ignore */ }
     finally { setSaving(false) }
   }
 
@@ -156,61 +132,54 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       await moveNote(noteId, targetProjectId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
       if (editingId === noteId) setEditingId(null)
-    } catch (e) { console.error('Failed to move note:', e) }
+    } catch { /* ignore */ }
   }
 
-  const handleDelete = async (id: number) => {
-    if (confirmDeleteId !== id) {
-      setConfirmDeleteId(id)
-      return
-    }
+  const handleDelete = async (noteId: number) => {
     try {
-      await deleteNote(id)
-      setNotes(prev => prev.filter(n => n.id !== id))
-      setConfirmDeleteId(null)
-    } catch (e) { console.error('Failed to delete note:', e) }
+      await deleteNote(noteId)
+      setNotes(prev => prev.filter(n => n.id !== noteId))
+    } catch { /* ignore */ }
   }
 
   const handlePin = async (note: Note) => {
     setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !note.pinned } : n))
-    try { await pinNote(note.id, !note.pinned) } catch (e) { console.error('Failed to toggle pin:', e); setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
+    try { await pinNote(note.id, !note.pinned) } catch { setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
   }
 
   const openVersionHistory = async (noteId: number) => {
-    if (showVersionHistory && currentNoteId === noteId && versionHistory !== null) {
-      setShowVersionHistory(false)
+    if (currentNoteId === noteId && versionHistory !== null) {
       setVersionHistory(null)
       setCurrentNoteId(null)
       setDiffText(null)
       return
     }
     setCurrentNoteId(noteId)
-    setShowVersionHistory(true)
     setVersionHistory(null)
     setDiffText(null)
-    const versions = await listNoteVersions(noteId)
-    setVersionHistory(versions)
+    setVersionHistory(await listNoteVersions(noteId))
   }
 
-  const handleRestoreVersion = async (noteId: number, versionId: number) => {
-    setVerifyingId(versionId)
+  const handleRestoreVersion = async (versionId: number) => {
+    if (currentNoteId === null) return
+    setRestoringId(versionId)
     try {
-      await restoreNoteVersion(noteId, versionId)
+      await restoreNoteVersion(currentNoteId, versionId)
       setVersionHistory(null)
-      setShowVersionHistory(false)
       setCurrentNoteId(null)
       fetchNotes()
-    } catch (e) { console.error('Failed to restore version:', e) }
-    finally { setVerifyingId(null) }
+    } catch { /* ignore */ }
+    finally { setRestoringId(null) }
   }
 
-  const handleShowDiff = async (noteId: number, versionId: number) => {
-    if (diffText !== null && diffText.startsWith(`${noteId}-${versionId}`)) {
+  const handleShowDiff = async (versionId: number) => {
+    if (currentNoteId === null) return
+    if (diffText !== null && diffText.startsWith(`${currentNoteId}-${versionId}`)) {
       setDiffText(null)
       return
     }
-    const diff = await diffNoteVersions(noteId, versionId)
-    setDiffText(`${noteId}-${versionId}\n${diff}`)
+    const diff = await diffNoteVersions(currentNoteId, versionId)
+    setDiffText(`${currentNoteId}-${versionId}\n${diff}`)
   }
 
   const filteredNotes = notes.filter(n => {
@@ -222,7 +191,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   if (loading) {
     return (
       <div className="panel-section">
-        <h3>知识笔记</h3>
+        <h3>{t('knowledge.notesTitle', { defaultValue: '知识笔记' })}</h3>
         <div className="skeleton skeleton-text" style={{ height: 60, marginBottom: 8 }} />
         <div className="skeleton skeleton-text" style={{ height: 60 }} />
       </div>
@@ -232,246 +201,154 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   return (
     <div className="panel-section">
       <div className="note-header">
-        <h3>知识笔记 ({notes.length})</h3>
+        <h3>{t('knowledge.notesTitle', { defaultValue: '知识笔记' })} ({notes.length})</h3>
         {!isNew && editingId === null && (
-          <button className="btn btn-sm btn-primary" onClick={startNew}>新建笔记</button>
+          <button className="btn btn-sm btn-primary" onClick={startNew}>{t('project.createNote')}</button>
         )}
       </div>
 
       {notes.length > 0 && (
         <div className="note-filters">
-          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>全部</button>
-          <button className={`filter-btn ${filter === 'knowledge' ? 'active' : ''}`} onClick={() => setFilter('knowledge')}>知识</button>
-          <button className={`filter-btn ${filter === 'other' ? 'active' : ''}`} onClick={() => setFilter('other')}>其他</button>
+          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>{t('project.filterAll')}</button>
+          <button className={`filter-btn ${filter === 'knowledge' ? 'active' : ''}`} onClick={() => setFilter('knowledge')}>{t('project.kinds.knowledge')}</button>
+          <button className={`filter-btn ${filter === 'other' ? 'active' : ''}`} onClick={() => setFilter('other')}>{t('project.kinds.other')}</button>
         </div>
       )}
 
-      {/* New-note editor */}
       {isNew && (
-        <div className="note-editor-block">
-          <div className="note-meta-row">
-            <input
-              type="text"
-              value={draft.title}
-              onChange={e => setDraft({ ...draft, title: e.target.value })}
-              placeholder="标题（留空将取首行）"
-              className="form-input note-title-input"
-            />
-            <select
-              value={draft.kind}
-              onChange={e => setDraft({ ...draft, kind: e.target.value })}
-              className="form-input note-kind-select"
-            >
-              {KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
-            </select>
-          </div>
-          <input
-            type="text"
-            value={draft.tags}
-            onChange={e => setDraft({ ...draft, tags: e.target.value })}
-            placeholder="标签（逗号分隔，如：架构, 待办）"
-            className="form-input note-tags-input"
-          />
-          <div className="note-editor-split">
-            {draftMode === 'block' ? (
-              <BlockEditor value={draft.content} onChange={v => setDraft({ ...draft, content: v })} />
-            ) : (
-              <textarea
-                value={draft.content}
-                onChange={e => setDraft({ ...draft, content: e.target.value })}
-                placeholder="输入 Markdown 内容…"
-                className="form-input note-textarea"
-                rows={10}
-              />
-            )}
-            {showPreview && (
-              <div className="note-preview markdown-body">
-                {draftPreviewHtml
-                  ? <div dangerouslySetInnerHTML={{ __html: draftPreviewHtml }} />
-                  : draft.content
-                    ? <span className="draft-hint">渲染中…</span>
-                    : null}
-              </div>
-            )}
-          </div>
-          <div className="note-editor-actions">
-            <button className="btn btn-primary btn-sm" onClick={handleCreate} disabled={saving || !draft.content.trim()}>保存</button>
-            <button className="btn btn-sm" onClick={() => setShowPreview(v => !v)}>{showPreview ? '隐藏预览' : '显示预览'}</button>
-            <button className="btn btn-sm" onClick={() => setDraftMode(m => m === 'markdown' ? 'block' : 'markdown')} title="在 Markdown 源码与块编辑间切换">
-              {draftMode === 'markdown' ? '块编辑' : 'Markdown'}
-            </button>
-            <button className="btn btn-sm" onClick={() => { setIsNew(false); setDraft({ content: '', title: '', tags: '', kind: 'knowledge' }) }}>取消</button>
-            {draft.content && <span className="draft-hint">草稿已自动保存</span>}
-          </div>
-        </div>
+        <NoteEditor
+          value={draft}
+          onChange={setDraft}
+          onSave={handleCreate}
+          onCancel={() => { setIsNew(false); setDraft({ ...emptyDraft }) }}
+          saving={saving}
+        />
       )}
 
-      {/* Note list */}
       {filteredNotes.length === 0 && !isNew ? (
-        <p className="empty-hint">{filter !== 'all' ? t('knowledge.noMatch', { defaultValue: 'No matching notes' }) : '暂无笔记，点击上方按钮新建'}</p>
+        <p className="empty-hint">{filter !== 'all' ? t('knowledge.noMatch') : t('project.noNotesHint')}</p>
       ) : (
         <div className="note-list">
           {filteredNotes.map(note => (
-            <div key={note.id} className={`note-card ${note.pinned ? 'pinned' : ''}`}>
-              {editingId === note.id ? (
-                <div className="note-editor-block">
-                  <div className="note-meta-row">
-                    <input
-                      type="text"
-                      value={editTitle}
-                      onChange={e => setEditTitle(e.target.value)}
-                      placeholder="标题"
-                      className="form-input note-title-input"
-                    />
-                    <select
-                      value={editKind}
-                      onChange={e => setEditKind(e.target.value)}
-                      className="form-input note-kind-select"
-                    >
-                      {KINDS.map(k => <option key={k.value} value={k.value}>{k.label}</option>)}
-                    </select>
-                    <label className="note-pin-toggle">
-                      <input type="checkbox" checked={editPinned} onChange={e => setEditPinned(e.target.checked)} />
-                      置顶
-                    </label>
-                    <select
-                      value={projectId}
-                      onChange={e => handleMoveProject(note.id, Number(e.target.value))}
-                      className="form-input note-kind-select"
-                      title="关联项目"
-                    >
-                      {projects.map(p => (
-                        <option key={p.id} value={p.id}>
-                          {p.id === projectId ? `${p.name}（当前）` : p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <input
-                    type="text"
-                    value={editTags}
-                    onChange={e => setEditTags(e.target.value)}
-                    placeholder="标签（逗号分隔）"
-                    className="form-input note-tags-input"
-                  />
-                  <div className="note-editor-split">
-                    {editMode === 'block' ? (
-                      <BlockEditor value={editContent} onChange={setEditContent} />
-                    ) : (
-                      <textarea
-                        value={editContent}
-                        onChange={e => setEditContent(e.target.value)}
-                        className="form-input note-textarea"
-                        rows={10}
-                      />
-                    )}
-                    {showPreview && (
-                      <div className="note-preview markdown-body">
-                        {editPreviewHtml
-                          ? <div dangerouslySetInnerHTML={{ __html: editPreviewHtml }} />
-                          : editContent
-                            ? <span className="draft-hint">渲染中…</span>
-                            : null}
-                      </div>
-                    )}
-                  </div>
-                  <div className="note-editor-actions">
-                    <button className="btn btn-primary btn-sm" onClick={handleSaveEdit} disabled={saving || !editContent.trim()}>保存</button>
-                    <button className="btn btn-sm" onClick={() => setShowPreview(v => !v)}>{showPreview ? '隐藏预览' : '显示预览'}</button>
-                    <button className="btn btn-sm" onClick={() => setEditMode(m => m === 'markdown' ? 'block' : 'markdown')} title="在 Markdown 源码与块编辑间切换">
-                      {editMode === 'markdown' ? '块编辑' : 'Markdown'}
-                    </button>
-                    <button className="btn btn-sm" onClick={() => setEditingId(null)}>取消</button>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="note-title-row">
-                    <span className="note-title-text">{note.title || note.content.split('\n')[0] || '笔记'}</span>
-                    <div className="note-title-badges">
-                      {note.kind === 'knowledge' && <span className="badge-note-sm">知识</span>}
-                      {note.source === 'claude' && <span className="badge-note-sm badge-source">Claude</span>}
-                      <button className={`pin-btn ${note.pinned ? 'pinned' : ''}`} onClick={() => handlePin(note)} title={note.pinned ? '取消置顶' : '置顶'}>★</button>
-                    </div>
-                  </div>
-                  <div className="note-body markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
-                  {note.tags && (
-                    <div className="note-tags-row">
-                      {note.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => <span key={t} className="note-tag-chip">#{t}</span>)}
-                    </div>
-                  )}
-                  <div className="note-meta">
-                    <span className="note-time">
-                      {note.updated_at !== note.created_at ? '更新于 ' + note.updated_at : '创建于 ' + note.created_at}
-                    </span>
-                    <div className="note-actions">
-                      <button className="btn btn-sm" onClick={() => startEdit(note)}>编辑</button>
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => openVersionHistory(note.id)}
-                        title="查看版本历史"
-                      >
-                        历史
-                      </button>
-                      <button
-                        className={`btn btn-sm ${confirmDeleteId === note.id ? 'btn-delete-confirm' : 'btn-danger'}`}
-                        onClick={() => handleDelete(note.id)}
-                        onBlur={() => setConfirmDeleteId(null)}
-                      >
-                        {confirmDeleteId === note.id ? '确认删除' : t('heatmap.deleted', { defaultValue: 'Deleted' })}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
+            <NoteCard
+              key={note.id}
+              note={note}
+              editing={editingId === note.id}
+              editDraft={editDraft}
+              onEditDraftChange={setEditDraft}
+              onSaveEdit={handleSaveEdit}
+              onCancelEdit={() => setEditingId(null)}
+              saving={saving}
+              projects={projects}
+              currentProjectId={projectId}
+              onMoveProject={handleMoveProject}
+              onPin={handlePin}
+              onEdit={startEdit}
+              onOpenHistory={openVersionHistory}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       )}
 
-      {/* Version history panel */}
-      {showVersionHistory && versionHistory !== null && (
-        <div className="version-history-panel">
-          <div className="version-history-header">
-            <h4>版本历史</h4>
-            <button className="btn btn-sm" onClick={() => { setShowVersionHistory(false); setVersionHistory(null); setDiffText(null); }}>关闭</button>
-          </div>
-          {versionHistory.length === 0 ? (
-            <p className="empty-hint">暂无历史版本</p>
-          ) : (
-            <div className="version-list">
-              {versionHistory.map((v, i) => (
-                <div key={v.id} className="version-item">
-                  <span className="version-time">{v.created_at}</span>
-                  <span className="version-title">{v.title || t('project.untitled', { defaultValue: 'Untitled' })}</span>
-                  <div className="version-actions">
-                    <button
-                      className="btn btn-sm"
-                      onClick={() => currentNoteId && handleShowDiff(currentNoteId, v.id)}
-                      title="查看差异"
-                    >
-                      差异
-                    </button>
-                    <button
-                      className="btn btn-sm btn-primary"
-                      onClick={() => currentNoteId && handleRestoreVersion(currentNoteId, v.id)}
-                      disabled={verifyingId === v.id}
-                      title="恢复到此版本"
-                    >
-                      {verifyingId === v.id ? '恢复中…' : '恢复'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {diffText !== null && (
-            <div className="diff-panel">
-              <pre className="diff-pre"><code>{diffText}</code></pre>
-            </div>
-          )}
+      {versionHistory !== null && (
+        <VersionHistoryPanel
+          versions={versionHistory}
+          restoringId={restoringId}
+          diffText={diffText}
+          onRestore={handleRestoreVersion}
+          onShowDiff={handleShowDiff}
+          onClose={() => { setVersionHistory(null); setCurrentNoteId(null); setDiffText(null) }}
+        />
+      )}
+    </div>
+  )
+}
+
+/** NoteCard renders one note, switching to the inline editor when editing. */
+function NoteCard({
+  note, editing, editDraft, onEditDraftChange, onSaveEdit, onCancelEdit, saving,
+  projects, currentProjectId, onMoveProject, onPin, onEdit, onOpenHistory, onDelete,
+}: {
+  note: Note
+  editing: boolean
+  editDraft: NoteDraft
+  onEditDraftChange: (d: NoteDraft) => void
+  onSaveEdit: () => void
+  onCancelEdit: () => void
+  saving: boolean
+  projects: Project[]
+  currentProjectId: number
+  onMoveProject: (noteId: number, projectId: number) => void
+  onPin: (note: Note) => void
+  onEdit: (note: Note) => void
+  onOpenHistory: (noteId: number) => void
+  onDelete: (noteId: number) => void
+}) {
+  const { t } = useTranslation()
+  const { armed, click } = useConfirmClick(() => { void onDelete(note.id) })
+
+  if (editing) {
+    return (
+      <div className="note-card">
+        <NoteEditor
+          value={editDraft}
+          onChange={onEditDraftChange}
+          onSave={onSaveEdit}
+          onCancel={onCancelEdit}
+          saving={saving}
+          showPinned
+          projects={projects}
+          currentProjectId={currentProjectId}
+          onMoveProject={(pid) => onMoveProject(note.id, pid)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className={`note-card ${note.pinned ? 'pinned' : ''}`}>
+      <div className="note-title-row">
+        <span className="note-title-text">{note.title || note.content.split('\n')[0] || t('project.noteWord')}</span>
+        <div className="note-title-badges">
+          {note.kind === 'knowledge' && <span className="badge-note-sm">{t('project.kinds.knowledge')}</span>}
+          {note.source === 'claude' && <span className="badge-note-sm badge-source">Claude</span>}
+          <button
+            className={`pin-btn ${note.pinned ? 'pinned' : ''}`}
+            onClick={() => onPin(note)}
+            title={note.pinned ? t('project.unpinned') : t('project.pinned')}
+          >★</button>
+        </div>
+      </div>
+      <div className="note-body markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
+      {note.tags && (
+        <div className="note-tags-row">
+          {note.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => <span key={t} className="note-tag-chip">#{t}</span>)}
         </div>
       )}
+      <div className="note-meta">
+        <span className="note-time">
+          {note.updated_at !== note.created_at
+            ? `${t('project.updatedAtPrefix')} ${note.updated_at}`
+            : `${t('project.createdAtPrefix')} ${note.created_at}`}
+        </span>
+        <div className="note-actions">
+          <button className="btn btn-sm" onClick={() => onEdit(note)}>{t('project.edit')}</button>
+          <button
+            className="btn btn-sm"
+            onClick={() => onOpenHistory(note.id)}
+            title={t('project.versionHistory')}
+          >
+            {t('project.history')}
+          </button>
+          <button
+            className={`btn btn-sm ${armed ? 'btn-delete-confirm' : 'btn-danger'}`}
+            onClick={click}
+          >
+            {armed ? t('project.confirmDelete') : t('common.delete')}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

@@ -5,12 +5,13 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
-	"runtime"
 	"strings"
 
+	"gitboard/internal/app"
 	"gitboard/internal/db"
 	"gitboard/internal/platform"
+	"gitboard/internal/service"
+	"gitboard/internal/version"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -20,15 +21,8 @@ import (
 //go:embed all:web/dist
 var assets embed.FS
 
-func init() {
-	// Ensure PATH includes common binary directories (git may not be in PATH when launched from Finder)
-	ensurePath()
-	// Redirect logs to file so crashes can be diagnosed when launched from Finder
-	setupLogging()
-}
-
 func main() {
-	log.Println("GitBuddy starting...")
+	log.Printf("GitBuddy %s starting...", version.Version)
 
 	// Open database
 	database, err := db.InitDB(platform.GetDbPath())
@@ -58,8 +52,8 @@ func main() {
 		log.Println("No git user detected; personal stats will be empty")
 	}
 
-	// Create app with dependencies
-	app := NewApp(database, gitUser)
+	// Create the service core and the thin Wails binding layer over it.
+	a := app.New(service.New(database, gitUser))
 
 	// Launch Wails
 	err = wails.Run(&options.App{
@@ -84,10 +78,10 @@ func main() {
 				})
 			},
 		},
-		OnStartup:  app.startup,
-		OnShutdown: app.shutdown,
+		OnStartup:  a.Startup,
+		OnShutdown: a.Shutdown,
 		Bind: []interface{}{
-			app,
+			a,
 		},
 	})
 	if err != nil {
@@ -115,10 +109,19 @@ func (spaFallback) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write(data)
 }
 
+func init() {
+	// Ensure PATH includes common binary directories (git may not be in PATH
+	// when launched from Finder).
+	ensurePath()
+	// Redirect logs to a file so crashes can be diagnosed when the app is
+	// launched outside a terminal.
+	setupLogging()
+}
+
 func ensurePath() {
 	path := os.Getenv("PATH")
 	if path == "" {
-		path = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+		os.Setenv("PATH", "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin")
 		return
 	}
 	// Prepend standard directories if not already present.
@@ -139,44 +142,13 @@ func ensurePath() {
 }
 
 func setupLogging() {
-	logDir := getLogDir()
-	_ = os.MkdirAll(logDir, 0750)
-	logFile := filepath.Join(logDir, "gitboard.log")
+	logFile := platform.GetLogPath()
 	f, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0640)
 	if err == nil {
 		log.SetOutput(f)
 	}
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Printf("=== GitBuddy log started ===")
+	log.Printf("log file: %s", logFile)
 	log.Printf("PATH=%s", os.Getenv("PATH"))
-}
-
-// getLogDir returns a platform-appropriate log directory.
-func getLogDir() string {
-	switch runtime.GOOS {
-	case "darwin":
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return os.TempDir()
-		}
-		return filepath.Join(home, "Library", "Logs")
-	case "windows":
-		if dir := os.Getenv("LOCALAPPDATA"); dir != "" {
-			return filepath.Join(dir, "GitBuddy", "Logs")
-		}
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return os.TempDir()
-		}
-		return filepath.Join(home, "AppData", "Local", "GitBuddy", "Logs")
-	default: // linux and others
-		if dir := os.Getenv("XDG_STATE_HOME"); dir != "" {
-			return filepath.Join(dir, "gitboard")
-		}
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return os.TempDir()
-		}
-		return filepath.Join(home, ".local", "state", "gitboard")
-	}
 }
