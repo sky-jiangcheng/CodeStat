@@ -33,32 +33,32 @@ function SummaryBar({ summary, globalTodoCount }: Props) {
   return (
     <div className="summary-bar">
       <div className="summary-item">
-        <span className="summary-label">仓库</span>
+        <span className="summary-label">{t('summaryBar.repos')}</span>
         <span className="summary-value">{summary.repo_count || 0}</span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">团队新增</span>
+        <span className="summary-label">{t('summaryBar.teamAdded')}</span>
         <span className="summary-value green">+{summary.total_added || 0}</span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">团队删除</span>
+        <span className="summary-label">{t('summaryBar.teamDeleted')}</span>
         <span className="summary-value red">-{summary.total_deleted || 0}</span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">个人新增</span>
+        <span className="summary-label">{t('summaryBar.personalAdded')}</span>
         <span className="summary-value green">{(summary.my_added || 0) > 0 ? '+' : ''}{summary.my_added || 0}</span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">个人文件</span>
+        <span className="summary-label">{t('summaryBar.personalFiles')}</span>
         <span className="summary-value">{summary.my_files || 0}</span>
       </div>
       <div className="summary-item">
-        <span className="summary-label">日期</span>
+        <span className="summary-label">{t('summaryBar.date')}</span>
         <span className="summary-value">{summary.is_workday ? '\u5DE5\u4F5C\u65E5' : '\u5468\u672B'}</span>
       </div>
       {globalTodoCount !== undefined && globalTodoCount > 0 && (
         <div className="summary-item">
-          <span className="summary-label">待办</span>
+          <span className="summary-label">{t('summaryBar.todos')}</span>
           <span className="summary-value todo">{globalTodoCount}</span>
         </div>
       )}

@@ -1,8 +1,12 @@
+// Package platform centralises OS-specific behaviour: default scan roots,
+// user data locations (database, plugins, log file) and git user detection.
+//
+// User data paths are stable across versions; they keep the historical
+// "gitboard" directory names so existing installations keep their data after
+// upgrades.
 package platform
 
 import (
-	"fmt"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,22 +14,9 @@ import (
 	"strings"
 )
 
-// OS type constants
-const (
-	OSWindows = "windows"
-	OSDarwin  = "darwin"
-	OSLinux   = "linux"
-)
-
-// DetectOS returns the current operating system name.
-func DetectOS() string {
-	return runtime.GOOS
-}
-
 // DefaultScanRoots returns platform-specific default scan root directories.
 // Windows: all drive letters except C: (the system drive).
-// macOS: the user's home directory.
-// Linux: the user's home directory.
+// macOS / Linux: the user's home directory.
 func DefaultScanRoots() []string {
 	home, _ := os.UserHomeDir()
 
@@ -42,9 +33,7 @@ func DefaultScanRoots() []string {
 			roots = append(roots, home)
 		}
 		return roots
-	case "darwin":
-		return []string{home}
-	default: // linux and others
+	default: // darwin, linux and others
 		return []string{home}
 	}
 }
@@ -65,33 +54,6 @@ func getWindowsDrives() []string {
 	return drives
 }
 
-// OpenBrowser opens the specified URL in the system's default browser.
-// Only http:// and https:// URLs are allowed for security.
-func OpenBrowser(rawURL string) error {
-	parsed, err := url.Parse(rawURL)
-	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return fmt.Errorf("invalid browser URL: %s", rawURL)
-	}
-
-	var cmd *exec.Cmd
-	//nolint:gosec // rawURL has been validated above - only http/https schemes allowed
-	switch runtime.GOOS {
-	case "windows":
-		cmd = exec.Command("cmd", "/c", "start", rawURL)
-	case "darwin":
-		cmd = exec.Command("open", rawURL)
-	default: // linux and others
-		cmd = exec.Command("xdg-open", rawURL)
-	}
-	return cmd.Start()
-}
-
-// CheckGitInstalled checks whether git is available in the system PATH.
-func CheckGitInstalled() bool {
-	_, err := exec.LookPath("git")
-	return err == nil
-}
-
 // GetGitUserName returns the git user.name from global or local config.
 func GetGitUserName() string {
 	cmd := exec.Command("git", "config", "user.name")
@@ -107,7 +69,6 @@ func GetGitUserName() string {
 }
 
 // GetDbPath returns the path to the SQLite database file.
-// The database is stored in the user's config directory.
 func GetDbPath() string {
 	configDir, err := os.UserConfigDir()
 	if err != nil {
@@ -134,15 +95,40 @@ func GetPluginsDir() string {
 	return dir
 }
 
-// GetPort returns the server port from environment or a random available port.
-func GetPort() string {
-	if port := os.Getenv("GITBOARD_PORT"); port != "" {
-		return port
+// GetLogPath returns the platform-appropriate log file path. The log file
+// itself is always named gitboard.log for continuity with earlier versions.
+//
+//	darwin:  ~/Library/Logs/gitboard.log
+//	windows: %APPDATA%\gitboard\logs\gitboard.log
+//	linux:   $XDG_STATE_HOME/gitboard/gitboard.log (default ~/.local/state/...)
+func GetLogPath() string {
+	var dir string
+	switch runtime.GOOS {
+	case "darwin":
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return filepath.Join(os.TempDir(), "gitboard.log")
+		}
+		dir = filepath.Join(home, "Library", "Logs")
+	case "windows":
+		appData, err := os.UserConfigDir()
+		if err != nil {
+			return filepath.Join(os.TempDir(), "gitboard.log")
+		}
+		dir = filepath.Join(appData, "gitboard", "logs")
+	default:
+		state := os.Getenv("XDG_STATE_HOME")
+		if state == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return filepath.Join(os.TempDir(), "gitboard.log")
+			}
+			state = filepath.Join(home, ".local", "state")
+		}
+		dir = filepath.Join(state, "gitboard")
 	}
-	return "18731"
-}
-
-// ServerURL returns the full local server URL.
-func ServerURL(port string) string {
-	return fmt.Sprintf("http://localhost:%s", port)
+	if err := os.MkdirAll(dir, 0750); err != nil {
+		return filepath.Join(os.TempDir(), "gitboard.log")
+	}
+	return filepath.Join(dir, "gitboard.log")
 }

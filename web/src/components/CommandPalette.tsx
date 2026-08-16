@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
 import { useTranslation } from 'react-i18next'
 
@@ -104,14 +104,14 @@ export default function CommandPalette({ open, onClose }: Props) {
         className="cmdk"
         role="dialog"
         aria-modal="true"
-        aria-label="全局搜索"
+        aria-label={t('commandPalette.title')}
         onClick={e => e.stopPropagation()}
       >
         <input
           ref={inputRef}
           type="text"
           role="combobox"
-          aria-label="搜索"
+          aria-label={t('commandPalette.searchLabel')}
           aria-expanded={totalItems > 0}
           aria-controls="cmdk-results"
           aria-autocomplete="list"
@@ -119,19 +119,19 @@ export default function CommandPalette({ open, onClose }: Props) {
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="搜索笔记 / 待办 / 跳转项目…"
+          placeholder={t('commandPalette.placeholder')}
           className="cmdk-input"
         />
-        <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label="搜索结果">
+        <div className="cmdk-results" id="cmdk-results" role="listbox" aria-label={t('commandPalette.groupNotes')}>
           {hits.length === 0 && filteredProjects.length === 0 && (
             <div className="cmdk-empty">{query.trim() ? t('commandPalette.noResults', { defaultValue: 'No results' }) : t('commandPalette.startSearch', { defaultValue: 'Start searching' })}</div>
           )}
-          {hits.length > 0 && <div className="cmdk-group">笔记与待办</div>}
+          {hits.length > 0 && <div className="cmdk-group">{t('commandPalette.groupNotes')}</div>}
           {hits.map((h, i) => (
-            <a
+            <Link
               key={`${h.type}-${h.id}`}
               id={`cmdk-opt-${i}`}
-              href={`/project/${h.project_id}`}
+              to={`/project/${h.project_id}`}
               className={`cmdk-item ${activeIndex === i ? 'cmdk-item-active' : ''}`}
               role="option"
               aria-selected={activeIndex === i}
@@ -139,21 +139,20 @@ export default function CommandPalette({ open, onClose }: Props) {
               onMouseEnter={() => setActiveIndex(i)}
               onClick={onClose}
             >
-              <span className={`cmdk-type cmdk-type-${h.type}`}>{h.type === 'note' ? '笔' : '办'}</span>
+              <span className={`cmdk-type cmdk-type-${h.type}`}>{h.type === 'note' ? t('commandPalette.noteMark') : t('commandPalette.todoMark')}</span>
               <div className="cmdk-item-body">
                 <div className="cmdk-item-title">{h.title}</div>
                 <div className="cmdk-item-sub">{h.project_name} · {h.snippet.slice(0, 60)}</div>
               </div>
-            </a>
+            </Link>
           ))}
-          {filteredProjects.length > 0 && <div className="cmdk-group">项目</div>}
           {filteredProjects.map((p, i) => {
             const idx = hits.length + i
             return (
-              <a
+              <Link
                 key={p.id}
                 id={`cmdk-opt-${idx}`}
-                href={`/project/${p.id}`}
+                to={`/project/${p.id}`}
                 className={`cmdk-item ${activeIndex === idx ? 'cmdk-item-active' : ''}`}
                 role="option"
                 aria-selected={activeIndex === idx}
@@ -161,20 +160,20 @@ export default function CommandPalette({ open, onClose }: Props) {
                 onMouseEnter={() => setActiveIndex(idx)}
                 onClick={onClose}
               >
-                <span className="cmdk-type cmdk-type-project">项</span>
+                <span className="cmdk-type cmdk-type-project">{t('commandPalette.projectMark')}</span>
                 <div className="cmdk-item-body">
                   <div className="cmdk-item-title">{p.name}</div>
-                  <div className="cmdk-item-sub">{p.repo_count} 个仓库</div>
+                  <div className="cmdk-item-sub">{t('commandPalette.reposCount', { count: p.repo_count })}</div>
                 </div>
-              </a>
+              </Link>
             )
           })}
         </div>
         <div className="cmdk-foot">
-          <span>↑↓ 选择</span><span>↵ 打开</span><span>esc 关闭</span>
+          <span>{t('commandPalette.footSelect')}</span><span>{t('commandPalette.footOpen')}</span><span>{t('commandPalette.footClose')}</span>
         </div>
         <div className="visually-hidden" role="status" aria-live="polite">
-          {totalItems > 0 ? `${totalItems} 个结果` : (query.trim() ? t('commandPalette.noResults', { defaultValue: 'No results' }) : '')}
+          {totalItems > 0 ? t('commandPalette.resultsCount', { count: totalItems }) : (query.trim() ? t('commandPalette.noResults', { defaultValue: 'No results' }) : '')}
         </div>
       </div>
     </div>

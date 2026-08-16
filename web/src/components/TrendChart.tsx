@@ -10,7 +10,6 @@ import {
   Legend,
   Title,
 } from 'chart.js'
-import { useEffect, useState } from 'react'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Title)
 
@@ -27,42 +26,6 @@ interface Props {
 
 function TrendChart({ labels, datasets }: Props) {
   const { t } = useTranslation()
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (labels.length === 0) return
-    
-    setLoading(true)
-    setError(null)
-    
-    // Simplified data fetching - in real app this would call API
-    const mockData = {
-      labels: labels.slice(0, 12),
-      datasets: [
-        {
-          label: t('trend.commits', { defaultValue: 'Code Commits' }),
-          data: [10, 15, 20, 18, 25, 22, 30, 28, 35, 33, 38, 36],
-          color: '#4f46e5'
-        },
-        {
-          label: t('trend.reviews', { defaultValue: 'Code Reviews' }),
-          data: [5, 8, 12, 10, 15, 12, 18, 15, 20, 18, 22, 20],
-          color: '#10b981'
-        }
-      ]
-    }
-    
-    setLoading(false)
-  }, [labels])
-
-  if (loading) {
-    return <div className="chart-skeleton">加载中...</div>
-  }
-
-  if (error) {
-    return <div className="chart-error">{error}</div>
-  }
 
   const data = {
     labels,

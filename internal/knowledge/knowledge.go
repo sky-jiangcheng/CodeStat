@@ -444,15 +444,34 @@ func parseGoDeps(repoPath string) ([]Dependency, error) {
 		return nil, err
 	}
 	var deps []Dependency
+	inBlock := false
 	for _, line := range strings.Split(string(data), "\n") {
 		line = strings.TrimSpace(line)
-		if !strings.HasPrefix(line, "require ") {
+		switch {
+		case strings.HasPrefix(line, "require ("):
+			inBlock = true
+			continue
+		case inBlock && line == ")":
+			inBlock = false
 			continue
 		}
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			deps = append(deps, Dependency{Name: parts[1], Version: parts[2], Source: "go"})
+		var fields []string
+		if inBlock {
+			fields = strings.Fields(line)
+		} else if strings.HasPrefix(line, "require ") {
+			fields = strings.Fields(strings.TrimPrefix(line, "require "))
+		} else {
+			continue
 		}
+		// A dependency line is "<module-path> <version>"; ignore comments and
+		// replacement directives.
+		if len(fields) < 2 || strings.HasPrefix(fields[0], "//") {
+			continue
+		}
+		if fields[0] == "replace" || fields[0] == "exclude" {
+			continue
+		}
+		deps = append(deps, Dependency{Name: fields[0], Version: fields[1], Source: "go"})
 	}
 	return deps, nil
 }

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { getStatusBar, type StatusBarData } from '../api/client'
 
 export default function StatusBar() {
+  const { t } = useTranslation()
   const [data, setData] = useState<StatusBarData | null>(null)
 
   const fetch = () => {
@@ -36,26 +37,26 @@ export default function StatusBar() {
       <div className="status-left">
         <span className="status-item">
           <span className="status-dot" />
-          当前时间：{currentTime}
+          {t('status.time')}{currentTime}
         </span>
       </div>
       <div className="status-right">
         {data?.last_commit_time ? (
           <>
             <span className="status-item" title={data.last_commit_msg}>
-              最近提交：<strong>{data.last_commit_time}</strong>
+              {t('status.lastCommit')}<strong>{data.last_commit_time}</strong>
             </span>
             <span className="status-separator">|</span>
             <span className="status-item">
-              项目：<strong>{data.last_commit_repo}</strong>
+              {t('status.project')}<strong>{data.last_commit_repo}</strong>
             </span>
             <span className="status-separator">|</span>
             <span className="status-item">
-              分支：<strong>{data.last_commit_branch || 'unknown'}</strong>
+              {t('status.branch')}<strong>{data.last_commit_branch || 'unknown'}</strong>
             </span>
           </>
         ) : (
-          <span className="status-item muted">暂无提交记录</span>
+          <span className="status-item muted">{t('status.noCommits')}</span>
         )}
       </div>
     </div>

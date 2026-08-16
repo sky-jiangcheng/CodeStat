@@ -1,3 +1,6 @@
+// gitboard-agent-score reports how ready the local GitBuddy installation is
+// for AI agents: database health, notes, FTS5 search, Claude memory sources,
+// CLI/MCP binaries, SKILL.md and i18n locales.
 package main
 
 import (
@@ -8,128 +11,129 @@ import (
 
 	"gitboard/internal/db"
 	"gitboard/internal/platform"
+	"gitboard/internal/service"
+	"gitboard/internal/version"
 )
 
 func main() {
-	dbPath := platform.GetDbPath()
-	home, _ := os.UserHomeDir()
 	parts := []string{}
-	scores := []scoreEntry{}
+	scores := []bool{}
 	total := 0
 	earned := 0
 
-	// 1. Database health
-	total++
+	record := func(ok bool) {
+		scores = append(scores, ok)
+		total++
+		if ok {
+			earned++
+		}
+	}
+
+	dbPath := platform.GetDbPath()
+	home, _ := os.UserHomeDir()
+
+	// Open the database once (if present) and share it across checks.
+	var svc *service.Service
+	noteCount := 0
 	if _, err := os.Stat(dbPath); err == nil {
-		d, err := db.InitDB(dbPath)
-		if err == nil {
+		if d, err := db.InitDB(dbPath); err == nil {
 			defer d.Close()
-			var count int
-			d.QueryRow("SELECT COUNT(*) FROM project_notes").Scan(&count)
-			if count > 0 {
-				parts = append(parts, fmt.Sprintf("  ✅ Database OK — %d notes", count))
-				scores = append(scores, scoreEntry{"database", true})
-				earned++
-			} else {
-				parts = append(parts, "  ⚠️  Database OK but no notes (run scan first)")
-				scores = append(scores, scoreEntry{"database", false})
-			}
+			svc = service.New(d, platform.GetGitUserName())
+			notes := svc.ListAllNotes()
+			noteCount = len(notes)
+		}
+	}
+
+	// 1. Database health
+	if svc != nil {
+		if noteCount > 0 {
+			parts = append(parts, fmt.Sprintf("  ✅ Database OK — %d notes", noteCount))
+			record(true)
 		} else {
-			parts = append(parts, fmt.Sprintf("  ❌ Database error: %v", err))
-			scores = append(scores, scoreEntry{"database", false})
+			parts = append(parts, "  ⚠️  Database OK but no notes (run scan first)")
+			record(false)
 		}
 	} else {
 		parts = append(parts, fmt.Sprintf("  ❌ Database not found at %s", dbPath))
-		scores = append(scores, scoreEntry{"database", false})
+		record(false)
 	}
 
 	// 2. Notes exist
-	total++
-	if d, err := db.InitDB(dbPath); err == nil {
-		defer d.Close()
-		var count int
-		d.QueryRow("SELECT COUNT(*) FROM project_notes").Scan(&count)
-		if count > 0 {
-			parts = append(parts, fmt.Sprintf("  ✅ Notes exist: %d", count))
-			scores = append(scores, scoreEntry{"notes_exist", true})
-			earned++
-		} else {
-			parts = append(parts, "  ⚠️  No notes — import Claude memory or create some")
-			scores = append(scores, scoreEntry{"notes_exist", false})
-		}
+	if noteCount > 0 {
+		parts = append(parts, fmt.Sprintf("  ✅ Notes exist: %d", noteCount))
+		record(true)
+	} else {
+		parts = append(parts, "  ⚠️  No notes — import Claude memory or create some")
+		record(false)
 	}
 
 	// 3. Search works
-	total++
-	if d, err := db.InitDB(dbPath); err == nil {
-		defer d.Close()
-		hits, err := db.SearchAll(d, "test")
-		if err == nil && hits != nil {
+	if svc != nil {
+		hits := svc.SearchAll("test")
+		if hits != nil {
 			parts = append(parts, "  ✅ Search (FTS5) operational")
-			scores = append(scores, scoreEntry{"search", true})
-			earned++
+			record(true)
 		} else {
 			parts = append(parts, "  ⚠️  Search not available")
-			scores = append(scores, scoreEntry{"search", false})
+			record(false)
 		}
+	} else {
+		record(false)
 	}
 
 	// 4. Claude memory importable
-	total++
 	claudeMemory := filepath.Join(home, ".claude", "projects")
 	if info, err := os.Stat(claudeMemory); err == nil && info.IsDir() {
 		files, _ := filepath.Glob(filepath.Join(claudeMemory, "*", "memory", "*.md"))
 		if len(files) > 0 {
 			parts = append(parts, fmt.Sprintf("  ✅ Claude memory sources found: %d files", len(files)))
-			scores = append(scores, scoreEntry{"claude_memory", true})
-			earned++
+			record(true)
 		} else {
 			parts = append(parts, "  ⚠️  Claude memory directory exists but no .md files")
-			scores = append(scores, scoreEntry{"claude_memory", false})
+			record(false)
 		}
 	} else {
 		parts = append(parts, "  ⚠️  No Claude memory directory found")
-		scores = append(scores, scoreEntry{"claude_memory", false})
+		record(false)
 	}
 
-	// 5. GitBuddy CLI available
-	total++
+	// 5. CLI binary available
 	cliPath, _ := os.Executable()
-	if cliPath != "" && strings.Contains(cliPath, "gitboard") {
+	if cliPath != "" && (strings.Contains(cliPath, "gitboard") || strings.Contains(cliPath, "gitbuddy")) {
 		parts = append(parts, "  ✅ CLI binary present")
-		scores = append(scores, scoreEntry{"cli", true})
-		earned++
+		record(true)
 	} else {
 		parts = append(parts, "  ⚠️  CLI not found at "+cliPath)
-		scores = append(scores, scoreEntry{"cli", false})
+		record(false)
 	}
 
 	// 6. MCP server available
-	total++
-	mcpPath := filepath.Join(filepath.Dir(cliPath), "gitboard-mcp")
-	if _, err := os.Stat(mcpPath); err == nil {
+	exeDir := filepath.Dir(cliPath)
+	mcpFound := false
+	for _, name := range []string{"gitbuddy-mcp", "gitboard-mcp"} {
+		if _, err := os.Stat(filepath.Join(exeDir, name)); err == nil {
+			mcpFound = true
+			break
+		}
+	}
+	if mcpFound {
 		parts = append(parts, "  ✅ MCP server binary present")
-		scores = append(scores, scoreEntry{"mcp", true})
-		earned++
+		record(true)
 	} else {
-		// Check if it can be built
-		parts = append(parts, "  ⚠️  MCP server not built — run: go build -o gitboard-mcp ./cmd/mcp/")
-		scores = append(scores, scoreEntry{"mcp", false})
+		parts = append(parts, "  ⚠️  MCP server not built — run: go build -o gitbuddy-mcp ./cmd/mcp/")
+		record(false)
 	}
 
 	// 7. SKILL.md exists
-	total++
 	if _, err := os.Stat("SKILL.md"); err == nil {
 		parts = append(parts, "  ✅ SKILL.md present")
-		scores = append(scores, scoreEntry{"skill_md", true})
-		earned++
+		record(true)
 	} else {
 		parts = append(parts, "  ⚠️  SKILL.md not found in repo root")
-		scores = append(scores, scoreEntry{"skill_md", false})
+		record(false)
 	}
 
 	// 8. i18n locales
-	total++
 	locales := []string{"zh-CN", "en"}
 	foundLocales := 0
 	for _, loc := range locales {
@@ -139,24 +143,21 @@ func main() {
 	}
 	if foundLocales >= len(locales) {
 		parts = append(parts, fmt.Sprintf("  ✅ i18n: %d locale(s) found", foundLocales))
-		scores = append(scores, scoreEntry{"i18n", true})
-		earned++
+		record(true)
 	} else {
 		parts = append(parts, fmt.Sprintf("  ⚠️  i18n incomplete: %d/%d locales", foundLocales, len(locales)))
-		scores = append(scores, scoreEntry{"i18n", false})
+		record(false)
 	}
 
 	// Print report
-	fmt.Println("=== GitBuddy Agent Score ===")
-	fmt.Println()
+	fmt.Printf("=== GitBuddy Agent Score (v%s) ===\n\n", version.Version)
 	for _, p := range parts {
 		fmt.Println(p)
 	}
 	fmt.Println()
 	fmt.Printf("Score: %d/%d\n", earned, total)
 	pct := float64(earned) / float64(total) * 100
-	fmt.Printf("AI-readiness: %.0f%%\n", pct)
-	fmt.Println()
+	fmt.Printf("AI-readiness: %.0f%%\n\n", pct)
 
 	if pct >= 75 {
 		fmt.Println("✅ GitBuddy is agent-ready! MCP and CLI are functional.")
@@ -165,9 +166,4 @@ func main() {
 	} else {
 		fmt.Println("❌ GitBuddy needs setup before agents can use it effectively.")
 	}
-}
-
-type scoreEntry struct {
-	name  string
-	pass  bool
 }

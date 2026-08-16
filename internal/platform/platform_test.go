@@ -1,16 +1,11 @@
 package platform
 
 import (
+	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
-
-func TestDetectOS(t *testing.T) {
-	os := DetectOS()
-	if os == "" {
-		t.Fatal("DetectOS returned empty string")
-	}
-}
 
 func TestDefaultScanRoots(t *testing.T) {
 	roots := DefaultScanRoots()
@@ -31,14 +26,6 @@ func TestGetWindowsDrives(t *testing.T) {
 	}
 }
 
-func TestCheckGitInstalled(t *testing.T) {
-	result := CheckGitInstalled()
-	// Git should be available in CI/dev environments
-	if !result {
-		t.Log("Git not found in PATH (may be expected in some environments)")
-	}
-}
-
 func TestGetGitUserName(t *testing.T) {
 	name := GetGitUserName()
 	if name == "" {
@@ -54,54 +41,17 @@ func TestGetDbPath(t *testing.T) {
 	if path == "" {
 		t.Fatal("GetDbPath returned empty string")
 	}
-}
-
-func TestGetPort(t *testing.T) {
-	port := GetPort()
-	if port == "" {
-		t.Fatal("GetPort returned empty string")
+	if !strings.HasSuffix(path, filepath.Join("gitboard", "dashboard.db")) {
+		t.Errorf("GetDbPath = %s, want it inside a gitboard directory ending with dashboard.db", path)
 	}
 }
 
-func TestServerURL(t *testing.T) {
-	url := ServerURL("28731")
-	expected := "http://localhost:28731"
-	if url != expected {
-		t.Errorf("ServerURL = %s, want %s", url, expected)
+func TestGetLogPath(t *testing.T) {
+	path := GetLogPath()
+	if path == "" {
+		t.Fatal("GetLogPath returned empty string")
 	}
-}
-
-func TestOpenBrowser_ValidURL(t *testing.T) {
-	tests := []string{
-		"http://localhost:28731",
-		"https://example.com",
-	}
-	for _, u := range tests {
-		err := OpenBrowser(u)
-		// In headless/CI environments, xdg-open/open may not be available.
-		// We only care that the URL validation passes and no error is returned
-		// from the validation step. ENOENT from the exec is expected.
-		if err != nil && err.Error() == "exec: \"xdg-open\": executable file not found in $PATH" {
-			continue
-		}
-		if err != nil {
-			t.Errorf("OpenBrowser(%s) returned error: %v", u, err)
-		}
-	}
-}
-
-func TestOpenBrowser_InvalidURL(t *testing.T) {
-	tests := []string{
-		"javascript:alert(1)",
-		"file:///etc/passwd",
-		"ftp://evil.com",
-		"   ",
-		"not-a-url",
-	}
-	for _, u := range tests {
-		err := OpenBrowser(u)
-		if err == nil {
-			t.Errorf("OpenBrowser(%s) should have returned error", u)
-		}
+	if !strings.HasSuffix(path, "gitboard.log") {
+		t.Errorf("GetLogPath = %s, want it to end with gitboard.log", path)
 	}
 }

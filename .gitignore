@@ -1,8 +1,4 @@
-# Configuration file - ignored to allow local customization
-# Configuration file is optional; users can create their own copy / 配置文件 - 被忽略以允许本地自定义
-# 配置文件是可选的；用户可以创建自己的副本
 # Local user configuration overrides / 本地用户配置覆盖
-# Users can create .statistics.local to override defaults / 用户可创建 .statistics.local 覆盖默认配置
 .statistics.local
 
 # Temporary files / 临时文件
@@ -10,19 +6,32 @@
 *.swp
 *.bak
 
-# GitBuddy binary
+# Built binaries (see scripts/build.sh) / 构建产物
 gitboard
 git-dashboard
+gitboard-mcp
+gitboard-agent-score
+gitbuddy
+gitbuddy-mcp
+gitbuddy-agent-score
 
-# Database files
+# Database files / 数据库文件
 *.db
 *.db-shm
 *.db-wal
 
-# Node
+# Node / Node 产物
 web/node_modules/
 web/dist/
 
-# Generated icon assets (regenerated from build/icon.svg by scripts/generate-icons.mjs)
+# Generated icon assets / 图标产物（由 build/icon.svg 经 scripts/generate-icons.mjs 生成）
 build/icons/
 build/appicon.png
+
+# Generated docs HTML (built from docs/**/*.md by scripts/build-docs.mjs)
+docs/**/*.html
+
+# AI tooling artifacts / AI 工具产物
+.trae-html-share-packages/
+.workbuddy/
+.zcode/

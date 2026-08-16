@@ -1,7 +1,9 @@
 // ToastHost renders transient toast notifications (e.g. knowledge import
 // results pushed from the Go runtime via Wails events). Positioned top-right
 // so it does not obstruct the navbar or main content.
-import { useEffect } from 'react'
+//
+// Auto-dismiss timers are owned solely by the party that pushes a toast
+// (App's pushToast, keyed per toast id) — rendering here is pure.
 import { useTranslation } from 'react-i18next'
 
 export interface ToastItem {
@@ -23,14 +25,6 @@ function ToastHost({
 }) {
   const { t } = useTranslation()
 
-  useEffect(() => {
-    if (toasts.length === 0) return
-    const timers = toasts.map(item =>
-      setTimeout(() => onDismiss(item.id), item.duration ?? 5000)
-    )
-    return () => timers.forEach(clearTimeout)
-  }, [toasts, onDismiss])
-
   return (
     <div className="toast-host" role="status" aria-live="polite">
       {toasts.map((toast) => (
@@ -50,7 +44,7 @@ function ToastHost({
               </button>
             )}
           </div>
-          <button className="toast-close" onClick={() => onDismiss(toast.id)} aria-label={t('common.close', { defaultValue: 'Close' })}>
+          <button className="toast-close" onClick={() => onDismiss(toast.id)} aria-label={t('common.close')}>
             ×
           </button>
         </div>

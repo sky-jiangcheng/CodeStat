@@ -137,94 +137,6 @@ func QueryStats(repoPath, date, author string) (*Result, error) {
 	return parseShortStat(string(out))
 }
 
-// QueryMultiBranch runs QueryStats for multiple branches and aggregates results.
-func QueryMultiBranch(repoPath, date string, branches []string) (*Result, error) {
-	if err := ValidateDate(date); err != nil {
-		return nil, err
-	}
-
-	result := &Result{}
-	seen := make(map[string]bool)
-
-	for _, branch := range branches {
-		branch = strings.TrimSpace(branch)
-		if branch == "" || !isSafeRefName(branch) {
-			continue
-		}
-
-		r, err := QueryStatsForBranch(repoPath, date, branch)
-		if err != nil {
-			continue
-		}
-
-		for _, hash := range r.commits {
-			if !seen[hash] {
-				seen[hash] = true
-				result.FilesChanged += r.FilesChanged
-				result.LinesAdded += r.LinesAdded
-				result.LinesDeleted += r.LinesDeleted
-			}
-		}
-	}
-
-	return result, nil
-}
-
-// branchResult holds per-branch stats with commit hashes for dedup.
-type branchResult struct {
-	FilesChanged int
-	LinesAdded   int
-	LinesDeleted int
-	commits      []string
-}
-
-// safeRefPattern allows safe git ref names (branches, tags).
-var safeRefPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9._/\-]*$`)
-
-// isSafeRefName checks that a git ref name contains only safe characters.
-func isSafeRefName(ref string) bool {
-	if len(ref) == 0 || len(ref) > 255 {
-		return false
-	}
-	return safeRefPattern.MatchString(ref)
-}
-
-// QueryStatsForBranch queries stats for a specific branch.
-func QueryStatsForBranch(repoPath, date, branch string) (*branchResult, error) {
-	if err := ValidateDate(date); err != nil {
-		return nil, err
-	}
-	if !isSafeRefName(branch) {
-		return nil, fmt.Errorf("invalid branch name")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), QueryTimeout)
-	defer cancel()
-
-	args := []string{
-		"log", branch,
-		"--since=" + date + " 00:00:00",
-		"--until=" + date + " 23:59:59",
-		"--first-parent",
-		"--pretty=format:%H",
-		"--shortstat",
-	}
-
-	//nolint:gosec // date and branch are validated by ValidateDate/isSafeRefName above
-	cmd := exec.CommandContext(ctx, "git", args...)
-	cmd.Dir = repoPath
-
-	out, err := cmd.Output()
-	if err != nil {
-		if ctx.Err() == context.DeadlineExceeded {
-			return nil, fmt.Errorf("branch query timed out after %v", QueryTimeout)
-		}
-		return &branchResult{}, nil
-	}
-
-	return parseShortStatWithCommits(string(out))
-}
-
 // parseShortStat parses git log --shortstat output into a Result.
 func parseShortStat(output string) (*Result, error) {
 	result := &Result{}
@@ -237,31 +149,6 @@ func parseShortStat(output string) (*Result, error) {
 		}
 
 		if len(line) == 40 && isHex(line) {
-			continue
-		}
-
-		files, added, deleted := parseStatLine(line)
-		result.FilesChanged += files
-		result.LinesAdded += added
-		result.LinesDeleted += deleted
-	}
-
-	return result, nil
-}
-
-// parseShortStatWithCommits also collects commit hashes for deduplication.
-func parseShortStatWithCommits(output string) (*branchResult, error) {
-	result := &branchResult{}
-	lines := strings.Split(output, "\n")
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		if len(line) == 40 && isHex(line) {
-			result.commits = append(result.commits, line)
 			continue
 		}
 

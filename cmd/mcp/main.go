@@ -1,3 +1,7 @@
+// gitboard-mcp is the GitBuddy MCP server: it exposes the local Git knowledge
+// base (notes, projects, search) to AI agents over the Model Context
+// Protocol on stdio. The database is opened once at startup and every tool
+// call shares the same service instance as the desktop app.
 package main
 
 import (
@@ -9,12 +13,22 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+
 	"gitboard/internal/db"
 	"gitboard/internal/platform"
+	"gitboard/internal/service"
+	"gitboard/internal/version"
 )
 
 func main() {
-	mcpServer := server.NewDefaultServer("gitboard-mcp", "1.5.7")
+	d, err := db.InitDB(platform.GetDbPath())
+	if err != nil {
+		log.Fatalf("database error: %v", err)
+	}
+	defer d.Close()
+	svc := service.New(d, platform.GetGitUserName())
+
+	mcpServer := server.NewDefaultServer("gitboard-mcp", version.Version)
 
 	mcpServer.HandleListTools(func(ctx context.Context, cursor *string) (*mcp.ListToolsResult, error) {
 		_ = cursor
@@ -62,7 +76,7 @@ func main() {
 				Name:        "gitboard_projects_list",
 				Description: "List all projects",
 				InputSchema: mcp.ToolInputSchema{
-					Type: "object",
+					Type:       "object",
 					Properties: map[string]interface{}{},
 				},
 			},
@@ -97,98 +111,53 @@ func main() {
 	})
 
 	mcpServer.HandleCallTool(func(ctx context.Context, name string, arguments map[string]interface{}) (*mcp.CallToolResult, error) {
-		d, err := db.InitDB(platform.GetDbPath())
-		if err != nil {
-			return makeTextResult(fmt.Sprintf("database error: %v", err)), nil
-		}
-		defer d.Close()
-
 		switch name {
 		case "gitboard_notes_list":
-			notes, err := db.ListAllNotes(d)
-			if err != nil {
-				return makeTextResult(fmt.Sprintf("error: %v", err)), nil
-			}
-			return makeJSONResult("notes_list", notes)
+			return makeJSONResult("notes_list", svc.ListAllNotes())
 
 		case "gitboard_notes_search":
 			query, _ := arguments["query"].(string)
 			if query == "" {
 				return makeTextResult("query is required"), nil
 			}
-			hits, err := db.SearchAll(d, query)
-			if err != nil {
-				return makeTextResult(fmt.Sprintf("search error: %v", err)), nil
-			}
-			return makeJSONResult("notes_search", hits)
+			return makeJSONResult("notes_search", svc.SearchAll(query))
 
 		case "gitboard_notes_read":
 			idFloat, _ := arguments["id"].(float64)
-			id := int64(idFloat)
-			note, err := db.GetNoteByID(d, id)
+			note, err := svc.GetNote(int64(idFloat))
 			if err != nil {
 				return makeTextResult(fmt.Sprintf("note not found: %v", err)), nil
 			}
 			return makeJSONResult("note_read", note)
 
 		case "gitboard_projects_list":
-			projects, err := db.GetAllProjects(d)
-			if err != nil {
-				return makeTextResult(fmt.Sprintf("error: %v", err)), nil
-			}
-			return makeJSONResult("projects_list", projects)
+			return makeJSONResult("projects_list", svc.ListProjects())
 
 		case "gitboard_projects_stats":
 			idFloat, _ := arguments["id"].(float64)
-			id := int64(idFloat)
-			project, err := db.GetProjectByID(d, id)
+			summary, err := svc.GetProjectSummary(int64(idFloat))
 			if err != nil {
 				return makeTextResult(fmt.Sprintf("project not found: %v", err)), nil
 			}
-			repos, err := db.GetAllRepositories(d)
-			if err != nil {
-				return makeTextResult(fmt.Sprintf("error: %v", err)), nil
-			}
-			var projRepos []db.Repository
-			for _, r := range repos {
-				if r.ProjectID != nil && *r.ProjectID == id {
-					projRepos = append(projRepos, r)
-				}
-			}
-			result := struct {
-				Project   *db.Project     `json:"project"`
-				Repos     []db.Repository `json:"repos"`
-				RepoCount int             `json:"repo_count"`
-			}{Project: project, Repos: projRepos, RepoCount: len(projRepos)}
-			return makeJSONResult("project_stats", result)
+			return makeJSONResult("project_stats", summary)
 
 		case "gitboard_ask":
 			query, _ := arguments["query"].(string)
 			if query == "" {
 				return makeTextResult("query is required"), nil
 			}
-			hits, err := db.SearchAll(d, query)
-			if err != nil {
-				return makeTextResult(fmt.Sprintf("search error: %v", err)), nil
-			}
+			hits := svc.SearchAll(query)
 			if len(hits) == 0 {
 				return makeTextResult("No results found for: " + query), nil
 			}
-			var parts []string
-			for i, h := range hits {
-				if i >= 5 {
-					break
-				}
-				parts = append(parts, fmt.Sprintf("[%s] %s\n%s", h.Type, h.Title, h.Snippet))
-			}
-			return makeTextResult(strings.Join(parts, "\n---\n")), nil
+			return makeTextResult(strings.Join(service.FormatSearchAnswer(hits, 5), "\n---\n")), nil
 
 		default:
 			return makeTextResult(fmt.Sprintf("unknown tool: %s", name)), nil
 		}
 	})
 
-	log.Printf("GitBuddy MCP server starting on stdio...")
+	log.Printf("GitBuddy MCP server v%s starting on stdio...", version.Version)
 	if err := server.ServeStdio(mcpServer); err != nil {
 		log.Fatalf("MCP server error: %v", err)
 	}

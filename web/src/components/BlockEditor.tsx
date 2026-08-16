@@ -39,21 +39,28 @@ interface PaletteItem {
   insert: () => string
 }
 
-const PALETTE_ITEMS: PaletteItem[] = [
-  { label: '段落', desc: '普通文本', type: 'paragraph', insert: () => '新段落' },
-  { label: '标题', desc: '# 一级标题', type: 'heading', insert: () => '## 标题' },
-  { label: 'Callout 提示', desc: '> [!TIP]', type: 'callout', insert: () => '> [!TIP]\n> 提示内容' },
-  { label: 'Callout 警告', desc: '> [!WARNING]', type: 'callout', insert: () => '> [!WARNING]\n> 警告内容' },
-  { label: 'Callout 说明', desc: '> [!NOTE]', type: 'callout', insert: () => '> [!NOTE]\n> 说明内容' },
-  { label: '代码块', desc: '```js 代码', type: 'code', insert: () => '```js\n// 代码\n```' },
-  { label: 'Mermaid 图', desc: '```mermaid 流程图', type: 'code', insert: () => '```mermaid\nflowchart LR\n  A --> B\n```' },
-  { label: '数学公式', desc: '$$ E=mc^2 $$', type: 'math', insert: () => '$$\nE=mc^2\n$$' },
-  { label: '待办列表', desc: '- [ ] 待办事项', type: 'list', insert: () => '- [ ] 待办事项' },
-  { label: '表格', desc: '| 列 1 | 列 2 |', type: 'table', insert: () => '| 列 1 | 列 2 |\n| --- | --- |\n| 内容 | 内容 |' },
-  { label: '折叠块', desc: '<details> 可折叠', type: 'other', insert: () => '<details>\n<summary>点击展开</summary>\n\n折叠内容\n\n</details>' },
-  { label: 'Tabs 标签页', desc: '{% tabs %} 多标签', type: 'other', insert: () => '{% tabs %}\n{% tab title="标签 1" %}\n内容\n{% endtab %}\n{% tab title="标签 2" %}\n内容\n{% endtab %}\n{% endtabs %}' },
-  { label: '分隔线', desc: '--- 水平分割', type: 'hr', insert: () => '---' },
-]
+// Built per-render from the active locale so labels, syntax hints and the
+// inserted sample content all follow the UI language.
+type TFunc = (key: string, opts?: Record<string, unknown>) => string
+
+function buildPaletteItems(t: TFunc): PaletteItem[] {
+  const s = (k: string) => t(`blockEditor.samples.${k}`)
+  return [
+    { label: t('blockEditor.paragraph'), desc: t('blockEditor.desc.plainText'), type: 'paragraph', insert: () => s('paragraph') },
+    { label: t('blockEditor.heading'), desc: t('blockEditor.desc.heading'), type: 'heading', insert: () => s('heading') },
+    { label: t('blockEditor.callout'), desc: '> [!TIP]', type: 'callout', insert: () => `> [!TIP]\n> ${s('tipBody')}` },
+    { label: t('blockEditor.calloutWarn'), desc: '> [!WARNING]', type: 'callout', insert: () => `> [!WARNING]\n> ${s('warnBody')}` },
+    { label: t('blockEditor.calloutNote'), desc: '> [!NOTE]', type: 'callout', insert: () => `> [!NOTE]\n> ${s('noteBody')}` },
+    { label: t('blockEditor.code'), desc: t('blockEditor.desc.code'), type: 'code', insert: () => `\`\`\`js\n${s('codeComment')}\n\`\`\`` },
+    { label: t('blockEditor.mermaid'), desc: t('blockEditor.desc.mermaidFlow'), type: 'code', insert: () => '```mermaid\nflowchart LR\n  A --> B\n```' },
+    { label: t('blockEditor.math'), desc: '$$ E=mc^2 $$', type: 'math', insert: () => '$$\nE=mc^2\n$$' },
+    { label: t('blockEditor.todo'), desc: t('blockEditor.desc.todoItem'), type: 'list', insert: () => `- [ ] ${s('todoItem')}` },
+    { label: t('blockEditor.table'), desc: t('blockEditor.desc.tableCols'), type: 'table', insert: () => `| ${s('tableCell')} 1 | ${s('tableCell')} 2 |\n| --- | --- |\n| ${s('tableCell')} | ${s('tableCell')} |` },
+    { label: t('blockEditor.details'), desc: t('blockEditor.desc.detailsFold'), type: 'other', insert: () => `<details>\n<summary>${s('detailsSummary')}</summary>\n\n${s('detailsBody')}\n\n</details>` },
+    { label: t('blockEditor.tabs'), desc: t('blockEditor.desc.tabsMulti'), type: 'other', insert: () => `{% tabs %}\n{% tab title="${s('tabTitle')} 1" %}\n${s('tabBody')}\n{% endtab %}\n{% tab title="${s('tabTitle')} 2" %}\n${s('tabBody')}\n{% endtab %}\n{% endtabs %}` },
+    { label: t('blockEditor.hr'), desc: t('blockEditor.desc.hrSplit'), type: 'hr', insert: () => '---' },
+  ]
+}
 
 let blockSeq = 0
 function newId(): string {
@@ -114,17 +121,8 @@ function joinBlocks(blocks: Block[]): string {
   return blocks.map(b => b.text.trim()).filter(Boolean).join('\n\n')
 }
 
-const TYPE_LABELS: Record<BlockType, string> = {
-  paragraph: '段落',
-  heading: '标题',
-  code: '代码',
-  blockquote: '引用',
-  callout: 'Callout',
-  list: '列表',
-  table: '表格',
-  math: '公式',
-  hr: '分隔线',
-  other: '块',
+function typeLabel(t: TFunc, type: BlockType): string {
+  return t(`blockEditor.typeLabels.${type}`)
 }
 
 interface PaletteState {
@@ -140,7 +138,7 @@ export default function BlockEditor({ value, onChange, placeholder }: BlockEdito
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null)
   const lastEmitted = useRef(value)
   const textareaRefs = useRef<Map<string, HTMLTextAreaElement>>(new Map())
-  const paletteItems = PALETTE_ITEMS
+  const paletteItems = buildPaletteItems(t)
 
   // Re-split when the external value changes (e.g. draft reset / note switch),
   // but never echo back our own emissions.
@@ -315,7 +313,7 @@ export default function BlockEditor({ value, onChange, placeholder }: BlockEdito
             >
               ⠿
             </span>
-            <span className="block-type">{TYPE_LABELS[block.type]}</span>
+            <span className="block-type">{typeLabel(t, block.type)}</span>
             <div className="block-actions">
               <button type="button" className="block-btn" title="上移" onClick={() => moveBlock(index, -1)} disabled={index === 0}>↑</button>
               <button type="button" className="block-btn" title="下移" onClick={() => moveBlock(index, 1)} disabled={index === blocks.length - 1}>↓</button>

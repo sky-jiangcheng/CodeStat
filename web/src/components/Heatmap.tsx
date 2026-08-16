@@ -7,6 +7,8 @@ const DAYS_PER_WEEK = 7
 
 interface Props {
   onDayClick?: (date: string) => void
+  /** Restrict the heatmap to one project's repositories (0 = global). */
+  projectId?: number
 }
 
 function getLevel(day: HeatmapDay | null): number {
@@ -49,17 +51,19 @@ function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
   return grid
 }
 
-export default function Heatmap({ onDayClick }: Props) {
+export default function Heatmap({ onDayClick, projectId = 0 }: Props) {
   const { t } = useTranslation()
   const [days, setDays] = useState<HeatmapDay[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getHeatmapData()
-      .then(res => setDays(res.days))
-      .catch(() => setDays([]))
-      .finally(() => setLoading(false))
-  }, [])
+    let cancelled = false
+    getHeatmapData(projectId)
+      .then(res => { if (!cancelled) setDays(res.days) })
+      .catch(() => { if (!cancelled) setDays([]) })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [projectId])
 
   const grid = generateGrid(days)
   const stats = {
@@ -72,7 +76,7 @@ export default function Heatmap({ onDayClick }: Props) {
   if (loading) {
     return (
       <div className="heatmap-simple">
-        <div className="heatmap-loading">加载中...</div>
+        <div className="heatmap-loading">{t('common.loading', { defaultValue: '加载中…' })}</div>
       </div>
     )
   }
@@ -80,28 +84,28 @@ export default function Heatmap({ onDayClick }: Props) {
   return (
     <div className="heatmap-simple">
       <div className="heatmap-header">
-        <h3 className="heatmap-title">提交热力图</h3>
+        <h3 className="heatmap-title">{t('heatmap.title')}</h3>
         <div className="heatmap-stats">
           <div className="heatmap-stat">
-            <span className="heatmap-stat-label">活跃</span>
+            <span className="heatmap-stat-label">{t('heatmap.active')}</span>
             <span className="heatmap-stat-value">{stats.active}</span>
           </div>
           <div className="heatmap-stat">
-            <span className="heatmap-stat-label">提交</span>
+            <span className="heatmap-stat-label">{t('heatmap.commits')}</span>
             <span className="heatmap-stat-value">{stats.commits}</span>
           </div>
           <div className="heatmap-stat">
-            <span className="heatmap-stat-label">新增</span>
+            <span className="heatmap-stat-label">{t('heatmap.added')}</span>
             <span className="heatmap-stat-value">{stats.added}</span>
           </div>
           <div className="heatmap-stat">
-            <span className="heatmap-stat-label">删除</span>
+            <span className="heatmap-stat-label">{t('heatmap.deleted')}</span>
             <span className="heatmap-stat-value">-{stats.deleted}</span>
           </div>
         </div>
       </div>
 
-      <div className="heatmap-grid-simple" role="grid" aria-label="提交热力图">
+      <div className="heatmap-grid-simple" role="grid" aria-label={t('heatmap.title')}>
         {grid.map((week, wi) => (
           <div key={wi} className="heatmap-week-simple" role="gridcolumn">
             {week.map((day, di) => {
@@ -112,7 +116,7 @@ export default function Heatmap({ onDayClick }: Props) {
                   className={`heatmap-cell-simple level-${getLevel(day)}`}
                   role={clickable ? 'button' : undefined}
                   tabIndex={clickable ? 0 : undefined}
-                  aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : t('heatmap.noData', { defaultValue: 'No data' })}
+                  aria-label={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : t('heatmap.noData')}
                   title={day ? `${day.date}: +${day.lines_added} -${day.lines_deleted}` : ''}
                   onClick={clickable ? () => onDayClick!(day!.date) : undefined}
                   onKeyDown={clickable ? (e) => {
@@ -129,13 +133,13 @@ export default function Heatmap({ onDayClick }: Props) {
       </div>
 
       <div className="heatmap-legend-simple">
-        <span>少</span>
+        <span>{t('heatmap.less')}</span>
         <div className="heatmap-cell-simple level-0" />
         <div className="heatmap-cell-simple level-1" />
         <div className="heatmap-cell-simple level-2" />
         <div className="heatmap-cell-simple level-3" />
         <div className="heatmap-cell-simple level-4" />
-        <span>多</span>
+        <span>{t('heatmap.more')}</span>
       </div>
     </div>
   )

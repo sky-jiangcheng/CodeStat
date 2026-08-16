@@ -1,0 +1,413 @@
+// api/endpoints.ts — Every backend call, one endpoint per function, routed
+// through the shared transport. Names are the stable public surface imported
+// across the app.
+
+import { call } from './transport'
+import type {
+  AppConfig,
+  DailyStat,
+  HeatmapResponse,
+  ImportResult,
+  ImportRun,
+  Note,
+  NoteCount,
+  NoteVersion,
+  NoteWithProject,
+  PluginStatus,
+  Project,
+  ProjectDetail,
+  ProjectOverview,
+  ScanStatus,
+  SearchHit,
+  SourceStatus,
+  StatusBarData,
+  Summary,
+  Todo,
+  TodoCount,
+} from './types'
+
+const JSON_HEADERS = { 'Content-Type': 'application/json' }
+const jsonInit = (method: string, body: unknown): RequestInit => ({
+  method,
+  headers: JSON_HEADERS,
+  body: JSON.stringify(body),
+})
+
+// --- Projects -----------------------------------------------------------------
+
+export function getProjects(date?: string, starredOnly = false): Promise<Project[]> {
+  const params = new URLSearchParams()
+  if (date) params.set('date', date)
+  if (starredOnly) params.set('starred', '1')
+  return call<Project[]>({
+    method: 'GetProjects',
+    args: [date ?? '', starredOnly],
+    path: `/projects?${params.toString()}`,
+  }).then(d => d ?? [])
+}
+
+export function getProjectDetail(id: number): Promise<ProjectDetail> {
+  return call<ProjectDetail>({ method: 'GetProjectDetail', args: [id], path: `/projects/${id}` })
+}
+
+export function getProjectStats(id: number, date?: string): Promise<DailyStat[]> {
+  const params = date ? `?date=${date}` : ''
+  return call<DailyStat[]>({
+    method: 'GetProjectStats',
+    args: [id, date ?? ''],
+    path: `/projects/${id}/stats${params}`,
+  }).then(d => d ?? [])
+}
+
+export function toggleStar(id: number): Promise<boolean> {
+  return call<{ starred: boolean }>({
+    method: 'ToggleStar',
+    args: [id],
+    path: `/projects/${id}/star`,
+    init: { method: 'POST' },
+  }).then(r => r.starred)
+}
+
+export function refreshProjectHistory(id: number): Promise<{ success: boolean }> {
+  return call<{ success: boolean }>({
+    method: 'RefreshProjectHistory',
+    args: [id],
+    path: `/projects/${id}/refresh-history`,
+    init: { method: 'POST' },
+  })
+}
+
+export function updateProjectLevel(
+  id: number,
+  direction: 'up' | 'down'
+): Promise<{ success: boolean; new_level: number }> {
+  return call({
+    method: 'UpdateProjectLevel',
+    args: [id, direction],
+    path: `/projects/${id}/level`,
+    init: jsonInit('POST', { direction }),
+  })
+}
+
+export function searchProjects(query: string): Promise<Project[]> {
+  return call<Project[]>({
+    method: 'SearchProjects',
+    args: [query],
+    path: `/projects/search?q=${encodeURIComponent(query)}`,
+  }).then(d => d ?? [])
+}
+
+export function getProjectOverview(projectId: number): Promise<ProjectOverview> {
+  return call<ProjectOverview>({
+    method: 'GetProjectOverview',
+    args: [projectId],
+    path: `/projects/${projectId}/overview`,
+  }).then(d => d ?? {
+    readme_excerpt: '', tech_stack: [], languages: [], recent_commits: [], cached: false,
+    dependencies: [], top_contributors: [], activity: null,
+  })
+}
+
+// --- Scan -----------------------------------------------------------------------
+
+export function triggerScan(): Promise<{ success: boolean }> {
+  return call({ method: 'TriggerScan', path: '/scan', init: { method: 'POST' } })
+}
+
+export function getScanStatus(): Promise<ScanStatus> {
+  const empty: ScanStatus = { running: false, backfilling: false, message: '', progress: 0, total: 0 }
+  return call<ScanStatus>({ method: 'GetScanStatus', path: '/scan/status' }).then(d => d ?? empty)
+}
+
+// --- Config ---------------------------------------------------------------------
+
+export function getConfig(): Promise<AppConfig> {
+  return call<AppConfig>({ method: 'GetConfig', path: '/config' })
+}
+
+export function updateConfig(key: string, value: string): Promise<{ success: boolean }> {
+  return call<{ success: boolean }>({
+    method: 'UpdateConfig',
+    args: [key, value],
+    path: '/config',
+    init: jsonInit('PUT', { key, value }),
+  }).catch(() => ({ success: false }))
+}
+
+export function updateScanRoots(scan_roots: string[]): Promise<{ success: boolean }> {
+  return call<{ success: boolean }>({
+    method: 'UpdateScanRoots',
+    args: [scan_roots],
+    path: '/config',
+    init: jsonInit('PUT', { scan_roots }),
+  }).catch(() => ({ success: false }))
+}
+
+// --- Summary / heatmap / status bar -----------------------------------------------
+
+export function getSummary(date?: string): Promise<Summary> {
+  const empty: Summary = {
+    date: '', repo_count: 0, total_files: 0, total_added: 0,
+    total_deleted: 0, my_added: 0, my_deleted: 0, my_files: 0, is_workday: false,
+  }
+  const params = date ? `?date=${date}` : ''
+  return call<Summary>({
+    method: 'GetSummary',
+    args: [date ?? ''],
+    path: `/summary${params}`,
+  }).then(d => d ?? empty)
+}
+
+export function getHeatmapData(projectId = 0): Promise<HeatmapResponse> {
+  return call<HeatmapResponse>({
+    method: 'GetHeatmapData',
+    args: [projectId],
+    path: `/heatmap?project_id=${projectId}`,
+  }).then(d => d ?? { days: [] })
+}
+
+export function getStatusBar(): Promise<StatusBarData> {
+  const empty: StatusBarData = {
+    current_time: '', last_commit_time: '', last_commit_repo: '',
+    last_commit_branch: '', last_commit_msg: '',
+  }
+  return call<StatusBarData>({ method: 'GetStatusBar', path: '/status-bar' }).then(d => d ?? empty)
+}
+
+export function getTodoCounts(): Promise<TodoCount[]> {
+  return call<TodoCount[]>({ method: 'GetTodoCounts', path: '/todo-counts' }).then(d => d ?? [])
+}
+
+export function getNoteCounts(): Promise<NoteCount[]> {
+  return call<NoteCount[]>({ method: 'GetNoteCounts', path: '/note-counts' }).then(d => d ?? [])
+}
+
+// --- Search ---------------------------------------------------------------------
+
+export function searchNotes(query: string): Promise<SearchHit[]> {
+  return call<SearchHit[]>({
+    method: 'SearchNotes',
+    args: [query],
+    path: `/notes/search?q=${encodeURIComponent(query)}`,
+  }).then(d => d ?? [])
+}
+
+export function searchAll(query: string): Promise<SearchHit[]> {
+  return call<SearchHit[]>({
+    method: 'SearchAll',
+    args: [query],
+    path: `/search?q=${encodeURIComponent(query)}`,
+  }).then(d => d ?? [])
+}
+
+// --- Todos ------------------------------------------------------------------------
+
+export function listTodos(projectId: number): Promise<Todo[]> {
+  return call<Todo[]>({
+    method: 'ListTodos',
+    args: [projectId],
+    path: `/todos?project_id=${projectId}`,
+  }).then(d => d ?? [])
+}
+
+export function createTodo(projectId: number, title: string): Promise<Todo> {
+  return call<Todo>({
+    method: 'CreateTodo',
+    args: [projectId, title],
+    path: '/todos',
+    init: jsonInit('POST', { project_id: projectId, title }),
+  })
+}
+
+export function toggleTodo(todoId: number): Promise<void> {
+  return call<void>({ method: 'ToggleTodo', args: [todoId], path: `/todos/${todoId}/toggle`, init: { method: 'POST' } })
+}
+
+export function deleteTodo(todoId: number): Promise<void> {
+  return call<void>({ method: 'DeleteTodo', args: [todoId], path: `/todos/${todoId}`, init: { method: 'DELETE' } })
+}
+
+export function reorderTodos(todoIds: number[]): Promise<void> {
+  return call<void>({
+    method: 'ReorderTodos',
+    args: [todoIds],
+    path: '/todos/reorder',
+    init: jsonInit('POST', { todo_ids: todoIds }),
+  })
+}
+
+// --- Notes ------------------------------------------------------------------------
+
+export function listNotes(projectId: number): Promise<Note[]> {
+  return call<Note[]>({
+    method: 'ListNotes',
+    args: [projectId],
+    path: `/notes?project_id=${projectId}`,
+  }).then(d => d ?? [])
+}
+
+export function createNote(projectId: number, content: string): Promise<Note> {
+  return call<Note>({
+    method: 'CreateNote',
+    args: [projectId, content],
+    path: '/notes',
+    init: jsonInit('POST', { project_id: projectId, content }),
+  })
+}
+
+export interface NoteCreateInput {
+  title?: string
+  tags?: string
+  kind?: string
+  source?: string
+}
+
+export function createNoteWithMeta(
+  projectId: number,
+  content: string,
+  meta: NoteCreateInput = {}
+): Promise<Note> {
+  const title = meta.title ?? ''
+  const tags = meta.tags ?? ''
+  const kind = meta.kind ?? ''
+  const source = meta.source ?? ''
+  return call<Note>({
+    method: 'CreateNoteWithMeta',
+    args: [projectId, title, content, tags, kind, source],
+    path: '/notes',
+    init: jsonInit('POST', { project_id: projectId, content, title, tags, kind, source }),
+  })
+}
+
+export function updateNote(noteId: number, content: string): Promise<void> {
+  return call<void>({
+    method: 'UpdateNote',
+    args: [noteId, content],
+    path: `/notes/${noteId}`,
+    init: jsonInit('PUT', { content }),
+  })
+}
+
+export function updateNoteMeta(
+  noteId: number,
+  title: string,
+  tags: string,
+  kind: string,
+  pinned: boolean
+): Promise<void> {
+  return call<void>({
+    method: 'UpdateNoteMeta',
+    args: [noteId, title, tags, kind, pinned],
+    path: `/notes/${noteId}/meta`,
+    init: jsonInit('PUT', { title, tags, kind, pinned }),
+  })
+}
+
+export function pinNote(noteId: number, pinned: boolean): Promise<void> {
+  return call<void>({
+    method: 'PinNote',
+    args: [noteId, pinned],
+    path: `/notes/${noteId}/pin`,
+    init: jsonInit('POST', { pinned }),
+  })
+}
+
+export function deleteNote(noteId: number): Promise<void> {
+  return call<void>({ method: 'DeleteNote', args: [noteId], path: `/notes/${noteId}`, init: { method: 'DELETE' } })
+}
+
+export function moveNote(noteId: number, projectId: number): Promise<void> {
+  return call<void>({
+    method: 'MoveNote',
+    args: [noteId, projectId],
+    path: `/notes/${noteId}/move`,
+    init: jsonInit('POST', { project_id: projectId }),
+  })
+}
+
+// --- Note version history -----------------------------------------------------------
+
+export function listNoteVersions(noteId: number): Promise<NoteVersion[]> {
+  return call<NoteVersion[]>({
+    method: 'ListNoteVersions',
+    args: [noteId],
+    path: `/notes/${noteId}/versions`,
+  }).then(d => d ?? [])
+}
+
+export function restoreNoteVersion(noteId: number, versionId: number): Promise<void> {
+  return call<void>({
+    method: 'RestoreNoteVersion',
+    args: [noteId, versionId],
+    path: `/notes/${noteId}/versions/${versionId}/restore`,
+    init: { method: 'POST' },
+  })
+}
+
+export function diffNoteVersions(noteId: number, versionId: number): Promise<string> {
+  return call<string>({
+    method: 'DiffNoteVersions',
+    args: [noteId, versionId],
+    path: `/notes/${noteId}/versions/${versionId}/diff`,
+  }).then(d => d ?? '')
+}
+
+// --- Knowledge hub -------------------------------------------------------------------
+
+export function listAllNotes(): Promise<NoteWithProject[]> {
+  return call<NoteWithProject[]>({ method: 'ListAllNotes', path: '/notes/all' }).then(d => d ?? [])
+}
+
+export function listAllTags(): Promise<string[]> {
+  return call<string[]>({ method: 'ListAllTags', path: '/notes/tags' }).then(d => d ?? [])
+}
+
+export function importClaudeMemory(): Promise<ImportResult> {
+  return call<ImportResult>({
+    method: 'ImportClaudeMemory',
+    path: '/knowledge/import',
+    init: { method: 'POST' },
+  }).then(d => d ?? { synced: 0, updated: 0, skipped: 0 })
+}
+
+// --- AI-facing exports ------------------------------------------------------------------
+
+export function generateLLMsTxt(): Promise<string> {
+  return call<string>({ method: 'GenerateLLMsTxt', path: '/llms' })
+}
+
+export function exportNoteAsMarkdown(noteId: number): Promise<string> {
+  return call<string>({
+    method: 'ExportNoteAsMarkdown',
+    args: [noteId],
+    path: `/notes/${noteId}/markdown`,
+  }).then(d => d ?? '')
+}
+
+// --- Plugins -------------------------------------------------------------------------------
+
+export function getPluginStatuses(): Promise<PluginStatus[]> {
+  return call<PluginStatus[]>({ method: 'GetPluginStatuses', path: '/plugins' }).then(d => d ?? [])
+}
+
+export function getKnowledgeSources(): Promise<SourceStatus[]> {
+  return call<SourceStatus[]>({ method: 'GetKnowledgeSources', path: '/plugins/sources' }).then(d => d ?? [])
+}
+
+export function triggerKnowledgeImport(name: string): Promise<ImportRun> {
+  const empty: ImportRun = { created: 0, updated: 0, skipped: 0 }
+  return call<ImportRun>({
+    method: 'TriggerKnowledgeImport',
+    args: [name],
+    path: '/plugins/import',
+    init: jsonInit('POST', { source: name }),
+  }).then(d => d ?? empty)
+}
+
+export function reloadPlugins(): Promise<PluginStatus[]> {
+  return call<PluginStatus[]>({
+    method: 'ReloadPlugins',
+    path: '/plugins/reload',
+    init: { method: 'POST' },
+  }).then(d => d ?? [])
+}

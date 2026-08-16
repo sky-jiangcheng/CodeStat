@@ -1,0 +1,28 @@
+import js from '@eslint/js'
+import globals from 'globals'
+import tseslint from 'typescript-eslint'
+import reactHooks from 'eslint-plugin-react-hooks'
+
+export default tseslint.config(
+  {
+    ignores: ['dist', 'node_modules', 'src/lib'],
+  },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  {
+    files: ['**/*.{ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.browser, ...globals.es2022 },
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      ...reactHooks.configs.recommended.rules,
+      // The Wails/i18n interop uses dynamic window access by design.
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
+)

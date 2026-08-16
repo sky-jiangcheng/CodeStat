@@ -1,0 +1,213 @@
+package app
+
+import (
+	"context"
+
+	pluginruntime "gitboard/internal/core/plugin/runtime"
+	"gitboard/internal/domain"
+	"gitboard/internal/service"
+)
+
+// --- Projects ---------------------------------------------------------------
+
+// GetProjects returns enriched project summaries, optionally filtered by date
+// and starred status.
+func (a *App) GetProjects(date string, starredOnly bool) []service.ProjectResponse {
+	return a.svc.GetProjects(date, starredOnly)
+}
+
+// GetProjectDetail returns a project with all its repositories and stats.
+func (a *App) GetProjectDetail(id int64) (*service.ProjectDetailResponse, error) {
+	return a.svc.GetProjectDetail(id)
+}
+
+// GetProjectStats returns daily stats for a project, optionally by date.
+func (a *App) GetProjectStats(id int64, date string) []domain.DailyStat {
+	return a.svc.GetProjectStats(id, date)
+}
+
+// UpdateProjectLevel adjusts a project's grouping level up or down.
+func (a *App) UpdateProjectLevel(id int64, direction string) (*service.LevelUpdateResult, error) {
+	return a.svc.UpdateProjectLevel(id, direction)
+}
+
+// ToggleStar flips the starred status of a project.
+func (a *App) ToggleStar(projectID int64) (bool, error) { return a.svc.ToggleStar(projectID) }
+
+// RefreshProjectHistory triggers a full 365-day stats backfill for a single
+// project's repositories.
+func (a *App) RefreshProjectHistory(projectID int64) (map[string]any, error) {
+	ctx := a.ctx
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	if err := a.svc.RefreshProjectHistory(ctx, projectID); err != nil {
+		return nil, err
+	}
+	return map[string]any{"success": true}, nil
+}
+
+// SearchProjects searches for projects by name or path.
+func (a *App) SearchProjects(query string) []service.ProjectResponse {
+	return a.svc.SearchProjects(query)
+}
+
+// GetProjectOverview returns mined knowledge for a project detail page.
+func (a *App) GetProjectOverview(projectID int64) (*service.ProjectOverview, error) {
+	return a.svc.GetProjectOverview(projectID)
+}
+
+// --- Scan -------------------------------------------------------------------
+
+// TriggerScan starts an async full repository scan and returns immediately.
+func (a *App) TriggerScan() (*service.ScanResult, error) { return a.svc.TriggerScan() }
+
+// GetScanStatus returns the current scan progress.
+func (a *App) GetScanStatus() *service.ScanStatus { return a.svc.GetScanStatus() }
+
+// --- Summary / heatmap / status ----------------------------------------------
+
+// GetSummary returns aggregated stats for all repositories on a given date.
+func (a *App) GetSummary(date string) (*service.SummaryData, error) { return a.svc.GetSummary(date) }
+
+// GetHeatmapData returns daily commit stats for the past year. A positive
+// projectID restricts the aggregation to that project's repositories.
+func (a *App) GetHeatmapData(projectID int64) *service.HeatmapResponse {
+	return a.svc.GetHeatmapData(projectID)
+}
+
+// GetStatusBar returns current status bar information (30s cached).
+func (a *App) GetStatusBar() *service.StatusBarData { return a.svc.GetStatusBar() }
+
+// GetTodoCounts returns incomplete and total todo counts per project.
+func (a *App) GetTodoCounts() []domain.TodoCount { return a.svc.GetTodoCounts() }
+
+// GetNoteCounts returns the count of notes per project.
+func (a *App) GetNoteCounts() []domain.NoteCount { return a.svc.GetNoteCounts() }
+
+// --- Search -----------------------------------------------------------------
+
+// SearchNotes searches note content/title/tags across all projects.
+func (a *App) SearchNotes(query string) []domain.SearchHit { return a.svc.SearchNotes(query) }
+
+// SearchAll searches notes and todos together.
+func (a *App) SearchAll(query string) []domain.SearchHit { return a.svc.SearchAll(query) }
+
+// --- Notes ------------------------------------------------------------------
+
+// ListNotes returns all notes for a project.
+func (a *App) ListNotes(projectID int64) []domain.Note { return a.svc.ListNotes(projectID) }
+
+// CreateNote creates a new note for a project.
+func (a *App) CreateNote(projectID int64, content string) (*domain.Note, error) {
+	return a.svc.CreateNote(projectID, content)
+}
+
+// CreateNoteWithMeta creates a note with explicit title, tags, kind and source.
+func (a *App) CreateNoteWithMeta(projectID int64, title, content, tags, kind, source string) (*domain.Note, error) {
+	return a.svc.CreateNoteWithMeta(projectID, title, content, tags, kind, source)
+}
+
+// UpdateNote updates the content of a note.
+func (a *App) UpdateNote(noteID int64, content string) error {
+	return a.svc.UpdateNote(noteID, content)
+}
+
+// DeleteNote removes a note.
+func (a *App) DeleteNote(noteID int64) error { return a.svc.DeleteNote(noteID) }
+
+// UpdateNoteMeta updates a note's editable metadata.
+func (a *App) UpdateNoteMeta(noteID int64, title, tags, kind string, pinned bool) error {
+	return a.svc.UpdateNoteMeta(noteID, title, tags, kind, pinned)
+}
+
+// PinNote sets or clears the pinned flag on a note.
+func (a *App) PinNote(noteID int64, pinned bool) error { return a.svc.PinNote(noteID, pinned) }
+
+// MoveNote reassigns a note to a different project.
+func (a *App) MoveNote(noteID, projectID int64) error { return a.svc.MoveNote(noteID, projectID) }
+
+// ListAllNotes returns every note across all projects with project info.
+func (a *App) ListAllNotes() []domain.NoteWithProject { return a.svc.ListAllNotes() }
+
+// ListAllTags returns the distinct set of tags used across all notes.
+func (a *App) ListAllTags() []string { return a.svc.ListAllTags() }
+
+// ListNoteVersions returns the recent version history for a note.
+func (a *App) ListNoteVersions(noteID int64) []domain.NoteVersion {
+	return a.svc.ListNoteVersions(noteID)
+}
+
+// RestoreNoteVersion restores a note to the content of a previous version.
+func (a *App) RestoreNoteVersion(noteID, versionID int64) error {
+	return a.svc.RestoreNoteVersion(noteID, versionID)
+}
+
+// DiffNoteVersions returns a line-based diff between a version and the note.
+func (a *App) DiffNoteVersions(noteID, versionID int64) (string, error) {
+	return a.svc.DiffNoteVersions(noteID, versionID)
+}
+
+// --- Todos ------------------------------------------------------------------
+
+// ListTodos returns all todo items for a project.
+func (a *App) ListTodos(projectID int64) []domain.Todo { return a.svc.ListTodos(projectID) }
+
+// CreateTodo creates a new todo for a project.
+func (a *App) CreateTodo(projectID int64, title string) (*domain.Todo, error) {
+	return a.svc.CreateTodo(projectID, title)
+}
+
+// ToggleTodo flips the completed status of a todo.
+func (a *App) ToggleTodo(todoID int64) error { return a.svc.ToggleTodo(todoID) }
+
+// DeleteTodo removes a todo.
+func (a *App) DeleteTodo(todoID int64) error { return a.svc.DeleteTodo(todoID) }
+
+// ReorderTodos updates the sort_order for a list of todo IDs.
+func (a *App) ReorderTodos(todoIDs []int64) error { return a.svc.ReorderTodos(todoIDs) }
+
+// --- Config -----------------------------------------------------------------
+
+// GetConfig returns all configuration settings and scan roots.
+func (a *App) GetConfig() (*service.ConfigData, error) { return a.svc.GetConfig() }
+
+// UpdateConfig sets a single configuration key-value pair.
+func (a *App) UpdateConfig(key, value string) error { return a.svc.UpdateConfig(key, value) }
+
+// UpdateScanRoots replaces the entire scan root list atomically.
+func (a *App) UpdateScanRoots(scanRoots []string) error { return a.svc.UpdateScanRoots(scanRoots) }
+
+// --- AI-facing exports --------------------------------------------------------
+
+// GenerateLLMsTxt returns an aggregated Markdown document for AI consumption.
+func (a *App) GenerateLLMsTxt() string { return a.svc.GenerateLLMsTxt() }
+
+// ExportNoteAsMarkdown returns a single note as Markdown with YAML frontmatter.
+func (a *App) ExportNoteAsMarkdown(noteID int64) string { return a.svc.ExportNoteAsMarkdown(noteID) }
+
+// --- Plugins / knowledge sources ----------------------------------------------
+
+// GetPluginStatuses returns the load status of every plugin directory.
+func (a *App) GetPluginStatuses() []pluginruntime.PluginStatus { return a.svc.GetPluginStatuses() }
+
+// GetKnowledgeSources returns registered knowledge importers with their state.
+func (a *App) GetKnowledgeSources() []pluginruntime.SourceStatus { return a.svc.GetKnowledgeSources() }
+
+// TriggerKnowledgeImport runs one knowledge source and returns its statistics.
+func (a *App) TriggerKnowledgeImport(name string) (pluginruntime.ImportRun, error) {
+	return a.svc.TriggerKnowledgeImport(name)
+}
+
+// TriggerAllKnowledgeImports runs every registered knowledge source.
+func (a *App) TriggerAllKnowledgeImports() []pluginruntime.SourceRun {
+	return a.svc.TriggerAllKnowledgeImports()
+}
+
+// ReloadPlugins rescans the plugins directory and reloads every plugin.
+func (a *App) ReloadPlugins() []pluginruntime.PluginStatus { return a.svc.ReloadPlugins() }
+
+// ImportClaudeMemory imports notes from Claude's memory directories.
+func (a *App) ImportClaudeMemory() (*service.ImportResult, error) {
+	return a.svc.ImportClaudeMemory()
+}

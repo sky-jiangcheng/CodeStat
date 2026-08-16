@@ -127,35 +127,3 @@ func isDirectChild(parent, child string) bool {
 	dir := filepath.Dir(child)
 	return dir == parent
 }
-
-// AdjustProjectLevelUp expands a project's scope to include all repos under the parent directory.
-func AdjustProjectLevelUp(group *ProjectGroup, allRepos []scanner.RepoInfo) *ProjectGroup {
-	parentDir := filepath.Dir(group.RootPath)
-	newGroup := &ProjectGroup{
-		Name:          filepath.Base(parentDir),
-		RootPath:      parentDir,
-		IsAutoGrouped: false,
-	}
-
-	for _, r := range allRepos {
-		if strings.HasPrefix(r.Path, parentDir) {
-			newGroup.Repos = append(newGroup.Repos, r)
-		}
-	}
-	return newGroup
-}
-
-// AdjustProjectLevelDown splits a project into individual sub-projects.
-func AdjustProjectLevelDown(group *ProjectGroup) []ProjectGroup {
-	var groups []ProjectGroup
-	for _, repo := range group.Repos {
-		g := ProjectGroup{
-			Name:          filepath.Base(repo.Path),
-			RootPath:      repo.Path,
-			Repos:         []scanner.RepoInfo{repo},
-			IsAutoGrouped: false,
-		}
-		groups = append(groups, g)
-	}
-	return groups
-}

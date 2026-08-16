@@ -1,4 +1,4 @@
-import { Component, ReactNode, useEffect, useState } from 'react'
+import { Component, ReactNode, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Dashboard from './pages/Dashboard'
@@ -9,7 +9,9 @@ import CommandPalette from './components/CommandPalette'
 import ToastHost, { type ToastItem } from './components/Toast'
 import { listenImportCompleted } from './api/client'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
+import { onInstallPrompt, consumeInstallPrompt } from './utils/install'
 import { setLanguage, getCurrentLanguage } from './i18n'
+import i18n from './i18n'
 
 type LanguageOption = 'zh-CN' | 'en'
 
@@ -48,9 +50,9 @@ class ErrorBoundary extends Component<
       return (
         <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
           <div className="error-banner">
-            <span>页面加载出错：{this.state.error?.message || 'Unknown error'}</span>
+            <span>{i18n.t('common.pageError', { defaultValue: '页面加载出错' })}: {this.state.error?.message || 'Unknown error'}</span>
           </div>
-          <button className="btn btn-primary" onClick={this.handleReset}>返回仪表盘</button>
+          <button className="btn btn-primary" onClick={this.handleReset}>{i18n.t('project.backToDashboard')}</button>
         </div>
       )
     }
@@ -63,6 +65,17 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const { t } = useTranslation()
   const [langOpen, setLangOpen] = useState(false)
   const currentLang = getCurrentLanguage()
+  const langRef = useRef<HTMLDivElement>(null)
+
+  // Close the language dropdown on outside clicks.
+  useEffect(() => {
+    if (!langOpen) return
+    const handler = (e: MouseEvent) => {
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [langOpen])
 
   return (
     <header>
@@ -85,14 +98,7 @@ function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
           </div>
         </div>
         <div className="nav-right">
-          <div className="lang-switcher" ref={(el) => {
-            if (!el) return
-            const handler = (e: MouseEvent) => {
-              if (!el.contains(e.target as Node)) setLangOpen(false)
-            }
-            if (langOpen) document.addEventListener('mousedown', handler)
-            return () => document.removeEventListener('mousedown', handler)
-          }}>
+          <div className="lang-switcher" ref={langRef}>
             <button
               className="nav-lang-btn"
               onClick={() => setLangOpen(v => !v)}
@@ -157,6 +163,8 @@ function App() {
     main?.scrollIntoView({ block: 'start' })
   }
 
+  // pushToast owns the per-toast auto-dismiss timer (the only scheduling
+  // site — ToastHost renders purely).
   const pushToast = (item: Omit<ToastItem, 'id'>) => {
     const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
     setToasts(prev => [...prev, { ...item, id }])
@@ -172,7 +180,8 @@ function App() {
   }, [])
 
   useEffect(() => {
-    // Surface knowledge import results as toasts (issue #36).
+    // Surface knowledge import results as toasts (issue #36). The listener
+    // is really unsubscribed now that transport returns the cancel function.
     const unsubscribe = listenImportCompleted((data) => {
       if (data.error) {
         pushToast({ kind: 'error', title: `${t('common.importFailed', { defaultValue: 'Import failed' })} ${data.source}`, message: data.error })
@@ -201,32 +210,20 @@ function App() {
     return () => window.removeEventListener('keydown', handler)
   }, [])
 
-  // Intercept beforeinstallprompt so we can surface an install action to the
-  // user as a toast. Once the user dismisses the browser prompt (accept or
-  // cancel) the deferred prompt is consumed.
+  // Surface the browser install prompt as a toast with an action. The shared
+  // capture lives in utils/install.ts (also used by the Settings page).
   useEffect(() => {
-    let deferredPrompt: any = null
-    const onPrompt = (e: Event) => {
-      e.preventDefault()
-      deferredPrompt = e
+    return onInstallPrompt(prompt => {
+      if (!prompt) return
       pushToast({
         kind: 'info',
         title: t('common.installDesktop', { defaultValue: 'Install GitBuddy to Desktop' }),
         message: t('common.installMsg', { defaultValue: 'Install for standalone window and offline use.' }),
         actionLabel: t('common.install', { defaultValue: 'Install' }),
-        onAction: async () => {
-          if (!deferredPrompt) return
-          deferredPrompt.prompt?.()
-          try {
-            await deferredPrompt.userChoice
-          } catch { /* ignore */ }
-          deferredPrompt = null
-        },
+        onAction: () => consumeInstallPrompt(),
         duration: 60_000,
       })
-    }
-    window.addEventListener('beforeinstallprompt', onPrompt)
-    return () => window.removeEventListener('beforeinstallprompt', onPrompt)
+    })
   }, [t])
 
   return (

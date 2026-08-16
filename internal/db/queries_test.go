@@ -9,86 +9,12 @@ import (
 // setupTestDB creates an in-memory SQLite database with all tables for testing.
 func setupTestDB(t *testing.T) *sql.DB {
 	t.Helper()
-	db, err := sql.Open("sqlite", ":memory:")
+	database, err := InitDB(":memory:")
 	if err != nil {
-		t.Fatalf("failed to open in-memory db: %v", err)
+		t.Fatalf("failed to init in-memory db: %v", err)
 	}
-	if _, err := db.Exec("PRAGMA foreign_keys=ON"); err != nil {
-		t.Fatalf("failed to enable foreign keys: %v", err)
-	}
-	// Create all tables
-	schema := `
-	CREATE TABLE IF NOT EXISTS projects (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		root_path TEXT NOT NULL,
-		level_override INTEGER DEFAULT 0,
-		is_auto_grouped BOOLEAN DEFAULT 1,
-		is_starred INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-	);
-	CREATE TABLE IF NOT EXISTS repositories (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		path TEXT NOT NULL UNIQUE,
-		project_id INTEGER,
-		last_scanned_at DATETIME,
-		FOREIGN KEY (project_id) REFERENCES projects(id)
-	);
-	CREATE TABLE IF NOT EXISTS daily_stats (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		repository_id INTEGER NOT NULL,
-		stat_date DATE NOT NULL,
-		author TEXT NOT NULL,
-		files_changed INTEGER DEFAULT 0,
-		lines_added INTEGER DEFAULT 0,
-		lines_deleted INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (repository_id) REFERENCES repositories(id),
-		UNIQUE(repository_id, stat_date, author)
-	);
-	CREATE TABLE IF NOT EXISTS project_todos (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		project_id INTEGER NOT NULL,
-		title TEXT NOT NULL,
-		completed BOOLEAN DEFAULT 0,
-		priority INTEGER DEFAULT 0,
-		sort_order INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-	);
-	CREATE TABLE IF NOT EXISTS project_notes (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		project_id INTEGER NOT NULL,
-		title TEXT DEFAULT '',
-		content TEXT NOT NULL,
-		tags TEXT DEFAULT '',
-		kind TEXT DEFAULT 'other',
-		pinned INTEGER DEFAULT 0,
-		source TEXT DEFAULT 'manual',
-		sort_order INTEGER DEFAULT 0,
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
-	);
-	CREATE TABLE IF NOT EXISTS repo_meta (
-		repository_id INTEGER PRIMARY KEY,
-		tech_stack TEXT DEFAULT '[]',
-		readme_excerpt TEXT DEFAULT '',
-		languages TEXT DEFAULT '{}',
-		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-		FOREIGN KEY (repository_id) REFERENCES repositories(id) ON DELETE CASCADE
-	);
-	`
-	if _, err := db.Exec(schema); err != nil {
-		t.Fatalf("failed to create tables: %v", err)
-	}
-	// Create the FTS5 search index + sync triggers (issue #18) so search tests
-	// exercise the same path as production.
-	if err := EnsureFTSIndex(db); err != nil {
-		t.Fatalf("failed to create FTS index: %v", err)
-	}
-	return db
+	t.Cleanup(func() { _ = database.Close() })
+	return database
 }
 
 // createTestProject inserts a project and returns its ID.
