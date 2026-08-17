@@ -179,3 +179,9 @@
 [1.2.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.2.0
 [1.1.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.1.0
 [1.0.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.0.0
+
+## [1.7.1] - 2026-08-18
+
+### 修复
+
+- 修复 ESLint 被 TypeScript 7.0 兼容性阻塞问题：降级 TypeScript 至 6.0.3，修复 react-hooks/refs 违规（4 个 hook），修复 set-state-in-effect 违规（7 个文件），修复 markdown.ts 不必要转义和 seo.ts 缺失依赖
