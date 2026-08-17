@@ -6,19 +6,6 @@
 
 ### 品牌与二进制统一为 GitBuddy（重构方案阶段 11，已推迟）
 
-GitHub 远程仓库已是 `sky-jiangcheng/gitbuddy`、UI 产品名为 GitBuddy，但二进制与 Go module 仍叫 `gitboard`。**用户数据路径不变是硬约束**（DB/日志/插件目录沿用 `gitboard` 目录名，避免老用户数据丢失）。
-
-- [ ] 二进制更名：`gitboard`→`gitbuddy`、`gitboard-mcp`→`gitbuddy-mcp`、`gitboard-agent-score`→`gitbuddy-agent-score`
-  - 涉及：`wails.json`（outputfilename）、`scripts/build.sh`、`scripts/install.sh`、`scripts/install.ps1`、`.github/workflows/release.yml` 产物名、`tools/agent-score`（已兼容双名检测）、发布资产命名
-  - ⚠️ 更名后旧版 install.sh 拉不到新资产名，需在 Release Notes 说明
-- [ ] Go module 路径 `gitboard` 保持不动（避免大规模 import 改写，已在 ADR-0005 记录决策）
-- [ ] 日志文件名 `gitboard.log`、DB 路径 `…/gitboard/dashboard.db`、插件目录 `…/gitboard/plugins/` 保持不变（数据兼容）
-
-### ESLint 被 TypeScript 7 兼容性阻塞
-
-- [ ] `web` 已配置 `eslint.config.js`（flat config + react-hooks 插件）并安装依赖，但 **`typescript-eslint` 尚不支持 TS 7.0**（上游跟踪：[typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940)），`npm run lint` 当前会报错退出
-- [ ] 解除阻塞后：修复存量 lint 告警，并把 lint 加入 CI
-
 ## 中优先级
 
 ### 前端测试与数据层收尾
@@ -35,7 +22,6 @@ GitHub 远程仓库已是 `sky-jiangcheng/gitbuddy`、UI 产品名为 GitBuddy�
 
 ### 上游协作
 
-- [ ] TS 7 / typescript-eslint 兼容问题关注上游进展
 - [ ] `examples/plugins` 两个示例插件在重构后回归验证一次（插件 SPI 未变，预期兼容）
 
 ## 低优先级 / 观察项

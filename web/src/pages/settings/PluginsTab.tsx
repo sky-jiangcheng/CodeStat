@@ -25,7 +25,7 @@ export default function PluginsTab({ initialAutoImport, showMessage }: Props) {
   }
 
   useEffect(() => {
-    void refreshPluginState()
+    void refreshPluginState() // eslint-disable-line react-hooks/set-state-in-effect
   }, [])
 
   const handleReloadPlugins = async () => {

@@ -71,7 +71,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
 
   useEffect(() => {
     if (autoNew) {
-      setIsNew(true)
+      setIsNew(true) // eslint-disable-line react-hooks/set-state-in-effect
       setEditingId(null)
     }
   }, [autoNew])

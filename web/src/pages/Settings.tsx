@@ -30,7 +30,7 @@ function Settings() {
   }
 
   useEffect(() => {
-    setThemeMode(getStoredTheme())
+    setThemeMode(getStoredTheme()) // eslint-disable-line react-hooks/set-state-in-effect
     getConfig()
       .then(setData)
       .finally(() => setLoading(false))

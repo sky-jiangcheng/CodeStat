@@ -47,7 +47,7 @@ export function usePageMeta({ title, description, path = '/', image = DEFAULT_IM
       document.head.appendChild(canonical)
     }
     canonical.setAttribute('href', url)
-  }, [title, description, path, image, i18n.language])
+  }, [title, description, path, image, i18n.language, i18n])
 
   // Keep <html lang> in sync
   useEffect(() => {

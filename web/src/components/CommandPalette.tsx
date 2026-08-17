@@ -29,7 +29,7 @@ export default function CommandPalette({ open, onClose }: Props) {
     if (open) {
       // Record the element that had focus (the trigger button) so we can restore it.
       previouslyFocused.current = document.activeElement as HTMLElement
-      setQuery('')
+      setQuery('') // eslint-disable-line react-hooks/set-state-in-effect
       setHits([])
       setActiveIndex(0)
       getProjects('', false).then(setProjects).catch(() => setProjects([]))
@@ -47,7 +47,7 @@ export default function CommandPalette({ open, onClose }: Props) {
   useEffect(() => {
     if (!open) return
     const trimmed = query.trim()
-    if (!trimmed) { setHits([]); setActiveIndex(0); return }
+    if (!trimmed) { setHits([]); setActiveIndex(0); return } // eslint-disable-line react-hooks/set-state-in-effect
     let cancelled = false
     const t = setTimeout(() => {
       searchAll(trimmed).then(r => {

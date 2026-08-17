@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 export function useConfirmClick(onConfirm: () => void, resetMs = 2500): { armed: boolean; click: () => void } {
   const [armed, setArmed] = useState(false)
   const confirmRef = useRef(onConfirm)
-  confirmRef.current = onConfirm
+  useEffect(() => { confirmRef.current = onConfirm }, [onConfirm])
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {

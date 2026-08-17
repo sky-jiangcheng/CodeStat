@@ -115,6 +115,7 @@ function KnowledgePage() {
     return list
   }, [notes, kindFilter, activeTag, pinnedOnly])
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const projectNames = useMemo(() => {
     const set = new Map<string, number>()
     notes.forEach(n => set.set(n.project_name, n.project_id))

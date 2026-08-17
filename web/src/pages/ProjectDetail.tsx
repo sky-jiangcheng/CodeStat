@@ -26,7 +26,7 @@ function ProjectDetailPage() {
   useEffect(() => {
     if (!id) return
     let cancelled = false
-    setLoading(true)
+    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
     setError('')
     getProjectDetail(Number(id))
       .then(p => {

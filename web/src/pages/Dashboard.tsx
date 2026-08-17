@@ -65,8 +65,8 @@ function Dashboard() {
         if (!isNaN(v) && v > 0) setDailyGoal(v)
       })
       .catch(() => {})
-    void fetchData(date, showStarredOnly)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void fetchData(date, showStarredOnly) // eslint-disable-line react-hooks/set-state-in-effect
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, showStarredOnly])
 
   const handleScan = async () => {

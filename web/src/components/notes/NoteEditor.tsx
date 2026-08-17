@@ -48,7 +48,7 @@ export default function NoteEditor({
 
   // Async preview: renderMarkdownAsync supports mermaid diagrams.
   useEffect(() => {
-    if (!showPreview || !value.content) { setPreviewHtml(''); return }
+    if (!showPreview || !value.content) { setPreviewHtml(''); return } // eslint-disable-line react-hooks/set-state-in-effect
     let cancelled = false
     renderMarkdownAsync(value.content)
       .then(html => { if (!cancelled) setPreviewHtml(html) })

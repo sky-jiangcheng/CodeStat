@@ -9,7 +9,7 @@ export function useDebouncedCallback<Args extends unknown[]>(
   delay: number
 ): (...args: Args) => void {
   const fnRef = useRef(fn)
-  fnRef.current = fn
+  useEffect(() => { fnRef.current = fn }, [fn])
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   useEffect(() => {

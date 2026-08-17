@@ -20,7 +20,7 @@ export function useScanPolling(onFinish: () => void): ScanPollingState & { start
   const [doneMessage, setDoneMessage] = useState('')
   const timer = useRef<number | null>(null)
   const onFinishRef = useRef(onFinish)
-  onFinishRef.current = onFinish
+  useEffect(() => { onFinishRef.current = onFinish }, [onFinish])
 
   const stop = useCallback(() => {
     if (timer.current) { clearInterval(timer.current); timer.current = null }

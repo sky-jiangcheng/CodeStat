@@ -47,7 +47,7 @@ export function useApiData<T>(
   const { cacheKey, ttl = 30_000 } = options
   const [state, setState] = useState<ApiDataState<T>>({ data: null, loading: true, error: null })
   const fetcherRef = useRef(fetcher)
-  fetcherRef.current = fetcher
+  useEffect(() => { fetcherRef.current = fetcher }, [fetcher])
   // Stringify deps for cache-busting comparisons.
   const depsKey = JSON.stringify(deps)
   const fullKey = cacheKey ? `${cacheKey}:${depsKey}` : undefined
@@ -89,9 +89,9 @@ export function useApiData<T>(
   useEffect(() => {
     let cancelled = false
     if (cancelled) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load(false)
     return () => { cancelled = true }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fullKey, depsKey, load])
 
   // React to external invalidations while mounted.

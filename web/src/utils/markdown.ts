@@ -117,7 +117,7 @@ function renderInlineMath(html: string): string {
       try {
         return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false })
       } catch {
-        return `<span class="math-error">\$\$${expr}\$\$</span>`
+        return `<span class="math-error">$$${expr}$$</span>`
       }
     })
     .replace(/\$([^$\n]+?)\$/g, (_match, expr: string) => {
