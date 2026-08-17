@@ -3,7 +3,7 @@ module gitboard
 go 1.25.5
 
 require (
-	github.com/mark3labs/mcp-go v0.57.0
+	github.com/mark3labs/mcp-go v0.58.0
 	github.com/traefik/yaegi v0.16.1
 	github.com/wailsapp/wails/v2 v2.13.0
 	modernc.org/sqlite v1.56.0
