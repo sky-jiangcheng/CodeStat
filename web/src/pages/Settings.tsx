@@ -18,6 +18,7 @@ function Settings() {
   usePageMeta({ title: `${t('settings.title')} - GitBuddy`, description: 'GitBuddy 设置：扫描目录、代码标准、作者配置、外观、插件与操作。', path: '/settings' })
   const [data, setData] = useState<AppConfig | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [themeMode, setThemeMode] = useState<ThemeMode>('system')
   const [message, setMessage] = useState('')
   const [tab, setTab] = useState<TabKey>('scan')
@@ -31,8 +32,10 @@ function Settings() {
 
   useEffect(() => {
     setThemeMode(getStoredTheme()) // eslint-disable-line react-hooks/set-state-in-effect
+    setError('')
     getConfig()
       .then(setData)
+      .catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) })
       .finally(() => setLoading(false))
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
   }, [])
@@ -44,6 +47,18 @@ function Settings() {
         <div className="skeleton skeleton-text" style={{width: '100%', height: 24, marginBottom: 12}} />
         <div className="skeleton skeleton-text" style={{width: '100%', height: 64, marginBottom: 8}} />
         <div className="skeleton skeleton-text" style={{width: '100%', height: 64, marginBottom: 8}} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="settings">
+        <h1>{t('settings.title')}</h1>
+        <div className="error-banner">
+          <span>{error}</span>
+          <button className="btn btn-sm" onClick={() => { setError(''); getConfig().then(setData).catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) }) }}>{t('common.retry')}</button>
+        </div>
       </div>
     )
   }

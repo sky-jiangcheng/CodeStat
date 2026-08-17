@@ -7,11 +7,12 @@ import Settings from './pages/Settings'
 import Knowledge from './pages/Knowledge'
 import CommandPalette from './components/CommandPalette'
 import ToastHost, { type ToastItem } from './components/Toast'
-import { listenImportCompleted } from './api/client'
+import { listenImportCompleted } from './api/transport'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
 import { onInstallPrompt, consumeInstallPrompt } from './utils/install'
 import { setLanguage, getCurrentLanguage } from './i18n'
 import i18n from './i18n'
+import { getConnectionKind, subscribeConnection, startHealthPoll } from './api/transport'
 
 type LanguageOption = 'zh-CN' | 'en'
 
@@ -154,6 +155,17 @@ function App() {
   const { t } = useTranslation()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [toasts, setToasts] = useState<ToastItem[]>([])
+  const [connKind, setConnKind] = useState(getConnectionKind())
+
+  // Start periodic health polling on mount.
+  useEffect(() => {
+    return startHealthPoll()
+  }, [])
+
+  // React to connection state changes.
+  useEffect(() => {
+    return subscribeConnection(setConnKind)
+  }, [])
 
   // Focus main without touching location (BrowserRouter owns the history).
   const skipToContent = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -226,9 +238,18 @@ function App() {
     })
   }, [t])
 
+  const connBanner = connKind === 'offline'
+    ? t('status.offline', { defaultValue: 'Offline' })
+    : connKind === 'backend-down'
+      ? t('status.backendDown', { defaultValue: 'Backend unavailable' })
+      : null
+
   return (
     <BrowserRouter>
       <div className="app">
+        {connBanner && (
+          <div className="conn-banner" role="alert" aria-live="polite">{connBanner}</div>
+        )}
         <a className="skip-link" href="#main-content" onClick={skipToContent}>{t('common.show', { defaultValue: 'Skip to main content' })}</a>
         <NavBar onOpenPalette={() => setPaletteOpen(true)} />
         <main id="main-content" className="main-content" tabIndex={-1}>

@@ -30,3 +30,20 @@
 @import './design-system/features/settings.css';
 @import './design-system/features/block-editor.css';
 @import './design-system/features/status-bar.css';
+
+/* Connection banner */
+.conn-banner {
+  background: var(--danger-soft);
+  color: var(--danger);
+  text-align: center;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* Status bar error dot */
+.status-dot-error {
+  background: var(--danger) !important;
+  animation: none !important;
+}

@@ -351,7 +351,9 @@
     "lastCommit": "最近提交：",
     "project": "项目：",
     "branch": "分支：",
-    "noCommits": "暂无提交记录"
+    "noCommits": "暂无提交记录",
+    "offline": "已离线",
+    "backendDown": "后端不可用"
   },
   "heatmap": {
     "title": "提交热力图",

@@ -19,6 +19,7 @@ function KnowledgePage() {
   const [notes, setNotes] = useState<NoteWithProject[]>([])
   const [tags, setTags] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[] | null>(null)
   const [kindFilter, setKindFilter] = useState<KindFilter>('all')
@@ -53,10 +54,12 @@ function KnowledgePage() {
   }
 
   const fetchAll = useCallback(() => {
+    setError('')
     Promise.all([listAllNotes(), listAllTags()])
       .then(([n, tg]) => { setNotes(n); setTags(tg) })
+      .catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) })
       .finally(() => setLoading(false))
-  }, [])
+  }, [t])
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
@@ -137,6 +140,18 @@ function KnowledgePage() {
         <div className="skeleton skeleton-text" style={{ width: '100%', height: 48, marginBottom: 12 }} />
         <div className="skeleton skeleton-text" style={{ width: '100%', height: 80 }} />
         <div className="skeleton skeleton-text" style={{ width: '100%', height: 80, marginTop: 12 }} />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="knowledge">
+        <h1>{t('knowledge.title')}</h1>
+        <div className="error-banner">
+          <span>{error}</span>
+          <button className="btn btn-sm" onClick={() => void fetchAll()}>{t('common.retry')}</button>
+        </div>
       </div>
     )
   }

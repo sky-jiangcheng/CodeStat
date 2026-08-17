@@ -37,7 +37,7 @@ async function http<T>(url: string, options?: RequestInit): Promise<T> {
   const res = await fetch(BASE + url, options)
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error || 'Request failed')
+    throw new Error(err.error || `HTTP ${res.status}`)
   }
   return res.json()
 }
@@ -56,6 +56,64 @@ export function call<T>(opts: {
   if (isWails()) return wail<T>(opts.method, ...(opts.args ?? []))
   return http<T>(opts.path, opts.init)
 }
+
+// --- Connection health tracking ------------------------------------------------
+
+export type ConnectionKind = 'ok' | 'offline' | 'backend-down'
+
+let currentKind: ConnectionKind = 'ok'
+const listeners = new Set<(kind: ConnectionKind) => void>()
+
+export function getConnectionKind(): ConnectionKind { return currentKind }
+
+export function subscribeConnection(cb: (kind: ConnectionKind) => void): () => void {
+  listeners.add(cb)
+  cb(currentKind)
+  return () => { listeners.delete(cb) }
+}
+
+function notify(kind: ConnectionKind) {
+  if (kind === currentKind) return
+  currentKind = kind
+  for (const l of listeners) l(kind)
+}
+
+/** Health check: resolves true when backend responds, false otherwise. */
+export function checkHealth(): Promise<boolean> {
+  if (!isWails()) return Promise.resolve(true)
+  return wail<{ ok: boolean }>('Health').then(r => {
+    const ok = !!(r?.ok ?? true)
+    notify(ok ? 'ok' : 'backend-down')
+    return ok
+  }).catch(() => {
+    notify('backend-down')
+    return false
+  })
+}
+
+/** Start periodic health polling. Returns a cleanup function. */
+export function startHealthPoll(intervalMs = 30_000): () => void {
+  let timer: number | null = null
+  const tick = () => {
+    checkHealth().then(ok => {
+      if (ok) return
+      timer = window.setTimeout(tick, intervalMs) as unknown as number
+    })
+  }
+  checkHealth().then(ok => { if (!ok) timer = window.setTimeout(tick, intervalMs) as unknown as number })
+  return () => { if (timer !== null) clearTimeout(timer) }
+}
+
+/** Register online/offline listeners so we detect network state changes. */
+function initOnlineDetection() {
+  const update = () => {
+    if (!navigator.onLine) { notify('offline'); return }
+    checkHealth()
+  }
+  window.addEventListener('online', update)
+  window.addEventListener('offline', update)
+}
+initOnlineDetection()
 
 // --- Wails runtime events -----------------------------------------------------
 

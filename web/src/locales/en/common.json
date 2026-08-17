@@ -351,7 +351,9 @@
     "lastCommit": "Last commit:",
     "project": "Project:",
     "branch": "Branch:",
-    "noCommits": "No commits yet"
+    "noCommits": "No commits yet",
+    "offline": "Offline",
+    "backendDown": "Backend unavailable"
   },
   "heatmap": {
     "title": "Commit Heatmap",

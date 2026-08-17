@@ -1,10 +1,12 @@
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState } from 'react'
 import { getStatusBar, type StatusBarData } from '../api/client'
+import { getConnectionKind, subscribeConnection } from '../api/client'
 
 export default function StatusBar() {
   const { t } = useTranslation()
   const [data, setData] = useState<StatusBarData | null>(null)
+  const [connKind, setConnKind] = useState(getConnectionKind())
 
   const fetch = () => {
     getStatusBar().then(setData).catch(() => {})
@@ -14,6 +16,10 @@ export default function StatusBar() {
     fetch()
     const timer = setInterval(fetch, 30000)
     return () => clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    return subscribeConnection(setConnKind)
   }, [])
 
   // Update current time every second locally
@@ -32,11 +38,18 @@ export default function StatusBar() {
     second: '2-digit',
   })
 
+  const statusText = connKind === 'offline'
+    ? t('status.offline', { defaultValue: 'Offline' })
+    : connKind === 'backend-down'
+      ? t('status.backendDown', { defaultValue: 'Backend unavailable' })
+      : null
+
   return (
     <div className="status-bar" aria-live="polite">
       <div className="status-left">
         <span className="status-item">
-          <span className="status-dot" />
+          <span className={`status-dot ${connKind !== 'ok' ? 'status-dot-error' : ''}`} />
+          {statusText && <span className="status-warn">{statusText}</span>}
           {t('status.time')}{currentTime}
         </span>
       </div>

@@ -131,7 +131,7 @@ export function updateConfig(key: string, value: string): Promise<{ success: boo
     args: [key, value],
     path: '/config',
     init: jsonInit('PUT', { key, value }),
-  }).catch(() => ({ success: false }))
+  })
 }
 
 export function updateScanRoots(scan_roots: string[]): Promise<{ success: boolean }> {
@@ -140,7 +140,7 @@ export function updateScanRoots(scan_roots: string[]): Promise<{ success: boolea
     args: [scan_roots],
     path: '/config',
     init: jsonInit('PUT', { scan_roots }),
-  }).catch(() => ({ success: false }))
+  })
 }
 
 // --- Summary / heatmap / status bar -----------------------------------------------
