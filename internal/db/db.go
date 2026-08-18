@@ -18,6 +18,17 @@ func InitDB(dbPath string) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
+	// Embedded SQLite is single-writer: cap the pool to one connection so
+	// concurrent Wails/scan/plugin calls serialize instead of hitting
+	// "database is locked" (SQLITE_BUSY). busy_timeout retries under lock
+	// contention as a backstop.
+	db.SetMaxOpenConns(1)
+	db.SetConnMaxLifetime(0)
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		db.Close() //nolint:errcheck // close on init failure, error irrelevant
+		return nil, fmt.Errorf("failed to set busy_timeout: %w", err)
+	}
+
 	// Enable WAL mode for better concurrent read performance
 	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
 		db.Close() //nolint:errcheck // close on init failure, error irrelevant
@@ -299,6 +310,16 @@ func upgradeSchema(db *sql.DB) error {
 		// v9: add real commit counts to daily_stats (previously the heatmap
 		// reported COUNT(DISTINCT author) as "commits").
 		{id: 9, sql: "ALTER TABLE daily_stats ADD COLUMN commits INTEGER NOT NULL DEFAULT 0"},
+		// v10: repair repo_meta schema drift. Older databases created repo_meta
+		// with only 5 columns (createTables now defines all), so the knowledge
+		// cache columns were missing and UpsertRepoMeta/GetRepoMeta failed. On
+		// up-to-date databases these ALTERs are no-ops (duplicate column ->
+		// isAlreadyExistsErr, safe).
+		{id: 10, sql: []string{
+			"ALTER TABLE repo_meta ADD COLUMN dependencies TEXT DEFAULT '[]'",
+			"ALTER TABLE repo_meta ADD COLUMN top_contributors TEXT DEFAULT '[]'",
+			"ALTER TABLE repo_meta ADD COLUMN activity TEXT DEFAULT '{}'",
+		}},
 	}
 
 	for _, m := range migrations {

@@ -150,7 +150,7 @@ func ExtractREADME(repoPath string) (string, error) {
 
 		var sb strings.Builder
 		scanner := bufio.NewScanner(f)
-		scanner.Buffer(make([]byte, 64*1024), 256*1024)
+		scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)
 		lineNo := 0
 		for scanner.Scan() {
 			line := scanner.Text()
@@ -242,6 +242,7 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 			if f, ferr := os.Open(path); ferr == nil {
 				lineCount := 0
 				scanner := bufio.NewScanner(f)
+				scanner.Buffer(make([]byte, 64*1024), 16*1024*1024)
 				for scanner.Scan() {
 					lineCount++
 				}
@@ -542,8 +543,14 @@ func Mine(repoPath string) (*RepoKnowledge, error) {
 
 	k := &RepoKnowledge{
 		ReadmeExcerpt: readme,
-		TechStack:     techs,
-		Languages:     langs,
+		TechStack:     []Tech{},
+		Languages:     []LanguageStat{},
+	}
+	if len(techs) > 0 {
+		k.TechStack = techs
+	}
+	if len(langs) > 0 {
+		k.Languages = langs
 	}
 
 	deps, err := DetectDependencies(repoPath)

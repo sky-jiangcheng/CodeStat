@@ -113,22 +113,29 @@ func (s *Service) GetProjects(date string, starredOnly bool) []ProjectResponse {
 	}
 
 	// Only auto-refresh for today or yesterday to avoid triggering git scans
-	// on historical dates.
+	// on historical dates. Run it off the request path so the first open of
+	// the dashboard/overview never blocks on git subprocesses; the next load
+	// sees the back-filled rows.
 	today := s.git.GetTodayDate()
 	yesterday := s.git.GetYesterdayDate()
-	shouldRefresh := date == today || date == yesterday
-	if shouldRefresh {
-		for _, p := range projects {
-			statsList, _ := db.GetStatsByProject(s.db, p.ID, date)
-			if len(statsList) == 0 {
-				if repos, _ := db.GetRepositoriesByProjectID(s.db, p.ID); len(repos) > 0 {
-					s.refreshProjectStatsForDate(p.ID, date)
-				}
-			}
-		}
+	if date == today || date == yesterday {
+		go s.refreshMissingStatsForDate(projects, date)
 	}
 
 	return s.enrichProjects(projects, date)
+}
+
+// refreshMissingStatsForDate back-fills per-day stats for projects that have no
+// row yet for date. Meant to run in its own goroutine (see GetProjects).
+func (s *Service) refreshMissingStatsForDate(projects []domain.Project, date string) {
+	for _, p := range projects {
+		statsList, _ := db.GetStatsByProject(s.db, p.ID, date)
+		if len(statsList) == 0 {
+			if repos, _ := db.GetRepositoriesByProjectID(s.db, p.ID); len(repos) > 0 {
+				s.refreshProjectStatsForDate(p.ID, date)
+			}
+		}
+	}
 }
 
 // GetProjectDetail returns a project with all its repositories and stats.
@@ -164,9 +171,10 @@ func (s *Service) GetProjectStats(id int64, date string) []domain.DailyStat {
 		log.Printf("get stats error: %v", err)
 		return nil
 	}
+	// On-demand refresh runs in the background so this call never blocks on git.
+	// The next load returns the back-filled rows.
 	if len(statsList) == 0 {
-		s.refreshProjectStatsForDate(id, date)
-		statsList, _ = db.GetStatsByProject(s.db, id, date)
+		go s.refreshProjectStatsForDate(id, date)
 	}
 	return statsList
 }
@@ -293,7 +301,9 @@ func (s *Service) mineAndCache(cacheRepoID int64, rootPath string, repos []domai
 		ds, _ := json.Marshal(k.Dependencies)
 		tc, _ := json.Marshal(k.TopContributors)
 		aa, _ := json.Marshal(k.Activity)
-		_ = db.UpsertRepoMeta(s.db, cacheRepoID, string(ts), k.ReadmeExcerpt, string(ls), string(ds), string(tc), string(aa))
+		if err := db.UpsertRepoMeta(s.db, cacheRepoID, string(ts), k.ReadmeExcerpt, string(ls), string(ds), string(tc), string(aa)); err != nil {
+			log.Printf("mineAndCache: upsert repo_meta for repo %d failed: %v", cacheRepoID, err)
+		}
 	}
 }
 
