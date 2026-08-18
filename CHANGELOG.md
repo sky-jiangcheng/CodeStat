@@ -162,7 +162,9 @@
 
 - 首个正式版本：Wails 桌面应用骨架、GitHub Actions 多平台构建发布
 
-[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.2...HEAD
+[1.7.2]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.1...v1.7.2
+[1.7.1]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.3...v1.7.0
 [1.6.3]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.1...v1.6.2
@@ -179,6 +181,20 @@
 [1.2.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.2.0
 [1.1.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.1.0
 [1.0.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.0.0
+
+## [1.7.2] - 2026-08-18
+
+深度代码审查（`docs/code-review/2026-08-18-deep-review.md`）缺陷修复：
+
+### 修复
+
+- **🔴 并发数据库锁**：`InitDB` 限制连接池为单连接（`SetMaxOpenConns(1)` + `SetConnMaxLifetime(0)`）并设置 `PRAGMA busy_timeout=5000`，消除并发 Wails/扫描/插件访问导致的 `database is locked`
+- **🔴 知识缓存静默失效（存量库）**：新增 v10 幂等迁移，为早期版本创建的 `repo_meta` 补齐 `dependencies` / `top_contributors` / `activity` 三列（`createTables` 新建表已含，存量库需此修复才能命中缓存）
+- **🟠 知识源状态误报**：插件导入 `TriggerImport` 的 `lastErr` 改为记录逐文档 upsert 真实错误，知识源 `Enabled` 不再恒为 true
+- **🟠 大仓库挂起**：`DetectContributors` 用 30s 上下文超时包裹 `git shortlog`
+- **🟠 首屏阻塞**：`GetProjects` / `GetProjectStats` 的按需 git 统计刷新移至后台 goroutine，仪表盘/概览首开不再卡顿
+- **🟠 `git_author` 配置生效**：运行时可设置个人作者，覆盖自动检测的 `git user.name`（"我的"统计/热力图/最近提交随之更新）
+- **🟡 健壮性**：`mineAndCache` 记录 `UpsertRepoMeta` 错误而非吞掉；`Mine` 返回非 nil 切片避免 JSON `null`；按语言行数统计 scanner 缓冲放大到 16MB（兼容 minified 文件）；`daily_stats` 新增真实提交数 `commits` 列（此前热力图误用 `COUNT(DISTINCT author)`）
 
 ## [1.7.1] - 2026-08-18
 
