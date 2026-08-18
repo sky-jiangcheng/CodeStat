@@ -17,6 +17,7 @@ type Result struct {
 	FilesChanged int
 	LinesAdded   int
 	LinesDeleted int
+	Commits      int
 }
 
 // RepoMetaInfo holds inferred metadata about a repository for upsert.
@@ -134,7 +135,31 @@ func QueryStats(repoPath, date, author string) (*Result, error) {
 		return &Result{}, nil
 	}
 
-	return parseShortStat(string(out))
+	result, perr := parseShortStat(string(out))
+	if perr != nil {
+		return nil, perr
+	}
+
+	// Count commits in the same window. The shortstat query above has no
+	// per-commit output, so a separate rev-list count is required.
+	countArgs := []string{
+		"rev-list", "--count", "--first-parent",
+		"--since=" + date + " 00:00:00",
+		"--until=" + date + " 23:59:59",
+	}
+	if author != "" {
+		countArgs = append(countArgs, "--author="+author)
+	}
+	//nolint:gosec // same validated inputs as the query above
+	countCmd := exec.CommandContext(ctx, "git", countArgs...)
+	countCmd.Dir = repoPath
+	if countOut, countErr := countCmd.Output(); countErr == nil {
+		if n, nerr := strconv.Atoi(strings.TrimSpace(string(countOut))); nerr == nil {
+			result.Commits = n
+		}
+	}
+
+	return result, nil
 }
 
 // parseShortStat parses git log --shortstat output into a Result.
@@ -210,6 +235,9 @@ type RecentCommit struct {
 
 // GetRecentCommit queries the most recent commit across all repositories.
 func GetRecentCommit(repoPaths []string, filterAuthor string) (*RecentCommit, error) {
+	if err := ValidateAuthor(filterAuthor); err != nil {
+		return nil, err
+	}
 	var best *RecentCommit
 
 	for _, repoPath := range repoPaths {
@@ -275,6 +303,9 @@ func extractBranch(refString string) string {
 // merged and sorted by time descending, capped at limit. The author filter is
 // optional; an empty filter returns commits from all authors.
 func GetRecentCommits(repoPaths []string, filterAuthor string, limit int) ([]RecentCommit, error) {
+	if err := ValidateAuthor(filterAuthor); err != nil {
+		return nil, err
+	}
 	if limit <= 0 {
 		limit = 10
 	}

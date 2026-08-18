@@ -71,6 +71,7 @@ func (s *Service) TriggerScan() (*ScanResult, error) {
 func (s *Service) GetScanStatus() *ScanStatus {
 	s.scanMu.Lock()
 	running := s.scanning
+	backfilling := s.scanBackfilling
 	progress := s.scanProgress
 	total := s.scanTotal
 	s.scanMu.Unlock()
@@ -82,7 +83,7 @@ func (s *Service) GetScanStatus() *ScanStatus {
 			msg = "Scanning..."
 		}
 	}
-	return &ScanStatus{Running: running, Message: msg, Progress: progress, Total: total}
+	return &ScanStatus{Running: running, Backfilling: backfilling, Message: msg, Progress: progress, Total: total}
 }
 
 // runCollectedScan is the single scan pipeline: filesystem scan → grouping →
@@ -145,6 +146,11 @@ func (s *Service) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 		if err != nil {
 			log.Printf("sync project error: %v", err)
 			continue
+		}
+		// Participating in a controlled scan makes the project "collected":
+		// it becomes eligible for the history backfill after the scan.
+		if err := db.MarkProjectCollectedTx(tx, projectID); err != nil {
+			log.Printf("mark project collected error: %v", err)
 		}
 		for _, repo := range group.Repos {
 			if err := db.UpsertRepositoryTx(tx, repo.Path, projectID); err != nil {

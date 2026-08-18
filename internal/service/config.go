@@ -42,7 +42,15 @@ func (s *Service) UpdateConfig(key, value string) error {
 			return fmt.Errorf("config value must be a number")
 		}
 	}
-	return db.SetConfig(s.db, key, value)
+	if err := db.SetConfig(s.db, key, value); err != nil {
+		return err
+	}
+	// git_author is applied immediately so "mine" stats, heatmap and recent
+	// commits reflect the new author without a restart.
+	if key == "git_author" {
+		s.setGitUser(value)
+	}
+	return nil
 }
 
 // UpdateScanRoots replaces the entire scan root list atomically.

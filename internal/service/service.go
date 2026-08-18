@@ -41,11 +41,12 @@ type Service struct {
 	startupOnce sync.Once
 
 	// Scan engine state, guarded by scanMu.
-	scanMu       sync.Mutex
-	scanning     bool
-	scanCancel   context.CancelFunc
-	scanProgress int
-	scanTotal    int
+	scanMu         sync.Mutex
+	scanning       bool
+	scanBackfilling bool
+	scanCancel     context.CancelFunc
+	scanProgress   int
+	scanTotal      int
 
 	// Status bar cache to avoid repeated git log queries on every render.
 	statusCacheMu   sync.Mutex
@@ -55,6 +56,10 @@ type Service struct {
 	// miningInFlight tracks repoIDs currently being mined to prevent duplicate
 	// goroutines when the user rapidly switches between projects.
 	miningInFlight sync.Map
+
+	// gitUserMu guards guser so the git_author config key can be applied at
+	// runtime instead of only at construction time.
+	gitUserMu sync.RWMutex
 }
 
 // New creates a Service with production dependencies: the local git CLI
@@ -67,6 +72,21 @@ func New(database *sql.DB, gitUser string) *Service {
 // (used by tests and future alternative providers).
 func NewWithDeps(database *sql.DB, provider git.Provider, runtime *pluginruntime.Runtime, gitUser string) *Service {
 	return &Service{db: database, git: provider, rt: runtime, guser: gitUser}
+}
+
+// gitUser returns the current "mine" author. Reads are guarded so the value
+// can be changed at runtime via the git_author config key.
+func (s *Service) gitUser() string {
+	s.gitUserMu.RLock()
+	defer s.gitUserMu.RUnlock()
+	return s.guser
+}
+
+// setGitUser updates the "mine" author used to split personal vs team stats.
+func (s *Service) setGitUser(v string) {
+	s.gitUserMu.Lock()
+	defer s.gitUserMu.Unlock()
+	s.guser = v
 }
 
 // SetImportEventHandler installs the callback invoked with the
@@ -83,8 +103,11 @@ func (s *Service) Startup() {
 		if s.rt == nil {
 			return
 		}
-		s.registerClaudeImporter()
+		// Load script plugins first, then register the built-in importers:
+		// Runtime.Load resets the source map, so registering before it would
+		// silently drop the built-in Claude memory importer.
 		s.rt.Load(pluginsDir())
+		s.registerClaudeImporter()
 		log.Printf("plugin runtime ready: %d plugin(s), %d source(s)",
 			len(s.rt.PluginStatuses()), len(s.rt.SourceStatuses()))
 

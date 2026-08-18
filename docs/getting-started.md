@@ -86,8 +86,7 @@ cd web && npm install && npm run build && cd ..
 # 桌面应用
 go build -ldflags="-s -w" -o gitboard .
 
-# CLI / MCP / agent-score
-go build -o gitboard ./cmd/gitboard/
+# MCP server / agent-score
 go build -o gitboard-mcp ./cmd/mcp/
 go build -o gitboard-agent-score ./tools/agent-score/
 ```

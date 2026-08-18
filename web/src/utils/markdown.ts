@@ -7,11 +7,13 @@ import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/github.css'
 import 'highlight.js/styles/github-dark.css'
 
-// Initialize mermaid once at module load.
+// Initialize mermaid once at module load. securityLevel 'strict' (the default)
+// blocks click callbacks and HTML in diagram definitions; the rendered SVG is
+// also passed through DOMPurify afterwards.
 mermaid.initialize({
   startOnLoad: false,
   theme: 'default',
-  securityLevel: 'loose',
+  securityLevel: 'strict',
 })
 
 // marked.parse is synchronous by default, but its type union includes a Promise
@@ -91,7 +93,9 @@ function getCalloutIcon(type: CalloutType): string {
   return icons[type] ?? '•'
 }
 
-// highlightCodeBlocks applies hljs to <pre><code> blocks.
+// highlightCodeBlocks applies hljs to <pre><code> blocks. An unknown language
+// makes hljs.highlight throw, which would crash the whole note render, so we
+// fall back to auto-detection (which never throws on arbitrary text).
 function highlightCodeBlocks(html: string): string {
   return html.replace(
     /<pre><code(?:\s+class="language-(\w+)")?>([\s\S]*?)<\/code><\/pre>/g,
@@ -102,17 +106,24 @@ function highlightCodeBlocks(html: string): string {
         .replace(/&amp;/g, '&')
         .replace(/&#39;/g, "'")
         .replace(/&quot;/g, '"')
-      const highlighted = lang
-        ? hljs.highlight(decoded, { language: lang }).value
-        : hljs.highlightAuto(decoded).value
+      let highlighted: string
+      try {
+        highlighted = lang
+          ? hljs.highlight(decoded, { language: lang }).value
+          : hljs.highlightAuto(decoded).value
+      } catch {
+        highlighted = hljs.highlightAuto(decoded).value
+      }
       return `<pre><code class="hljs${lang ? ` language-${lang}` : ''}">${highlighted}</code></pre>`
     }
   )
 }
 
-// renderInlineMath renders $...$ and $$...$$ in HTML text.
+// renderInlineMath renders $...$ and $$...$$ in HTML text. The KaTeX output is
+// injected after the main DOMPurify pass, so it is sanitized here to keep the
+// final string free of raw HTML (e.g. from \href or \htmlClass).
 function renderInlineMath(html: string): string {
-  return html
+  const withMath = html
     .replace(/\$\$([\s\S]+?)\$\$/g, (_match, expr: string) => {
       try {
         return katex.renderToString(expr.trim(), { displayMode: true, throwOnError: false })
@@ -127,6 +138,7 @@ function renderInlineMath(html: string): string {
         return `$${expr}$`
       }
     })
+  return DOMPurify.sanitize(withMath)
 }
 
 // renderMarkdown renders markdown to HTML synchronously (no mermaid).

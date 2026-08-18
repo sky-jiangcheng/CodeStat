@@ -143,10 +143,10 @@ func TestGetHeatmapDataProjectFilter(t *testing.T) {
 	repoA := mustExecRepo(t, database, "/tmp/a/r1", pidA)
 	repoB := mustExecRepo(t, database, "/tmp/b/r2", pidB)
 
-	if err := UpsertDailyStat(database, repoA, "2026-08-01", "all", 1, 10, 2); err != nil {
+	if err := UpsertDailyStat(database, repoA, "2026-08-01", "all", 1, 10, 2, 3); err != nil {
 		t.Fatal(err)
 	}
-	if err := UpsertDailyStat(database, repoB, "2026-08-01", "all", 1, 5, 1); err != nil {
+	if err := UpsertDailyStat(database, repoB, "2026-08-01", "all", 1, 5, 1, 1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -157,6 +157,9 @@ func TestGetHeatmapDataProjectFilter(t *testing.T) {
 	if len(global) != 1 || global[0].LinesAdded != 15 {
 		t.Fatalf("global heatmap should aggregate both repos (15 added), got %+v", global)
 	}
+	if global[0].Commits != 4 {
+		t.Fatalf("global heatmap should sum commits (4), got %+v", global)
+	}
 
 	filtered, err := GetHeatmapData(database, "2026-01-01", "2026-12-31", "", pidA)
 	if err != nil {
@@ -164,5 +167,8 @@ func TestGetHeatmapDataProjectFilter(t *testing.T) {
 	}
 	if len(filtered) != 1 || filtered[0].LinesAdded != 10 {
 		t.Fatalf("project heatmap should only count project A (10 added), got %+v", filtered)
+	}
+	if filtered[0].Commits != 3 {
+		t.Fatalf("project heatmap should sum project A commits (3), got %+v", filtered)
 	}
 }

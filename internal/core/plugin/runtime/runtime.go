@@ -58,6 +58,9 @@ type Runtime struct {
 	plugins  []PluginStatus
 	handlers map[string][]plugin.EventHandler
 	sources  map[string]*sourceEntry
+	// importMu serializes TriggerImport so concurrent invocations of the same
+	// source (e.g. UI button + startup auto-import) cannot double-import.
+	importMu sync.Mutex
 }
 
 // New creates a Runtime bound to the given database handle.
@@ -257,8 +260,12 @@ func (r *Runtime) ImportAll() []SourceRun {
 }
 
 // TriggerImport runs the knowledge source registered under name and upserts
-// the returned documents into the knowledge base.
+// the returned documents into the knowledge base. Concurrent invocations are
+// serialized via importMu to avoid duplicate imports.
 func (r *Runtime) TriggerImport(name string) (ImportRun, error) {
+	r.importMu.Lock()
+	defer r.importMu.Unlock()
+
 	r.mu.Lock()
 	src := r.sources[name]
 	r.mu.Unlock()
@@ -268,10 +275,12 @@ func (r *Runtime) TriggerImport(name string) (ImportRun, error) {
 
 	docs, err := r.safeImport(src)
 	if err != nil {
+		r.recordSourceError(src, err)
 		return ImportRun{}, err
 	}
 
 	var run ImportRun
+	var firstErr error
 	for _, d := range docs {
 		if d.ProjectID <= 0 {
 			run.Skipped++
@@ -280,6 +289,9 @@ func (r *Runtime) TriggerImport(name string) (ImportRun, error) {
 		created, err := r.upsertDoc(d, src.name)
 		if err != nil {
 			log.Printf("plugin runtime: import %q doc %q failed: %v", name, d.Title, err)
+			if firstErr == nil {
+				firstErr = err
+			}
 			continue
 		}
 		if created {
@@ -291,10 +303,18 @@ func (r *Runtime) TriggerImport(name string) (ImportRun, error) {
 
 	r.mu.Lock()
 	src.imported = run.Total()
-	src.lastErr = err
+	src.lastErr = firstErr
 	r.mu.Unlock()
 	log.Printf("plugin runtime: import %q -> created %d, updated %d, skipped %d", name, run.Created, run.Updated, run.Skipped)
 	return run, nil
+}
+
+// recordSourceError stores a source-level failure so SourceStatus.Enabled
+// reflects it instead of always reporting healthy.
+func (r *Runtime) recordSourceError(src *sourceEntry, err error) {
+	r.mu.Lock()
+	src.lastErr = err
+	r.mu.Unlock()
 }
 
 // upsertDoc creates or updates a note keyed by (project, source, title).
@@ -307,12 +327,16 @@ func (r *Runtime) upsertDoc(doc plugin.ImportDoc, source string) (bool, error) {
 	existing, err := db.GetNoteBySourceTitle(r.db, doc.ProjectID, source, doc.Title)
 	if err == nil {
 		if doc.Content != "" {
-			if uerr := db.UpdateNote(r.db, existing.ID, doc.Content); uerr != nil {
-				log.Printf("plugin runtime: upsertDoc UpdateNote failed (note %d): %v", existing.ID, uerr)
+			// UpdateNoteFull runs content + metadata in a single transaction, so
+			// the note_versions snapshot fires once with consistent data and a
+			// metadata failure can never leave content updated but meta stale.
+			if uerr := db.UpdateNoteFull(r.db, existing.ID, doc.Content, doc.Title, doc.Tags, kind, existing.Pinned); uerr != nil {
+				log.Printf("plugin runtime: upsertDoc UpdateNoteFull failed (note %d): %v", existing.ID, uerr)
+				return false, uerr
 			}
-		}
-		if merr := db.UpdateNoteMeta(r.db, existing.ID, doc.Title, doc.Tags, kind, existing.Pinned); merr != nil {
+		} else if merr := db.UpdateNoteMeta(r.db, existing.ID, doc.Title, doc.Tags, kind, existing.Pinned); merr != nil {
 			log.Printf("plugin runtime: upsertDoc UpdateNoteMeta failed (note %d): %v", existing.ID, merr)
+			return false, merr
 		}
 		return false, nil
 	}

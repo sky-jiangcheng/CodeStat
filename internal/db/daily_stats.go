@@ -3,11 +3,11 @@ package db
 import "database/sql"
 
 // UpsertDailyStat inserts or updates a daily stat row by (repo, date, author).
-func UpsertDailyStat(db *sql.DB, repoID int64, date, author string, files, added, deleted int) error {
+func UpsertDailyStat(db *sql.DB, repoID int64, date, author string, files, added, deleted, commits int) error {
 	_, err := db.Exec(
-		"INSERT INTO daily_stats (repository_id, stat_date, author, files_changed, lines_added, lines_deleted) VALUES (?, ?, ?, ?, ?, ?) "+
-			"ON CONFLICT(repository_id, stat_date, author) DO UPDATE SET files_changed = excluded.files_changed, lines_added = excluded.lines_added, lines_deleted = excluded.lines_deleted",
-		repoID, date, author, files, added, deleted)
+		"INSERT INTO daily_stats (repository_id, stat_date, author, files_changed, lines_added, lines_deleted, commits) VALUES (?, ?, ?, ?, ?, ?, ?) "+
+			"ON CONFLICT(repository_id, stat_date, author) DO UPDATE SET files_changed = excluded.files_changed, lines_added = excluded.lines_added, lines_deleted = excluded.lines_deleted, commits = excluded.commits",
+		repoID, date, author, files, added, deleted, commits)
 	return err
 }
 
@@ -57,7 +57,7 @@ func GetStatsByDate(db *sql.DB, date string) ([]DailyStat, error) {
 // projectID restricts it to the repositories of that project (used by the
 // project detail page); projectID <= 0 aggregates across all repositories.
 func GetHeatmapData(db *sql.DB, start, end, gitUser string, projectID int64) ([]HeatmapDay, error) {
-	q := "SELECT d.stat_date, COALESCE(SUM(d.lines_added),0), COALESCE(SUM(d.lines_deleted),0), COUNT(DISTINCT d.author) " +
+	q := "SELECT d.stat_date, COALESCE(SUM(d.lines_added),0), COALESCE(SUM(d.lines_deleted),0), COALESCE(SUM(d.commits),0) " +
 		"FROM daily_stats d "
 	var args []any
 	if projectID > 0 {

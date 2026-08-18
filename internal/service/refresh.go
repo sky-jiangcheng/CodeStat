@@ -26,8 +26,8 @@ func (s *Service) refreshRepoStatsRange(ctx context.Context, repo domain.Reposit
 	}
 
 	authors := []string{""} // "" queries the aggregate across all authors
-	if s.guser != "" {
-		authors = append(authors, s.guser)
+	if s.gitUser() != "" {
+		authors = append(authors, s.gitUser())
 	}
 	for _, author := range authors {
 		entries, err := s.git.QueryStatsRange(repo.Path, startDate, endDate, author)
@@ -44,7 +44,7 @@ func (s *Service) refreshRepoStatsRange(ctx context.Context, repo domain.Reposit
 					storeAuthor = "all"
 				}
 				if err := db.UpsertDailyStat(s.db, repo.ID, e.Date, storeAuthor,
-					e.FilesChanged, e.LinesAdded, e.LinesDeleted); err != nil && logErrors {
+					e.FilesChanged, e.LinesAdded, e.LinesDeleted, e.Commits); err != nil && logErrors {
 					log.Printf("refresh stats upsert error (repo %s, %s): %v", repo.Path, e.Date, err)
 				}
 			}
@@ -53,8 +53,19 @@ func (s *Service) refreshRepoStatsRange(ctx context.Context, repo domain.Reposit
 }
 
 // refreshCollectedStats refreshes the full history window for the repos of
-// the given (collected) projects. Used at the end of a scan.
+// the given (collected) projects. Used at the end of a scan. The scan status
+// reports backfilling while this runs so the UI can distinguish history
+// backfill from repo discovery.
 func (s *Service) refreshCollectedStats(ctx context.Context, collectedIDs []int64) {
+	s.scanMu.Lock()
+	s.scanBackfilling = true
+	s.scanMu.Unlock()
+	defer func() {
+		s.scanMu.Lock()
+		s.scanBackfilling = false
+		s.scanMu.Unlock()
+	}()
+
 	startDate := time.Now().AddDate(0, 0, -statsBackfillDays).Format("2006-01-02")
 	endDate := s.git.GetTodayDate()
 
@@ -115,8 +126,8 @@ func (s *Service) refreshProjectStatsForDate(projectID int64, date string) {
 	// Query both the aggregate ("all") and the personal author, matching the
 	// behaviour of refreshRepoStatsRange so the dashboard has consistent data.
 	authors := []string{""}
-	if s.guser != "" {
-		authors = append(authors, s.guser)
+	if s.gitUser() != "" {
+		authors = append(authors, s.gitUser())
 	}
 	for _, r := range repos {
 		for _, author := range authors {
@@ -129,7 +140,7 @@ func (s *Service) refreshProjectStatsForDate(projectID int64, date string) {
 				storeAuthor = "all"
 			}
 			_ = db.UpsertDailyStat(s.db, r.ID, date, storeAuthor,
-				result.FilesChanged, result.LinesAdded, result.LinesDeleted)
+				result.FilesChanged, result.LinesAdded, result.LinesDeleted, result.Commits)
 		}
 	}
 }

@@ -84,6 +84,7 @@ func createTables(db *sql.DB) error {
 		files_changed INTEGER DEFAULT 0,
 		lines_added INTEGER DEFAULT 0,
 		lines_deleted INTEGER DEFAULT 0,
+		commits INTEGER DEFAULT 0,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		FOREIGN KEY (repository_id) REFERENCES repositories(id),
 		UNIQUE(repository_id, stat_date, author)
@@ -295,6 +296,9 @@ func upgradeSchema(db *sql.DB) error {
 				`  );` +
 				` END`,
 		}},
+		// v9: add real commit counts to daily_stats (previously the heatmap
+		// reported COUNT(DISTINCT author) as "commits").
+		{id: 9, sql: "ALTER TABLE daily_stats ADD COLUMN commits INTEGER NOT NULL DEFAULT 0"},
 	}
 
 	for _, m := range migrations {

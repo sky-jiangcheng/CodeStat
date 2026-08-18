@@ -165,6 +165,16 @@ func GetCollectedProjectIDs(ctx context.Context, db *sql.DB) ([]int64, error) {
 	return ids, rows.Err()
 }
 
+// MarkProjectCollectedTx marks a project as collected inside the scan
+// transaction, stamping collected_at so the controlled scan flow can refresh
+// its full history window after the scan completes.
+func MarkProjectCollectedTx(tx *sql.Tx, projectID int64) error {
+	_, err := tx.Exec(
+		"UPDATE projects SET collected = TRUE, collected_at = COALESCE(collected_at, datetime('now')) WHERE id = ?",
+		projectID)
+	return err
+}
+
 // SplitProjectDown adjusts a project's grouping level downwards: every repo
 // except the first becomes its own project (keeping the original for the first
 // repo so its notes/todos survive). The whole operation runs in a single

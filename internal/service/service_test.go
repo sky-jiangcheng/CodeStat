@@ -132,7 +132,7 @@ func TestGetProjectsEnrichment(t *testing.T) {
 
 	pid := seedProject(t, database, "p", "/tmp/p")
 	repoID := seedRepo(t, database, "/tmp/p/r1", pid)
-	if err := db.UpsertDailyStat(database, repoID, "2026-08-15", "me", 1, 600, 10); err != nil {
+	if err := db.UpsertDailyStat(database, repoID, "2026-08-15", "me", 1, 600, 10, 2); err != nil {
 		t.Fatal(err)
 	}
 
@@ -155,7 +155,7 @@ func TestGetProjectsBelowStandard(t *testing.T) {
 
 	pid := seedProject(t, database, "p", "/tmp/p")
 	repoID := seedRepo(t, database, "/tmp/p/r1", pid)
-	if err := db.UpsertDailyStat(database, repoID, "2026-08-15", "me", 1, 10, 1); err != nil {
+	if err := db.UpsertDailyStat(database, repoID, "2026-08-15", "me", 1, 10, 1, 1); err != nil {
 		t.Fatal(err)
 	}
 
@@ -173,12 +173,15 @@ func TestGetHeatmapDataProjectFilter(t *testing.T) {
 	pidB := seedProject(t, database, "b", "/tmp/b")
 	repoA := seedRepo(t, database, "/tmp/a/r1", pidA)
 	repoB := seedRepo(t, database, "/tmp/b/r2", pidB)
-	_ = db.UpsertDailyStat(database, repoA, "2026-08-01", "me", 1, 10, 0)
-	_ = db.UpsertDailyStat(database, repoB, "2026-08-01", "me", 1, 5, 0)
+	_ = db.UpsertDailyStat(database, repoA, "2026-08-01", "me", 1, 10, 0, 3)
+	_ = db.UpsertDailyStat(database, repoB, "2026-08-01", "me", 1, 5, 0, 1)
 
 	global := svc.GetHeatmapData(0)
 	if len(global.Days) != 1 || global.Days[0].LinesAdded != 15 {
 		t.Fatalf("global heatmap wrong: %+v", global.Days)
+	}
+	if global.Days[0].Commits != 4 {
+		t.Fatalf("global heatmap should sum commits (4), got %+v", global.Days[0])
 	}
 	// With a personal git user configured, only "me" rows are aggregated.
 	projA := svc.GetHeatmapData(pidA)

@@ -60,12 +60,14 @@ export function getProjectStats(id: number, date?: string): Promise<DailyStat[]>
 }
 
 export function toggleStar(id: number): Promise<boolean> {
-  return call<{ starred: boolean }>({
+  // The Wails binding returns a bare bool (not {starred}), so unwrap it
+  // directly. `!!r` normalizes undefined from a failed call to false.
+  return call<boolean>({
     method: 'ToggleStar',
     args: [id],
     path: `/projects/${id}/star`,
     init: { method: 'POST' },
-  }).then(r => r.starred)
+  }).then(r => !!r)
 }
 
 export function refreshProjectHistory(id: number): Promise<{ success: boolean }> {

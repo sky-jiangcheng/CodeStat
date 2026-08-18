@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import {
@@ -32,9 +32,11 @@ function Dashboard() {
   const [todoCounts, setTodoCounts] = useState<TodoCount[]>([])
   const [noteCounts, setNoteCounts] = useState<NoteCount[]>([])
   const [showStarredOnly, setShowStarredOnly] = useState(true)
+  const fetchSeq = useRef(0)
 
-  const fetchData = useCallback(async (selectedDate: string, starredOnly = showStarredOnly) => {
-    setLoading(true)
+  const fetchData = useCallback(async (selectedDate: string, starredOnly = showStarredOnly, silent = false) => {
+    const seq = ++fetchSeq.current
+    if (!silent) setLoading(true)
     setError('')
     try {
       const [projData, sumData, counts, noteCountsData] = await Promise.all([
@@ -43,14 +45,16 @@ function Dashboard() {
         getTodoCounts(),
         getNoteCounts(),
       ])
+      if (seq !== fetchSeq.current) return
       setProjects(projData)
       setSummary(sumData)
       setTodoCounts(counts)
       setNoteCounts(noteCountsData)
     } catch (e: unknown) {
+      if (seq !== fetchSeq.current) return
       setError(e instanceof Error ? e.message : t('common.failed'))
     } finally {
-      setLoading(false)
+      if (seq === fetchSeq.current && !silent) setLoading(false)
     }
   }, [showStarredOnly, t])
 
@@ -97,7 +101,7 @@ function Dashboard() {
   const handleRefreshHistory = useCallback(async (projectId: number) => {
     try {
       await refreshProjectHistory(projectId)
-      await fetchData(date, showStarredOnly)
+      await fetchData(date, showStarredOnly, true)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('common.failed'))
     }

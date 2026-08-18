@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strconv"
-	"sync"
 
 	"gitboard/internal/db"
 	"gitboard/internal/domain"
@@ -77,7 +76,7 @@ func (s *Service) enrichProjects(projects []domain.Project, date string) []Proje
 		for _, st := range statsList {
 			pr.TotalAdded += st.LinesAdded
 			pr.TotalDeleted += st.LinesDeleted
-			if st.Author == s.guser {
+			if st.Author == s.gitUser() {
 				pr.MyAdded += st.LinesAdded
 				pr.MyDeleted += st.LinesDeleted
 				pr.MyFiles += st.FilesChanged
@@ -261,7 +260,7 @@ func (s *Service) GetProjectOverview(projectID int64) (*ProjectOverview, error) 
 	for _, r := range repos {
 		repoPaths = append(repoPaths, r.Path)
 	}
-	if commits, err := s.git.GetRecentCommits(repoPaths, s.guser, 8); err == nil {
+	if commits, err := s.git.GetRecentCommits(repoPaths, s.gitUser(), 8); err == nil {
 		resp.RecentCommits = commits
 	}
 	return resp, nil

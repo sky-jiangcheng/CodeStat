@@ -44,7 +44,7 @@ func (s *Service) GetSummary(date string) (*SummaryData, error) {
 		summary.TotalFiles += st.FilesChanged
 		summary.TotalAdded += st.LinesAdded
 		summary.TotalDeleted += st.LinesDeleted
-		if st.Author == s.guser {
+		if st.Author == s.gitUser() {
 			summary.MyAdded += st.LinesAdded
 			summary.MyDeleted += st.LinesDeleted
 			summary.MyFiles += st.FilesChanged
@@ -66,7 +66,7 @@ func (s *Service) GetHeatmapData(projectID int64) *HeatmapResponse {
 	endDate := s.git.GetTodayDate()
 	startDate := time.Now().AddDate(0, 0, -statsBackfillDays).Format("2006-01-02")
 
-	days, err := db.GetHeatmapData(s.db, startDate, endDate, s.guser, projectID)
+	days, err := db.GetHeatmapData(s.db, startDate, endDate, s.gitUser(), projectID)
 	if err != nil {
 		log.Printf("get heatmap error: %v", err)
 		return &HeatmapResponse{Days: []domain.HeatmapDay{}}
@@ -112,7 +112,7 @@ func (s *Service) GetStatusBar() *StatusBarData {
 		CurrentTime: now.Format("2006-01-02 15:04:05"),
 	}
 
-	recent, err := s.git.GetRecentCommit(repoPaths, s.guser)
+	recent, err := s.git.GetRecentCommit(repoPaths, s.gitUser())
 	if err == nil && recent != nil {
 		data.LastCommitTime = recent.Time
 		data.LastCommitRepo = filepath.Base(recent.Repo)

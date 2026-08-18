@@ -24,7 +24,7 @@ internal/db   internal/core/git
 (SQLite 查询)   (Git Provider 抽象，本地 CLI 实现)
 ```
 
-**Wails 桌面、CLI（cmd/gitboard）、MCP（cmd/mcp）三种入口共享同一 service 实现**——三端行为永远一致，新功能只需实现一次。
+**Wails 桌面与 MCP（cmd/mcp）两种入口共享同一 service 实现**——行为永远一致，新功能只需实现一次。
 
 支撑包：`internal/domain`（跨层行类型）、`internal/version`（版本 SSOT）、`internal/diff`（笔记行级 diff）、`internal/stats`（git log 解析）、`internal/knowledge`（仓库知识挖掘）、`internal/scanner` + `internal/grouper`（扫描与分组）、`internal/platform`（OS 差异）、`internal/core/plugin`（插件 SPI + yaegi 运行时）。
 
@@ -73,8 +73,7 @@ styles/     设计系统：tokens / reset / components / layouts / features
 | 产物 | 来源 | 说明 |
 |------|------|------|
 | `gitboard` | 根包 | Wails 桌面应用（`scripts/build.sh`） |
-| `gitboard` | `cmd/gitboard` | CLI（JSON 输出） |
-| `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器 |
+| `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询工具） |
 | `gitboard-agent-score` | `tools/agent-score` | AI 就绪度自检 |
 
 CI（`.github/workflows/release.yml`）多平台构建 + macOS 签名公证；文档站（`pages.yml`）由 `scripts/build-docs.mjs` 从 `docs/**/*.md` 生成后部署 GitHub Pages。

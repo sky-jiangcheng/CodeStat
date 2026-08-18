@@ -81,12 +81,15 @@ func (s *Service) TriggerAllKnowledgeImports() []pluginruntime.SourceRun {
 	return results
 }
 
-// ReloadPlugins rescans the plugins directory and reloads every plugin.
+// ReloadPlugins rescans the plugins directory and reloads every plugin. The
+// built-in importers are re-registered afterwards because Runtime.Load resets
+// the source map.
 func (s *Service) ReloadPlugins() []pluginruntime.PluginStatus {
 	if s.rt == nil {
 		return []pluginruntime.PluginStatus{}
 	}
 	s.rt.Load(pluginsDir())
+	s.registerClaudeImporter()
 	return s.rt.PluginStatuses()
 }
 

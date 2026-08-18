@@ -125,7 +125,8 @@ func main() {
 	}
 
 	// 7. SKILL.md exists
-	if _, err := os.Stat("SKILL.md"); err == nil {
+	root := findRepoRoot()
+	if _, err := os.Stat(filepath.Join(root, "SKILL.md")); err == nil {
 		parts = append(parts, "  ✅ SKILL.md present")
 		record(true)
 	} else {
@@ -137,7 +138,7 @@ func main() {
 	locales := []string{"zh-CN", "en"}
 	foundLocales := 0
 	for _, loc := range locales {
-		if _, err := os.Stat(filepath.Join("web", "src", "locales", loc, "common.json")); err == nil {
+		if _, err := os.Stat(filepath.Join(root, "web", "src", "locales", loc, "common.json")); err == nil {
 			foundLocales++
 		}
 	}
@@ -166,4 +167,26 @@ func main() {
 	} else {
 		fmt.Println("❌ GitBuddy needs setup before agents can use it effectively.")
 	}
+}
+
+// findRepoRoot walks up from the executable's directory until it finds a
+// directory containing SKILL.md (the repository root), so the score is not
+// dependent on the caller's current working directory.
+func findRepoRoot() string {
+	exe, err := os.Executable()
+	if err == nil {
+		dir := filepath.Dir(exe)
+		for {
+			if _, err := os.Stat(filepath.Join(dir, "SKILL.md")); err == nil {
+				return dir
+			}
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	// Fall back to the current directory when the executable is not useful.
+	return "."
 }

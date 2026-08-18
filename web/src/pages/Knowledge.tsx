@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -31,11 +31,16 @@ function KnowledgePage() {
   const [newNotePicker, setNewNotePicker] = useState(false)
   const [askMode, setAskMode] = useState(false)
   const [exportingId, setExportingId] = useState<number | null>(null)
+  const messageTimer = useRef<number | null>(null)
+  const searchSeq = useRef(0)
 
   const flashMessage = useCallback((msg: string, ms = 3000) => {
     setMessage(msg)
-    setTimeout(() => setMessage(''), ms)
+    if (messageTimer.current) clearTimeout(messageTimer.current)
+    messageTimer.current = window.setTimeout(() => setMessage(''), ms)
   }, [])
+
+  useEffect(() => () => { if (messageTimer.current) clearTimeout(messageTimer.current) }, [])
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
@@ -64,12 +69,15 @@ function KnowledgePage() {
 
   useEffect(() => { fetchAll() }, [fetchAll])
 
-  // One debounced runner serves both list search and ask mode.
+  // One debounced runner serves both list search and ask mode. A sequence
+  // number discards stale responses so an older, slower query can never
+  // overwrite the results of a newer one.
   const runSearch = useDebouncedCallback((q: string, ask: boolean) => {
     if (!q.trim()) { setHits(null); return }
+    const seq = ++searchSeq.current
     searchAll(q.trim())
-      .then(h => { setHits(h); if (ask) setAskMode(true) })
-      .catch(() => { setHits([]); if (ask) setAskMode(true) })
+      .then(h => { if (seq === searchSeq.current) { setHits(h); if (ask) setAskMode(true) } })
+      .catch(() => { if (seq === searchSeq.current) { setHits([]); if (ask) setAskMode(true) } })
   }, 300)
 
   const handleSearchInput = (q: string) => {
@@ -100,13 +108,12 @@ function KnowledgePage() {
     setImporting(true)
     try {
       const r = await importClaudeMemory()
-      setMessage(t('knowledge.importDone', { created: r.synced, updated: r.updated, skipped: r.skipped }))
+      flashMessage(t('knowledge.importDone', { created: r.synced, updated: r.updated, skipped: r.skipped }), 4000)
       fetchAll()
     } catch (e) {
-      setMessage(t('knowledge.importFailed') + (e instanceof Error ? e.message : t('common.unknownError')))
+      flashMessage(t('knowledge.importFailed') + (e instanceof Error ? e.message : t('common.unknownError')), 4000)
     } finally {
       setImporting(false)
-      setTimeout(() => setMessage(''), 4000)
     }
   }
 
