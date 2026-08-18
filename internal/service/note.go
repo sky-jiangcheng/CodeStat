@@ -58,6 +58,16 @@ func (s *Service) UpdateNote(noteID int64, content string) error {
 	return db.UpdateNote(s.db, noteID, content)
 }
 
+// UpdateNoteFull updates both content and metadata in a single transaction,
+// avoiding the version-snapshot inconsistency that occurs when content and
+// metadata are updated in separate calls.
+func (s *Service) UpdateNoteFull(noteID int64, content, title, tags, kind string, pinned bool) error {
+	if strings.TrimSpace(content) == "" {
+		return fmt.Errorf("content is required")
+	}
+	return db.UpdateNoteFull(s.db, noteID, content, title, tags, kind, pinned)
+}
+
 // DeleteNote removes a note.
 func (s *Service) DeleteNote(noteID int64) error {
 	return db.DeleteNote(s.db, noteID)

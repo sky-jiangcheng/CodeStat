@@ -288,6 +288,22 @@ export function updateNote(noteId: number, content: string): Promise<void> {
   })
 }
 
+export function updateNoteFull(
+  noteId: number,
+  content: string,
+  title: string,
+  tags: string,
+  kind: string,
+  pinned: boolean
+): Promise<void> {
+  return call<void>({
+    method: 'UpdateNoteFull',
+    args: [noteId, content, title, tags, kind, pinned],
+    path: `/notes/${noteId}`,
+    init: jsonInit('PUT', { content, title, tags, kind, pinned }),
+  })
+}
+
 export function updateNoteMeta(
   noteId: number,
   title: string,

@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { getHeatmapData, type HeatmapDay } from '../api/client'
 
 const WEEKS = 52
@@ -42,7 +42,8 @@ function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
     for (let d = 0; d < DAYS_PER_WEEK; d++) {
       const date = new Date(startDate)
       date.setDate(date.getDate() + w * 7 + d)
-      const dateStr = date.toISOString().split('T')[0]
+      // Use local date (not UTC) so the heatmap cell matches the user's calendar day.
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       week.push(dayMap.get(dateStr) || null)
     }
     grid.push(week)
@@ -65,13 +66,13 @@ export default function Heatmap({ onDayClick, projectId = 0 }: Props) {
     return () => { cancelled = true }
   }, [projectId])
 
-  const grid = generateGrid(days)
-  const stats = {
+  const grid = useMemo(() => generateGrid(days), [days])
+  const stats = useMemo(() => ({
     active: days.filter(d => (d.lines_added || 0) + (d.lines_deleted || 0) > 0).length,
     commits: days.reduce((sum, d) => sum + (d.commits || 0), 0),
     added: days.reduce((sum, d) => sum + (d.lines_added || 0), 0),
     deleted: days.reduce((sum, d) => sum + (d.lines_deleted || 0), 0),
-  }
+  }), [days])
 
   if (loading) {
     return (

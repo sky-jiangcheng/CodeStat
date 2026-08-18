@@ -270,7 +270,7 @@ function getLastDays(n: number): string[] {
   for (let i = n - 1; i >= 0; i--) {
     const d = new Date(now)
     d.setDate(d.getDate() - i)
-    result.push(d.toISOString().split('T')[0])
+    result.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
   }
   return result
 }

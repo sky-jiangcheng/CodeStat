@@ -20,6 +20,13 @@ function TodoSection({ projectId }: Props) {
 
   useEffect(() => { fetchTodos() }, [fetchTodos])
 
+  // Listen for todo-changed events (e.g. after delete from TodoDeleteButton)
+  useEffect(() => {
+    const handler = () => fetchTodos()
+    window.addEventListener('gitbuddy:todos-changed', handler)
+    return () => window.removeEventListener('gitbuddy:todos-changed', handler)
+  }, [fetchTodos])
+
   const handleAdd = async () => {
     if (!title.trim()) return
     setAdding(true)
@@ -47,10 +54,14 @@ function TodoSection({ projectId }: Props) {
     const reordered = [...todos]
     const [item] = reordered.splice(index, 1)
     reordered.splice(newIndex, 0, item)
+    const original = todos
     setTodos(reordered)
     try {
       await reorderTodos(reordered.map(t => t.id))
-    } catch { /* ignore */ }
+    } catch {
+      // Rollback to original order on failure
+      setTodos(original)
+    }
   }
 
   if (loading) {

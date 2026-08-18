@@ -6,7 +6,7 @@ package knowledge
 
 import (
 	"bufio"
-	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -237,10 +237,16 @@ func DetectLanguages(repoPath string) ([]LanguageStat, error) {
 		}
 		ext := strings.ToLower(filepath.Ext(path))
 		if lang, ok := extLanguage[ext]; ok {
-			data, err := os.ReadFile(path)
-			if err == nil {
-				lines := bytes.Count(data, []byte("\n")) + 1
-				counts[lang] += lines
+			// Use bufio.Scanner instead of ReadFile to avoid loading large
+			// files (e.g. minified JS) entirely into memory.
+			if f, ferr := os.Open(path); ferr == nil {
+				lineCount := 0
+				scanner := bufio.NewScanner(f)
+				for scanner.Scan() {
+					lineCount++
+				}
+				f.Close()
+				counts[lang] += lineCount
 			}
 		}
 		scanned++
@@ -304,8 +310,13 @@ func DetectActivity(repoPath string) (*ActivityStat, error) {
 	monthAgo := now.AddDate(0, -1, 0).Format("2006-01-02")
 	today := now.Format("2006-01-02")
 
+	// Use a context with timeout to prevent git commands from hanging on
+	// very large repositories (consistent with stats.QueryTimeout).
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
 	// Total commits.
-	totalCmd := exec.Command("git", "-C", repoPath, "rev-list", "--count", "HEAD")
+	totalCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "rev-list", "--count", "HEAD")
 	totalOut, err := totalCmd.Output()
 	totalCommits := 0
 	if err == nil {
@@ -313,7 +324,7 @@ func DetectActivity(repoPath string) (*ActivityStat, error) {
 	}
 
 	// Active days in last 90 days.
-	daysCmd := exec.Command("git", "-C", repoPath, "log", "--format=%ad", "--date=short", threeMonthsAgo+".."+today)
+	daysCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "log", "--format=%ad", "--date=short", threeMonthsAgo+".."+today)
 	daysOut, err2 := daysCmd.Output()
 	activeDays := 0
 	if err2 == nil {
@@ -328,7 +339,7 @@ func DetectActivity(repoPath string) (*ActivityStat, error) {
 	}
 
 	// Commits in last 30 days.
-	commitsCmd := exec.Command("git", "-C", repoPath, "rev-list", "--count", monthAgo+"..HEAD")
+	commitsCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "rev-list", "--count", monthAgo+"..HEAD")
 	commitsOut, err3 := commitsCmd.Output()
 	commitRate30d := 0
 	if err3 == nil {
@@ -336,7 +347,7 @@ func DetectActivity(repoPath string) (*ActivityStat, error) {
 	}
 
 	// Last commit date.
-	lastCmd := exec.Command("git", "-C", repoPath, "log", "-1", "--format=%ad", "--date=short")
+	lastCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "log", "-1", "--format=%ad", "--date=short")
 	lastOut, err4 := lastCmd.Output()
 	lastDate := ""
 	if err4 == nil {
@@ -344,7 +355,7 @@ func DetectActivity(repoPath string) (*ActivityStat, error) {
 	}
 
 	// Active months (distinct months with at least 1 commit).
-	monthsCmd := exec.Command("git", "-C", repoPath, "log", "--format=%ad", "--date=format:%Y-%m", threeMonthsAgo+".."+today)
+	monthsCmd := exec.CommandContext(ctx, "git", "-C", repoPath, "log", "--format=%ad", "--date=format:%Y-%m", threeMonthsAgo+".."+today)
 	monthsOut, err5 := monthsCmd.Output()
 	activeMonths := 0
 	if err5 == nil {

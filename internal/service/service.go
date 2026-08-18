@@ -51,6 +51,10 @@ type Service struct {
 	statusCacheMu   sync.Mutex
 	statusCache     *StatusBarData
 	statusCacheTime time.Time
+
+	// miningInFlight tracks repoIDs currently being mined to prevent duplicate
+	// goroutines when the user rapidly switches between projects.
+	miningInFlight sync.Map
 }
 
 // New creates a Service with production dependencies: the local git CLI

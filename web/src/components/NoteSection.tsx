@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  listNotes, createNoteWithMeta, updateNote, updateNoteMeta, deleteNote, pinNote, moveNote,
+  listNotes, createNoteWithMeta, updateNoteFull, deleteNote, pinNote, moveNote,
   listNoteVersions, restoreNoteVersion, diffNoteVersions, getProjects,
   type Note, type NoteVersion, type Project,
 } from '../api/client'
@@ -37,7 +37,25 @@ function loadDraft(projectId: number): NoteDraft {
         localStorage.removeItem(legacyDraftKey(projectId))
       }
     }
-    if (raw) return JSON.parse(raw)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      // Validate structure — discard if shape doesn't match NoteDraft
+      if (
+        typeof parsed === 'object' && parsed !== null &&
+        typeof parsed.content === 'string' &&
+        typeof parsed.title === 'string' &&
+        typeof parsed.tags === 'string' &&
+        typeof parsed.kind === 'string'
+      ) {
+        return {
+          content: parsed.content,
+          title: parsed.title,
+          tags: parsed.tags,
+          kind: parsed.kind,
+          pinned: typeof parsed.pinned === 'boolean' ? parsed.pinned : undefined,
+        }
+      }
+    }
   } catch { /* ignore */ }
   return { ...emptyDraft }
 }
@@ -118,8 +136,14 @@ function NoteSection({ projectId, autoNew = false }: Props) {
     if (editingId === null || !editDraft.content.trim()) return
     setSaving(true)
     try {
-      await updateNote(editingId, editDraft.content.trim())
-      await updateNoteMeta(editingId, editDraft.title.trim(), editDraft.tags.trim(), editDraft.kind, !!editDraft.pinned)
+      await updateNoteFull(
+        editingId,
+        editDraft.content.trim(),
+        editDraft.title.trim(),
+        editDraft.tags.trim(),
+        editDraft.kind,
+        !!editDraft.pinned
+      )
       setEditingId(null)
       fetchNotes()
     } catch { /* ignore */ }

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { searchAll, searchProjects, type Project, type SearchHit } from '../../api/client'
 import { useDebouncedCallback } from '../../hooks/useDebouncedCallback'
+import DOMPurify from 'dompurify'
 
 interface Props {
   /** Toggles the star server-side and resolves to the new starred state. */
@@ -115,7 +116,7 @@ export default function ProjectSearchDropdown({ onToggleStar }: Props) {
                         <span className="search-result-project">{h.project_name}</span>
                       </div>
                       <div className="search-result-title">{h.title}</div>
-                      <div className="search-result-preview">{h.snippet}</div>
+                      <div className="search-result-preview" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.snippet) }} />
                     </Link>
                   ))}
                 </div>

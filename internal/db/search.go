@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"html"
 	"strings"
 	"unicode/utf8"
 )
@@ -196,23 +197,40 @@ func escapeLike(s string) string {
 }
 
 func makeSnippet(content, query string) string {
-	if len(content) <= searchSnippetWindow {
-		return content
+	// HTML-escape the content first so any HTML in note text is neutralised.
+	escaped := html.EscapeString(content)
+	// HTML-escape the query for safe insertion into <mark> tags.
+	escQuery := html.EscapeString(query)
+
+	if len(escaped) <= searchSnippetWindow {
+		return highlightQuery(escaped, escQuery)
 	}
-	idx := strings.Index(strings.ToLower(content), strings.ToLower(query))
+	idx := strings.Index(strings.ToLower(escaped), strings.ToLower(escQuery))
 	if idx < 0 {
-		return content[:searchSnippetWindow]
+		return highlightQuery(escaped[:searchSnippetWindow], escQuery)
 	}
 	start := idx - searchSnippetWindow/2
 	if start < 0 {
 		start = 0
 	}
 	end := start + searchSnippetWindow
-	if end > len(content) {
-		end = len(content)
+	if end > len(escaped) {
+		end = len(escaped)
 	}
-	snippet := content[start:end]
-	// Highlight matched query text with <mark> tags for visual emphasis.
-	snippet = strings.ReplaceAll(snippet, query, "<mark>"+query+"</mark>")
-	return snippet
+	// Clamp end to the last valid UTF-8 boundary so we don't split a multi-byte
+	// character (common with CJK text where each rune is 3 bytes).
+	for end > start && !utf8.RuneStart(escaped[end]) {
+		end--
+	}
+	snippet := escaped[start:end]
+	return highlightQuery(snippet, escQuery)
+}
+
+// highlightQuery wraps all occurrences of query in the snippet with <mark> tags.
+// Both snippet and query must already be HTML-escaped.
+func highlightQuery(snippet, query string) string {
+	if query == "" {
+		return snippet
+	}
+	return strings.ReplaceAll(snippet, query, "<mark>"+query+"</mark>")
 }

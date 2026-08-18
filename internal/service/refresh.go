@@ -112,12 +112,24 @@ func (s *Service) refreshProjectStatsForDate(projectID int64, date string) {
 	if err != nil {
 		return
 	}
+	// Query both the aggregate ("all") and the personal author, matching the
+	// behaviour of refreshRepoStatsRange so the dashboard has consistent data.
+	authors := []string{""}
+	if s.guser != "" {
+		authors = append(authors, s.guser)
+	}
 	for _, r := range repos {
-		result, qErr := s.git.QueryStats(r.Path, date, s.guser)
-		if qErr != nil || result == nil {
-			continue
+		for _, author := range authors {
+			result, qErr := s.git.QueryStats(r.Path, date, author)
+			if qErr != nil || result == nil {
+				continue
+			}
+			storeAuthor := author
+			if storeAuthor == "" {
+				storeAuthor = "all"
+			}
+			_ = db.UpsertDailyStat(s.db, r.ID, date, storeAuthor,
+				result.FilesChanged, result.LinesAdded, result.LinesDeleted)
 		}
-		_ = db.UpsertDailyStat(s.db, r.ID, date, s.guser,
-			result.FilesChanged, result.LinesAdded, result.LinesDeleted)
 	}
 }

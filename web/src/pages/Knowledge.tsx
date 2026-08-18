@@ -6,6 +6,7 @@ import {
   type NoteWithProject, type SearchHit,
 } from '../api/client'
 import { stripMarkdown, parseTags } from '../utils/markdown'
+import DOMPurify from 'dompurify'
 import { useDebouncedCallback } from '../hooks/useDebouncedCallback'
 import KnowledgeCard from './knowledge/KnowledgeCard'
 import { usePageMeta } from '../utils/seo'
@@ -221,7 +222,7 @@ function KnowledgePage() {
                     <span className="hit-project">{h.project_name}</span>
                   </div>
                   <div className="hit-title">{h.title}</div>
-                  <div className="hit-snippet" dangerouslySetInnerHTML={{ __html: h.snippet }} />
+                  <div className="hit-snippet" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.snippet) }} />
                 </Link>
               ))}
             </div>

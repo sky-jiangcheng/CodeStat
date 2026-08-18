@@ -25,8 +25,8 @@ export default function StatusBar() {
   // Update current time every second locally
   const [now, setNow] = useState(new Date())
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 1000)
-    return () => clearInterval(t)
+    const timer = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(timer)
   }, [])
 
   const currentTime = now.toLocaleString('zh-CN', {

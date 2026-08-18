@@ -1,7 +1,8 @@
 /** Date helpers shared across pages (YYYY-MM-DD strings). */
 
+/** Format a Date as a local YYYY-MM-DD string (not UTC). */
 export function toDateStr(d: Date): string {
-  return d.toISOString().split('T')[0]
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 export function getToday(): string {

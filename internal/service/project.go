@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
 
 	"gitboard/internal/db"
 	"gitboard/internal/domain"
@@ -255,7 +256,6 @@ func (s *Service) GetProjectOverview(projectID int64) (*ProjectOverview, error) 
 		resp.Mining = true
 		go s.mineAndCache(cacheRepoID, project.RootPath, repos)
 	}
-
 	// Recent commits are always fresh.
 	repoPaths := make([]string, 0, len(repos))
 	for _, r := range repos {
@@ -268,7 +268,15 @@ func (s *Service) GetProjectOverview(projectID int64) (*ProjectOverview, error) 
 }
 
 // mineAndCache runs knowledge mining in the background and caches the result.
+// It uses a sync.Map to skip duplicate mining requests for the same repo.
 func (s *Service) mineAndCache(cacheRepoID int64, rootPath string, repos []domain.Repository) {
+	// Dedup: if a mining goroutine is already running for this repo, skip.
+	if cacheRepoID > 0 {
+		if _, loaded := s.miningInFlight.LoadOrStore(cacheRepoID, true); loaded {
+			return
+		}
+		defer s.miningInFlight.Delete(cacheRepoID)
+	}
 	minePath := rootPath
 	if minePath == "" && len(repos) > 0 {
 		minePath = repos[0].Path

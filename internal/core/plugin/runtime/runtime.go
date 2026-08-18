@@ -307,9 +307,13 @@ func (r *Runtime) upsertDoc(doc plugin.ImportDoc, source string) (bool, error) {
 	existing, err := db.GetNoteBySourceTitle(r.db, doc.ProjectID, source, doc.Title)
 	if err == nil {
 		if doc.Content != "" {
-			_ = db.UpdateNote(r.db, existing.ID, doc.Content)
+			if uerr := db.UpdateNote(r.db, existing.ID, doc.Content); uerr != nil {
+				log.Printf("plugin runtime: upsertDoc UpdateNote failed (note %d): %v", existing.ID, uerr)
+			}
 		}
-		_ = db.UpdateNoteMeta(r.db, existing.ID, doc.Title, doc.Tags, kind, existing.Pinned)
+		if merr := db.UpdateNoteMeta(r.db, existing.ID, doc.Title, doc.Tags, kind, existing.Pinned); merr != nil {
+			log.Printf("plugin runtime: upsertDoc UpdateNoteMeta failed (note %d): %v", existing.ID, merr)
+		}
 		return false, nil
 	}
 	if err != sql.ErrNoRows {

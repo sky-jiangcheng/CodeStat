@@ -302,9 +302,13 @@ func upgradeSchema(db *sql.DB) error {
 			continue
 		}
 		if err := m.apply(db); err != nil {
+			// Distinguish "already exists" (idempotent, safe to stamp) from
+			// real migration failures (must not stamp or the migration is
+			// silently skipped on future runs).
+			if !isAlreadyExistsErr(err) {
+				return fmt.Errorf("schema migration %d failed: %w", m.id, err)
+			}
 			logMigrationError(m.id, err)
-			// Do not return: a failed ALTER (e.g. column already exists) must not
-			// block the version stamp, or re-runs would repeat forever.
 		}
 		if err := writeSchemaVersion(db, m.id); err != nil {
 			return fmt.Errorf("failed to stamp schema version %d: %w", m.id, err)

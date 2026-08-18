@@ -76,6 +76,31 @@ func UpdateNote(db *sql.DB, noteID int64, content string) error {
 	return nil
 }
 
+// UpdateNoteFull updates both content and metadata in a single transaction,
+// ensuring the note_versions snapshot trigger fires once with consistent data.
+func UpdateNoteFull(db *sql.DB, noteID int64, content, title, tags, kind string, pinned bool) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	res, err := tx.Exec(
+		"UPDATE project_notes SET content = ?, title = ?, tags = ?, kind = ?, pinned = ?, updated_at = strftime('%Y-%m-%d %H:%M:%f','now') WHERE id = ?",
+		content, title, tags, kind, pinned, noteID)
+	if err != nil {
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return sql.ErrNoRows
+	}
+	return tx.Commit()
+}
+
 // DeleteNote removes a note. Deleting an absent id is not an error.
 func DeleteNote(db *sql.DB, noteID int64) error {
 	_, err := db.Exec("DELETE FROM project_notes WHERE id = ?", noteID)

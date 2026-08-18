@@ -113,6 +113,11 @@ func (a *App) UpdateNote(noteID int64, content string) error {
 	return a.svc.UpdateNote(noteID, content)
 }
 
+// UpdateNoteFull updates both content and metadata in a single transaction.
+func (a *App) UpdateNoteFull(noteID int64, content, title, tags, kind string, pinned bool) error {
+	return a.svc.UpdateNoteFull(noteID, content, title, tags, kind, pinned)
+}
+
 // DeleteNote removes a note.
 func (a *App) DeleteNote(noteID int64) error { return a.svc.DeleteNote(noteID) }
 

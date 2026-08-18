@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { getProjects, searchAll, Project, SearchHit } from '../api/client'
 import { useTranslation } from 'react-i18next'
+import DOMPurify from 'dompurify'
 
 interface Props {
   open: boolean
@@ -49,12 +50,12 @@ export default function CommandPalette({ open, onClose }: Props) {
     const trimmed = query.trim()
     if (!trimmed) { setHits([]); setActiveIndex(0); return } // eslint-disable-line react-hooks/set-state-in-effect
     let cancelled = false
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       searchAll(trimmed).then(r => {
         if (!cancelled) { setHits(r ?? []); setActiveIndex(0) }
       }).catch(() => { if (!cancelled) setHits([]) })
     }, 150)
-    return () => { cancelled = true; clearTimeout(t) }
+    return () => { cancelled = true; clearTimeout(timer) }
   }, [query, open])
 
   const filteredProjects = useMemo(() => {
@@ -142,7 +143,7 @@ export default function CommandPalette({ open, onClose }: Props) {
               <span className={`cmdk-type cmdk-type-${h.type}`}>{h.type === 'note' ? t('commandPalette.noteMark') : t('commandPalette.todoMark')}</span>
               <div className="cmdk-item-body">
                 <div className="cmdk-item-title">{h.title}</div>
-                <div className="cmdk-item-sub">{h.project_name} · {h.snippet.slice(0, 60)}</div>
+                <div className="cmdk-item-sub">{h.project_name} · <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(h.snippet.slice(0, 60)) }} /></div>
               </div>
             </Link>
           ))}
