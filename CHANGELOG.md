@@ -196,6 +196,12 @@
 - **🟠 `git_author` 配置生效**：运行时可设置个人作者，覆盖自动检测的 `git user.name`（"我的"统计/热力图/最近提交随之更新）
 - **🟡 健壮性**：`mineAndCache` 记录 `UpsertRepoMeta` 错误而非吞掉；`Mine` 返回非 nil 切片避免 JSON `null`；按语言行数统计 scanner 缓冲放大到 16MB（兼容 minified 文件）；`daily_stats` 新增真实提交数 `commits` 列（此前热力图误用 `COUNT(DISTINCT author)`）
 
+### 维护
+
+- **🟡 `InferRepoMeta` 无超时**：派生仓库展示名时读取 `git config user.name` 改用 30s 上下文超时包裹，避免挂掉的 working tree 阻塞扫描/发现路径
+- **🟡 `refreshProjectStatsForDate` 缺失非零守卫**：与 `refreshRepoStatsRange` 对齐，git 出错返回的全 0 `Result` 不再写入每日统计行（原会令仪表盘显示「0」而非「无数据」，掩盖错误）
+- **版本号对齐**：`internal/version/version.go` 经 `scripts/bump-version.sh` 同步至 `1.7.2`（`wails.json` / `web/package.json` 一并更新），消除应用内报告版本与 tag 长期漂移
+
 ## [1.7.1] - 2026-08-18
 
 ### 修复

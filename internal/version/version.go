@@ -5,4 +5,4 @@
 package version
 
 // Version is the current GitBuddy version.
-const Version = "1.7.0"
+const Version = "1.7.2"

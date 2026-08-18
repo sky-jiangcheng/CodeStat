@@ -139,8 +139,13 @@ func (s *Service) refreshProjectStatsForDate(projectID int64, date string) {
 			if storeAuthor == "" {
 				storeAuthor = "all"
 			}
-			_ = db.UpsertDailyStat(s.db, r.ID, date, storeAuthor,
-				result.FilesChanged, result.LinesAdded, result.LinesDeleted, result.Commits)
+			// Mirror the non-zero guard in refreshRepoStatsRange: when QueryStats
+			// fails it returns an all-zero Result, and writing that row would make
+			// the dashboard show "0" instead of "no data", masking the error.
+			if result.FilesChanged > 0 || result.LinesAdded > 0 || result.LinesDeleted > 0 {
+				_ = db.UpsertDailyStat(s.db, r.ID, date, storeAuthor,
+					result.FilesChanged, result.LinesAdded, result.LinesDeleted, result.Commits)
+			}
 		}
 	}
 }
