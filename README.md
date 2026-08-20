@@ -1,14 +1,20 @@
 # GitBuddy
 
-本地优先的「代码项目第二大脑」：自动发现本地所有 Git 仓库，桌面仪表盘可视化每日提交量；内置跨项目知识库（Markdown 笔记、块编辑器、FTS5 全文搜索、版本历史）、仓库知识挖掘，以及面向 AI 的 CLI / MCP / llms.txt 接口。
+本地优先的**代码项目上下文库**：自动发现本地 Git 项目，理解每个项目「现在发生了什么、沉淀了哪些知识」，让用户和 AI 都能快速记录、检索与复用项目知识。
+
+核心闭环：
+
+```
+发现项目 → 理解项目 → 记录知识 → 检索知识 → 交给 AI 使用
+```
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7-3178C6?logo=typescript)](https://www.typescriptlang.org)
-[![PWA](https://img.shields.io/badge/PWA-Ready-5A0FC8?logo=pwa)](https://web.dev/progressive-web-apps/)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 > 单文件 Wails v2 桌面应用（Go + React，SQLite 内嵌，零 CGO）。macOS / Windows / Linux。
+> 功能分级与范围冻结规则见 [ADR-0006](docs/adr/0006-scope-freeze.md)。
 
 ## 截屏预览
 
@@ -22,7 +28,9 @@
 
 ## 功能特性
 
-### 仪表盘与统计
+> 分级说明：**核心**（构成「发现→理解→记录→检索→AI」闭环）｜**支持**（服务闭环的可理解性）｜**实验性**（保留但不扩展）｜**暂缓**（不继续投入）。见 [ADR-0006](docs/adr/0006-scope-freeze.md)。
+
+### 仪表盘与统计（支持）
 
 | 特性 | 说明 |
 |------|------|
@@ -34,39 +42,38 @@
 | 工作日检查 | 自定义每日代码量标准，未达标告警 |
 | 状态栏 | 最近提交实时展示（仓库 / 分支 / 时间，30 秒缓存） |
 
-### 知识库（首页）
+### 知识库（核心）
 
 | 特性 | 说明 |
 |------|------|
 | Markdown 笔记 | 标题 / 标签 / 分类（知识·日志·想法·其他）/ 置顶 / 跨项目迁移；草稿自动保存 |
-| 块编辑器 | 输入 `/` 呼起块面板插入 Callout / Tabs / 折叠块 / 代码 / Mermaid / 公式 / 表格等结构化块，拖拽排序，产物仍是纯 Markdown |
+| 块编辑器 | 输入 `/` 呼起块面板插入 Callout / Tabs / 折叠块 / 代码 / Mermaid / 公式 / 表格等结构化块，拖拽排序，产物仍是纯 Markdown（**实验性**：暂缓新增复杂块，见 ADR-0006） |
 | 富渲染 | highlight.js 代码高亮、Mermaid 图、KaTeX 数学公式、GFM Callout 与任务列表 |
 | FTS5 全文搜索 | trigram + bm25 相关性排序、snippet 高亮，覆盖笔记与待办；短 CJK 查询自动降级 LIKE |
 | 版本历史 | 每次保存自动快照，查看任意版本与当前的行级 diff，一键恢复 |
 | 全局搜索 | ⌘/Ctrl+K 命令面板 + 仪表盘联合搜索（仓库 / 笔记 / 待办） |
 
-### 仓库知识挖掘
+### 仓库知识挖掘（核心）
 
 项目详情页自动提取：README 摘要、技术栈清单（20+ manifest 识别）、语言 LOC 占比、依赖清单（npm / go.mod 含块状 require / cargo）、Top 贡献者、活跃度统计、最近提交流；结果缓存于 `repo_meta`，避免重复扫描。
 
-### AI 就绪接口
+### AI 就绪接口（核心）
 
 | 通道 | 说明 |
 |------|------|
-| CLI | `gitboard notes/projects/stats/ask/config` 子命令，JSON 输出（见 [SKILL.md](SKILL.md)） |
-| MCP Server | `gitboard-mcp` stdio 服务器，6 个只读工具，可接入 Claude Code / Cursor 等 |
+| MCP Server | `gitboard-mcp` stdio 服务器，6 个只读工具，可接入 Claude Code / Cursor 等（AI 执行的唯一接口） |
 | llms.txt | `GenerateLLMsTxt` 生成面向 LLM 的知识库总览 Markdown |
 | 笔记导出 | 任意笔记导出为带 YAML frontmatter 的 `.md` |
-| agent-score | `gitboard-agent-score` 自检 AI 就绪度（数据库/搜索/插件/CLI/MCP） |
-| Claude 记忆导入 | 一键将 `~/.claude/projects/*/memory/*.md` 幂等导入为知识笔记 |
+| agent-score | `gitboard-agent-score` 自检 AI 就绪度（数据库/搜索/MCP/llms.txt） |
+| Claude 记忆导入 | 一键将 `~/.claude/projects/*/memory/*.md` 幂等导入为知识笔记（**支持**） |
 
 ### 其他
 
 | 特性 | 说明 |
 |------|------|
-| 插件系统 | yaegi 进程内 Go 脚本插件 + 知识源导入器（示例见 `examples/plugins/`，指南见[插件手册](docs/plugins/overview.md)） |
+| 插件系统 | yaegi 进程内 Go 脚本插件 + 知识源导入器（示例见 `examples/plugins/`，指南见[插件手册](docs/plugins/overview.md)；**实验性**，暂停平台基础设施扩展） |
 | i18n | 中文 / English 一键切换（react-i18next，zh-CN + en） |
-| PWA | 可安装到桌面 / 主屏幕，离线 fallback |
+| PWA | 可安装到桌面 / 主屏幕，离线 fallback（**暂缓**：评估是否移出桌面主构建） |
 | 单文件跨平台 | Go 编译单二进制，无运行时依赖 |
 
 ## 快速开始
@@ -154,8 +161,7 @@ internal/
   platform/              # OS 差异：数据目录、日志路径、扫描根默认值
   version/ diff/         # 单一版本号源、笔记行级 diff
 cmd/
-  gitboard/              # CLI（Cobra）
-  mcp/                   # MCP stdio 服务器
+  mcp/                   # MCP stdio 服务器（AI 执行接口）
 tools/agent-score/       # AI 就绪度自检
 web/src/
   api/                   # types + transport（Wails/HTTP 双模）+ endpoints

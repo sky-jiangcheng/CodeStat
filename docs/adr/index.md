@@ -12,6 +12,7 @@ order: 21
 | [0003](0003-fts5-search.md) | FTS5 trigram 全文搜索 | Accepted |
 | [0004](0004-block-editor.md) | 块编辑器（产物保持纯 Markdown） | Accepted |
 | [0005](0005-service-layer.md) | 服务层重构（service / app / domain 分层） | Accepted |
+| [0006](0006-scope-freeze.md) | 范围冻结与功能分级（核心闭环优先） | Accepted |
 
 ## 约定
 

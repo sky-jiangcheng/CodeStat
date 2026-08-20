@@ -1,29 +1,15 @@
 ---
-title: AI 集成（CLI/MCP/llms.txt）
+title: AI 集成（MCP/llms.txt）
 order: 7
 ---
 
 # AI 集成
 
-GitBuddy 面向 AI 代理提供四条读取通道与一个自检工具，全部复用同一 `internal/service` 实现（与桌面端行为一致）。
-
-## CLI（`gitboard`）
-
-```bash
-go build -o gitboard ./cmd/gitboard/
-
-gitboard notes list                     # 全部笔记（JSON，含所属项目）
-gitboard notes search "查询词"           # FTS5 搜索笔记+待办（JSON）
-gitboard notes read <id>                # 单条笔记（JSON）
-gitboard projects list                  # 全部项目（JSON）
-gitboard stats project <id>             # 项目统计+仓库列表（JSON）
-gitboard ask "这个项目是做什么的？"       # Top-5 命中，文本输出
-gitboard config                         # 配置与扫描根（JSON）
-```
+GitBuddy 面向 AI 代理提供读取通道与自检工具，全部复用同一 `internal/service` 实现（与桌面端行为一致）。
 
 ## MCP Server（`gitboard-mcp`）
 
-stdio 协议，进程内单次开库，6 个只读工具：
+MCP 是唯一的 AI 执行接口（`gitboard` CLI 未随版本发布）。stdio 协议，进程内单次开库，6 个只读工具：
 
 | 工具 | 说明 |
 |------|------|
@@ -56,7 +42,7 @@ claude mcp add gitboard -- /path/to/gitboard-mcp
 
 ## llms.txt 与 Markdown 导出（应用内）
 
-- **llms.txt**：`GenerateLLMsTxt` 生成知识库总览 Markdown（项目目录 + 技术栈 + 最近 20 条知识笔记），适合喂给 LLM 建立上下文
+- **llms.txt**：`GenerateLLMsTxt` 生成知识库总览 Markdown（项目目录 + 技术栈 + 最近 20 条知识笔记），适合喂给 LLM 建立上下文。**llms.txt 是导出格式**（应用内生成，不随仓库分发），不作为独立产品方向扩张（见 ADR-0006）
 - **笔记导出**：任意笔记导出为带 YAML frontmatter 的 `.md`（`ExportNoteAsMarkdown`）
 - **Claude 记忆导入**：`~/.claude/projects/*/memory/*.md` 幂等导入（见[知识库](knowledge.md)）
 
@@ -67,7 +53,7 @@ go build -o gitboard-agent-score ./tools/agent-score/
 ./gitboard-agent-score
 ```
 
-输出 8 项 AI 就绪度评分：数据库健康、笔记数、FTS5 可用、Claude 记忆源、CLI、MCP、SKILL.md、i18n。
+输出 8 项 AI 就绪度评分：数据库健康、笔记数、FTS5 可用、Claude 记忆源、MCP 二进制、llms.txt 导出、SKILL.md、i18n。
 
 ## 面向 AI 代理的技能卡
 

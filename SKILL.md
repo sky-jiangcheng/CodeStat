@@ -1,38 +1,20 @@
 # GitBuddy Skill
 
-GitBuddy is a local-first desktop "second brain" for code projects. It tracks commit activity across all local repositories, maintains a cross-project knowledge base (Markdown notes, block editor, FTS5 search, version history), mines repository knowledge, and exposes it all to AI agents via CLI, MCP and llms.txt.
+GitBuddy is a local-first code project context base. It discovers local Git repositories, maintains a cross-project knowledge base (Markdown notes, FTS5 search, version history), mines repository knowledge, and exposes it to AI agents via the MCP server and llms.txt export.
 
 ## What GitBuddy Does
 
 - **Repository discovery**: Automatically finds Git repos under configurable scan roots
 - **Daily activity tracking**: Lines added/deleted, files changed, commit counts per repo (365-day backfill on demand)
-- **Knowledge base**: Cross-project Markdown notes with block editor, tags, pins, version history + LCS diff
+- **Knowledge base**: Cross-project Markdown notes with tags, pins, version history + LCS diff
 - **Full-text search**: SQLite FTS5 trigram + bm25 ranking across notes and todos
 - **Claude memory import**: Idempotent import of `~/.claude/projects/*/memory/*.md`
 - **Repo knowledge mining**: README excerpt, tech stack, languages, dependencies, contributors, activity
-- **AI-ready exports**: `llms.txt` and per-note `.md` export
-
-## CLI (`gitboard`)
-
-Standalone binary sharing the same service layer as the desktop app. JSON output for agent consumption.
-
-```bash
-# Install
-go build -o /usr/local/bin/gitboard ./cmd/gitboard/
-
-# Usage
-gitboard notes list                      # all notes across projects (JSON)
-gitboard notes search "query"            # FTS5 search notes + todos (JSON)
-gitboard notes read <id>                 # single note by ID (JSON)
-gitboard projects list                   # all projects (JSON)
-gitboard stats project <id>              # project stats + repos (JSON)
-gitboard ask "what is this project about?"  # top-5 search hits as text
-gitboard config                          # config + scan roots (JSON)
-```
+- **AI context export**: `llms.txt` and per-note `.md` export
 
 ## MCP Server (`gitboard-mcp`)
 
-stdio MCP server, opens the database once per process. Build and register:
+MCP is the single AI execution interface (the `gitboard` CLI is not shipped). stdio server, opens the database once per process. Build and register:
 
 ```bash
 go build -o /usr/local/bin/gitboard-mcp ./cmd/mcp/
@@ -78,7 +60,7 @@ go build -o gitboard-agent-score ./tools/agent-score/
 ./gitboard-agent-score
 ```
 
-Scores 8 checks: database health, notes count, FTS5 search, Claude memory sources, CLI binary, MCP binary, SKILL.md, i18n locales.
+Scores 8 checks: database health, notes count, FTS5 search, Claude memory sources, MCP binary, llms.txt export, SKILL.md, i18n locales.
 
 ## Key File Paths
 
@@ -92,7 +74,7 @@ Scores 8 checks: database health, notes count, FTS5 search, Claude memory source
 ## Architecture (v1.7.0)
 
 - **Backend**: Go + SQLite (modernc, zero CGO), Wails v2 desktop app
-- **Layering**: `internal/app` (thin Wails bindings) → `internal/service` (business core, shared by desktop/CLI/MCP) → `internal/db` + `internal/core/git`
+- **Layering**: `internal/app` (thin Wails bindings) → `internal/service` (business core, shared by desktop/MCP) → `internal/db` + `internal/core/git`
 - **Frontend**: React 19 + Vite 8 + TypeScript 7, PWA, hand-rolled CSS design system
 - **Search**: FTS5 trigram + bm25, LIKE fallback for short CJK queries
 - **i18n**: react-i18next, zh-CN + en
