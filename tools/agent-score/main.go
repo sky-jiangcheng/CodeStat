@@ -97,17 +97,7 @@ func main() {
 		record(false)
 	}
 
-	// 5. CLI binary available
-	cliPath, _ := os.Executable()
-	if cliPath != "" && (strings.Contains(cliPath, "gitboard") || strings.Contains(cliPath, "gitbuddy")) {
-		parts = append(parts, "  ✅ CLI binary present")
-		record(true)
-	} else {
-		parts = append(parts, "  ⚠️  CLI not found at "+cliPath)
-		record(false)
-	}
-
-	// 6. MCP server available
+	// 5. MCP binary available
 	exeDir := filepath.Dir(cliPath)
 	mcpFound := false
 	for _, name := range []string{"gitbuddy-mcp", "gitboard-mcp"} {
@@ -116,11 +106,38 @@ func main() {
 			break
 		}
 	}
+	if !mcpFound {
+		for _, dir := range filepath.SplitList(os.Getenv("PATH")) {
+			for _, name := range []string{"gitbuddy-mcp", "gitboard-mcp"} {
+				if _, err := os.Stat(filepath.Join(dir, name)); err == nil {
+					mcpFound = true
+					break
+				}
+			}
+			if mcpFound {
+				break
+			}
+		}
+	}
 	if mcpFound {
 		parts = append(parts, "  ✅ MCP server binary present")
 		record(true)
 	} else {
 		parts = append(parts, "  ⚠️  MCP server not built — run: go build -o gitbuddy-mcp ./cmd/mcp/")
+		record(false)
+	}
+
+	// 6. llms.txt export works
+	if svc != nil {
+		if txt := svc.GenerateLLMsTxt(); len(txt) > 0 {
+			parts = append(parts, "  ✅ llms.txt export generates content")
+			record(true)
+		} else {
+			parts = append(parts, "  ⚠️  llms.txt export returned empty")
+			record(false)
+		}
+	} else {
+		parts = append(parts, "  ⚠️  llms.txt export skipped (no database)")
 		record(false)
 	}
 
