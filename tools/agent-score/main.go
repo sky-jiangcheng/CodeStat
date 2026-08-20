@@ -98,7 +98,10 @@ func main() {
 	}
 
 	// 5. MCP binary available
-	exeDir := filepath.Dir(cliPath)
+	exeDir := "."
+	if exe, err := os.Executable(); err == nil {
+		exeDir = filepath.Dir(exe)
+	}
 	mcpFound := false
 	for _, name := range []string{"gitbuddy-mcp", "gitboard-mcp"} {
 		if _, err := os.Stat(filepath.Join(exeDir, name)); err == nil {
