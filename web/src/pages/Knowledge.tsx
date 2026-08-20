@@ -67,7 +67,10 @@ function KnowledgePage() {
       .finally(() => setLoading(false))
   }, [t])
 
-  useEffect(() => { fetchAll() }, [fetchAll])
+  // The effect starts an async data load; the state updates happen in the
+  // promise callbacks rather than synchronously in the effect body.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { void fetchAll() }, [fetchAll])
 
   // One debounced runner serves both list search and ask mode. A sequence
   // number discards stale responses so an older, slower query can never

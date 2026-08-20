@@ -28,7 +28,11 @@ function wail<T>(method: string, ...args: unknown[]): Promise<T> {
   if (!app) {
     throw new Error('Wails runtime not available')
   }
-  return app[method](...args) as Promise<T>
+  const fn = app[method]
+  if (typeof fn !== 'function') {
+    throw new Error(`Wails method not found: ${method}`)
+  }
+  return fn(...args) as Promise<T>
 }
 
 const BASE = '/api'
@@ -81,8 +85,9 @@ function notify(kind: ConnectionKind) {
 /** Health check: resolves true when backend responds, false otherwise. */
 export function checkHealth(): Promise<boolean> {
   if (!isWails()) return Promise.resolve(true)
-  return wail<{ ok: boolean }>('Health').then(r => {
-    const ok = !!(r?.ok ?? true)
+  return wail<{ ok?: boolean; status?: string }>('Health').then(r => {
+    // The Go binding returns status: "ok"; accept the legacy ok boolean too.
+    const ok = r?.ok ?? r?.status === 'ok'
     notify(ok ? 'ok' : 'backend-down')
     return ok
   }).catch(() => {
@@ -94,14 +99,18 @@ export function checkHealth(): Promise<boolean> {
 /** Start periodic health polling. Returns a cleanup function. */
 export function startHealthPoll(intervalMs = 30_000): () => void {
   let timer: number | null = null
-  const tick = () => {
-    checkHealth().then(ok => {
-      if (ok) return
-      timer = window.setTimeout(tick, intervalMs) as unknown as number
-    })
+  let stopped = false
+  const schedule = () => {
+    if (!stopped) timer = window.setTimeout(tick, intervalMs) as unknown as number
   }
-  checkHealth().then(ok => { if (!ok) timer = window.setTimeout(tick, intervalMs) as unknown as number })
-  return () => { if (timer !== null) clearTimeout(timer) }
+  const tick = () => {
+    checkHealth().finally(schedule)
+  }
+  tick()
+  return () => {
+    stopped = true
+    if (timer !== null) clearTimeout(timer)
+  }
 }
 
 /** Register online/offline listeners so we detect network state changes. */
