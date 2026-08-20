@@ -47,30 +47,32 @@ export function useApiData<T>(
   const { cacheKey, ttl = 30_000 } = options
   const [state, setState] = useState<ApiDataState<T>>({ data: null, loading: true, error: null })
   const fetcherRef = useRef(fetcher)
+  const requestSeq = useRef(0)
   useEffect(() => { fetcherRef.current = fetcher }, [fetcher])
   // Stringify deps for cache-busting comparisons.
   const depsKey = JSON.stringify(deps)
   const fullKey = cacheKey ? `${cacheKey}:${depsKey}` : undefined
 
-  const load = useCallback(async (bypassCache: boolean) => {
+  const load = useCallback(async (bypassCache: boolean, token = ++requestSeq.current) => {
+    const isCurrent = () => token === requestSeq.current
     if (fullKey && !bypassCache) {
       const hit = cache.get(fullKey)
       if (hit && Date.now() - hit.at < ttl) {
-        setState({ data: hit.data as T, loading: false, error: null })
+        if (isCurrent()) setState({ data: hit.data as T, loading: false, error: null })
         return
       }
       const pending = inflight.get(fullKey)
       if (pending) {
         try {
           const data = (await pending) as T
-          setState({ data, loading: false, error: null })
+          if (isCurrent()) setState({ data, loading: false, error: null })
         } catch {
           /* the original requester reports the error */
         }
         return
       }
     }
-    setState(s => ({ ...s, loading: true, error: null }))
+    if (isCurrent()) setState(s => ({ ...s, loading: true, error: null }))
     const p = Promise.resolve().then(() => fetcherRef.current())
     if (fullKey) inflight.set(fullKey, p as Promise<unknown>)
     try {
@@ -79,19 +81,21 @@ export function useApiData<T>(
         cache.set(fullKey, { data, at: Date.now() })
         inflight.delete(fullKey)
       }
-      setState({ data, loading: false, error: null })
+      if (isCurrent()) setState({ data, loading: false, error: null })
     } catch (e) {
       if (fullKey) inflight.delete(fullKey)
-      setState({ data: null, loading: false, error: e instanceof Error ? e.message : 'request failed' })
+      if (isCurrent()) setState({ data: null, loading: false, error: e instanceof Error ? e.message : 'request failed' })
     }
   }, [fullKey, ttl])
 
   useEffect(() => {
-    let cancelled = false
-    if (cancelled) return
+    const token = ++requestSeq.current
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    load(false)
-    return () => { cancelled = true }
+    load(false, token)
+    // Invalidate this effect's request when dependencies change or the
+    // component unmounts; late results are ignored by the sequence guard.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => { requestSeq.current++ }
   }, [fullKey, depsKey, load])
 
   // React to external invalidations while mounted.

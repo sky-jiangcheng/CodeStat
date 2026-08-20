@@ -38,7 +38,7 @@ function Settings() {
       .catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) })
       .finally(() => setLoading(false))
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
-  }, [])
+  }, [t])
 
   if (loading) {
     return (
