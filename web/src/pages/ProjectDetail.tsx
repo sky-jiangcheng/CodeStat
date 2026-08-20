@@ -22,6 +22,26 @@ function ProjectDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [range, setRange] = useState<'week' | 'month' | 'all'>('week')
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyContext = async () => {
+    if (!project) return
+    const lines: string[] = [
+      `# ${project.name}`,
+      `path: ${project.root_path}`,
+      `grouping: ${project.is_auto_grouped ? t('project.autoGroup') : t('project.manualGroup')}`,
+    ]
+    if (overview?.readme_excerpt) lines.push('', `## README\n${overview.readme_excerpt}`)
+    if (overview?.tech_stack.length) lines.push('', `## ${t('project.techStack')}\n${overview.tech_stack.map(x => x.name).join(', ')}`)
+    if (overview?.recent_commits.length) lines.push('', `## ${t('project.recentCommits')}\n${overview.recent_commits.slice(0, 5).map(c => `- ${c.time} ${c.message}`).join('\n')}`)
+    try {
+      await navigator.clipboard.writeText(lines.join('\n'))
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError(t('common.failed'))
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -141,6 +161,12 @@ function ProjectDetailPage() {
               <p className="detail-path">{project.root_path}</p>
             </div>
             <div className="detail-actions">
+              <button className="btn btn-sm" onClick={() => navigate(`/project/${id}?newNote=1`)}>
+                {t('project.quickNote')}
+              </button>
+              <button className="btn btn-sm" onClick={handleCopyContext}>
+                {copied ? t('project.copied') : t('project.copyContext')}
+              </button>
               <button className="btn btn-sm" onClick={() => handleLevelChange('down')}>
                 {t('project.levelDown')}
               </button>

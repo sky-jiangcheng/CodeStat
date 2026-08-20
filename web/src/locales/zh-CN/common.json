@@ -278,7 +278,13 @@
     "goalBadge": "达标",
     "belowBadge": "未达标",
     "nonWorkdayBadge": "非工作日",
-    "noteBadgeTitle": "知识笔记"
+    "noteBadgeTitle": "知识笔记",
+    "quickNote": "快速记录",
+    "copyContext": "复制 AI 上下文",
+    "copied": "已复制",
+    "techStack": "技术栈",
+    "overviewEmpty": "等待首次挖掘",
+    "overviewEmptyHint": "打开项目详情时会自动提取 README、技术栈、依赖、贡献者与最近提交；稍后重进本页即可看到。"
   },
   "common": {
     "unknownError": "未知错误",

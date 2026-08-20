@@ -20,7 +20,17 @@ export default function ProjectOverviewSection({ overview }: Props) {
     overview.recent_commits.length > 0 ||
     overview.dependencies.length > 0 ||
     overview.top_contributors.length > 0
-  if (!hasContent) return null
+  if (!hasContent) {
+    return (
+      <div className="detail-section overview-section overview-empty">
+        <div className="section-header">
+          <h2>{t('project.overview')}</h2>
+          <span className="overview-cache-hint">{overview.cached ? t('project.fromCache') : t('project.realtimeMining')}</span>
+        </div>
+        <p className="empty-hint">{t('project.overviewEmpty')}：{t('project.overviewEmptyHint')}</p>
+      </div>
+    )
+  }
 
   return (
     <div className="detail-section overview-section">

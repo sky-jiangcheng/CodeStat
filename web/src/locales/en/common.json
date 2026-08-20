@@ -278,7 +278,13 @@
     "goalBadge": "Goal met",
     "belowBadge": "Behind",
     "nonWorkdayBadge": "Non-workday",
-    "noteBadgeTitle": "Knowledge notes"
+    "noteBadgeTitle": "Knowledge notes",
+    "quickNote": "Quick Note",
+    "copyContext": "Copy AI Context",
+    "copied": "Copied",
+    "techStack": "Tech Stack",
+    "overviewEmpty": "Awaiting first mining",
+    "overviewEmptyHint": "Opening the project detail triggers extraction of README, tech stack, dependencies, contributors and recent commits. Revisit this page shortly."
   },
   "common": {
     "unknownError": "Unknown error",
