@@ -22,10 +22,7 @@
 
 PR1（定位治理）已落地，见 [CHANGELOG Unreleased](CHANGELOG.md) 与 [positioning-brief.md 统一对外口径](docs/positioning-brief.md)。剩余：
 
-**PR2：错误一致性与可用性（紧随其后）**
-- 标题：`fix(web): unify retry and error recovery paths`
-- 描述：本 PR 统一前后端错误边界、重试闭环和状态恢复，减少用户感知的按钮失效和页面假死。
-- Commit message：`fix(web): unify error handling, retry and recovery paths`
+PR2（错误一致性与可用性）已落地：新增 `web/src/components/ErrorBanner.tsx` 统一页面级错误渲染（消息 + 重试 + i18n），Dashboard / ProjectDetail / Knowledge / Settings 接入；NoteSection 的静默 catch 改走 `run(op, errMsg)` 包装并暴露重试。Commit message：`fix(web): unify error handling, retry and recovery paths`。
 
 ### 品牌与二进制统一为 GitBuddy（重构方案阶段 11，已推迟）
 
