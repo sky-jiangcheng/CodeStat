@@ -34,10 +34,23 @@
 - PWA / SEO / Web-only 追加能力
 - 易造成误解为“在线平台、团队 Dashboard、HTTP Server”的表达
 
-## 对外叙事重构（建议）
+## 对外叙事重构
 
-### 推荐（简短）
-> GitBuddy 是开发者的本地项目上下文库：自动理解本地 Git 项目，帮你快速沉淀、检索、出口给 AI。
+### 统一对外口径（权威短文案）
+
+> 本节为 PR1「定位治理」落地的统一对外口径。所有 Release / 推广 / 首页开篇 / Issue 模板以此为准，其它文案（含下方「完整」版与 README 开篇）仅作为它的展开，不得与之冲突。
+
+**中文（三句定位）**
+
+> GitBuddy 现在更聚焦：本地项目上下文库。帮你快速理解项目、沉淀知识、交给 AI 继续使用。
+
+**English**
+
+> GitBuddy now focuses on what it does best: a local-first project context base—understand your local repos, capture reusable knowledge, and hand it off to AI.
+
+**Release note**
+
+> Positioning and UX alignment release: GitBuddy prioritizes local project understanding and knowledge retrieval; dashboard/statistics become supporting capabilities.
 
 ### 推荐（完整）
 > GitBuddy 帮你把本地 Git 项目从“散落在终端和记忆里”变成“可检索、可复用的上下文”。它能快速发现你关心的项目，理解每个项目当前状态，并把笔记、依赖、技术栈和活跃信息沉淀下来；随后通过导出与 MCP 提供给 AI 继续使用。

@@ -16,18 +16,11 @@
 4. 前端错误恢复路径（重试、状态回退、异常边界）统一做一次
 5. 对外短文案（中文+英文）统一三句定位，减少用户误判
 
+> PR1 已落地覆盖第 1、2、3、5 项（见 [CHANGELOG Unreleased](CHANGELOG.md)）；第 4 项（前端错误恢复路径）归入 PR2。
+
 ### PR 与外发口径（可直接执行）
 
-建议拆为两个 PR：
-
-**PR1：定位治理（优先合并）**
-- 标题：`refactor: unify positioning around local context library`
-- 描述：本 PR 统一 GitBuddy 的对外定位为本地优先的代码项目上下文库；明确核心闭环为「发现本地项目、理解项目、沉淀知识、检索知识、交给 AI 使用」；并将仪表盘/统计降级为支持能力，PWA/插件/Web-only 不再默认扩展。
-- Commit message：`docs(product): realign positioning and priority narrative`
-- 对外短文案：
-  - 中文：`GitBuddy 现在更聚焦：本地项目上下文库。帮你快速理解项目、沉淀知识、交给 AI 继续使用。`
-  - English：`GitBuddy now focuses on what it does best: a local-first project context base—understand your local repos, capture reusable knowledge, and hand it off to AI.`
-- Release note：`Positioning and UX alignment release: GitBuddy prioritizes local project understanding and knowledge retrieval; dashboard/statistics become supporting capabilities.`
+PR1（定位治理）已落地，见 [CHANGELOG Unreleased](CHANGELOG.md) 与 [positioning-brief.md 统一对外口径](docs/positioning-brief.md)。剩余：
 
 **PR2：错误一致性与可用性（紧随其后）**
 - 标题：`fix(web): unify retry and error recovery paths`
