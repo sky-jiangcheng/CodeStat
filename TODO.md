@@ -4,6 +4,36 @@
 
 ## 高优先级
 
+### 先统一产品定位与入口叙事（优先于功能新增）
+
+当前产品同时承担「提交统计面板」「本地知识库」「AI 上下文工具」三个叙事，容易导致优先级模糊、回归成本高、问题定位困难。
+
+建议接下来优先修复：
+
+1. README / 首页 / Getting Started 统一为「本地项目上下文库」
+2. 仪表盘、统计、热力图重新定义为「支持能力」而非主入口主叙事
+3. 插件、PWA、Experimental 功能已经标记后，不要再成为其他核心功能的前置依赖
+4. 前端错误恢复路径（重试、状态回退、异常边界）统一做一次
+5. 对外短文案（中文+英文）统一三句定位，减少用户误判
+
+### PR 与外发口径（可直接执行）
+
+建议拆为两个 PR：
+
+**PR1：定位治理（优先合并）**
+- 标题：`refactor: unify positioning around local context library`
+- 描述：本 PR 统一 GitBuddy 的对外定位为本地优先的代码项目上下文库；明确核心闭环为「发现本地项目、理解项目、沉淀知识、检索知识、交给 AI 使用」；并将仪表盘/统计降级为支持能力，PWA/插件/Web-only 不再默认扩展。
+- Commit message：`docs(product): realign positioning and priority narrative`
+- 对外短文案：
+  - 中文：`GitBuddy 现在更聚焦：本地项目上下文库。帮你快速理解项目、沉淀知识、交给 AI 继续使用。`
+  - English：`GitBuddy now focuses on what it does best: a local-first project context base—understand your local repos, capture reusable knowledge, and hand it off to AI.`
+- Release note：`Positioning and UX alignment release: GitBuddy prioritizes local project understanding and knowledge retrieval; dashboard/statistics become supporting capabilities.`
+
+**PR2：错误一致性与可用性（紧随其后）**
+- 标题：`fix(web): unify retry and error recovery paths`
+- 描述：本 PR 统一前后端错误边界、重试闭环和状态恢复，减少用户感知的按钮失效和页面假死。
+- Commit message：`fix(web): unify error handling, retry and recovery paths`
+
 ### 品牌与二进制统一为 GitBuddy（重构方案阶段 11，已推迟）
 
 ## 中优先级

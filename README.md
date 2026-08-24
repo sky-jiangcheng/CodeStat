@@ -1,11 +1,13 @@
 # GitBuddy
 
-本地优先的**代码项目上下文库**：自动发现本地 Git 项目，理解每个项目「现在发生了什么、沉淀了哪些知识」，让用户和 AI 都能快速记录、检索与复用项目知识。
+本地优先的**代码项目上下文库**：自动发现本地 Git 项目，快速理解每个项目「现在发生了什么、沉淀了哪些知识」，让用户和 AI 都能记录、检索与复用项目上下文。
+
+优先级声明：本项目当前以**本地知识理解与 AI 上下文出口**为核心；仪表盘与统计是支持能力，插件/PWA/Web-only 能力不再默认扩展（见 [ADR-0006](docs/adr/0006-scope-freeze.md)）。
 
 核心闭环：
 
 ```
-发现项目 → 理解项目 → 记录知识 → 检索知识 → 交给 AI 使用
+发现本地项目 → 理解项目 → 沉淀知识 → 检索知识 → 交给 AI 使用
 ```
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go)](https://go.dev)
@@ -14,7 +16,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 > 单文件 Wails v2 桌面应用（Go + React，SQLite 内嵌，零 CGO）。macOS / Windows / Linux。
-> 功能分级与范围冻结规则见 [ADR-0006](docs/adr/0006-scope-freeze.md)。
+> 定位优先级、功能分级与范围冻结规则见 [ADR-0006](docs/adr/0006-scope-freeze.md) 与 [定位简报](docs/positioning-brief.md)。
 
 ## 截屏预览
 
