@@ -9,6 +9,7 @@ import { stripMarkdown, parseTags } from '../utils/markdown'
 import DOMPurify from 'dompurify'
 import { useDebouncedCallback } from '../hooks/useDebouncedCallback'
 import KnowledgeCard from './knowledge/KnowledgeCard'
+import ErrorBanner from '../components/ErrorBanner'
 import { usePageMeta } from '../utils/seo'
 
 type KindFilter = 'all' | 'knowledge' | 'other'
@@ -159,10 +160,7 @@ function KnowledgePage() {
     return (
       <div className="knowledge">
         <h1>{t('knowledge.title')}</h1>
-        <div className="error-banner">
-          <span>{error}</span>
-          <button className="btn btn-sm" onClick={() => void fetchAll()}>{t('common.retry')}</button>
-        </div>
+        <ErrorBanner message={error} onRetry={() => void fetchAll()} />
       </div>
     )
   }

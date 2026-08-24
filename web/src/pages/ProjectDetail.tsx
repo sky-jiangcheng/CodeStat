@@ -7,6 +7,7 @@ import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
 import ProjectPanel from '../components/ProjectPanel'
 import ProjectOverviewSection from './project/ProjectOverviewSection'
+import ErrorBanner from '../components/ErrorBanner'
 import { usePageMeta } from '../utils/seo'
 
 function ProjectDetailPage() {
@@ -58,6 +59,22 @@ function ProjectDetailPage() {
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [id, t])
+
+  // Retry reuses the same load path as the effect so error state, loading flag
+  // and overview are all reset consistently (the inline retry previously only
+  // set the project and silently swallowed follow-up errors).
+  const retry = () => {
+    if (!id) return
+    setLoading(true)
+    setError('')
+    getProjectDetail(Number(id))
+      .then(p => {
+        setProject(p)
+        getProjectOverview(Number(id)).then(setOverview).catch(() => {})
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : t('common.failed')))
+      .finally(() => setLoading(false))
+  }
 
   const handleLevelChange = async (direction: 'up' | 'down') => {
     if (!id) return
@@ -138,10 +155,7 @@ function ProjectDetailPage() {
     return (
       <div className="project-detail">
         <button className="btn btn-secondary back-btn" onClick={() => navigate('/dashboard')}>&larr; {t('project.backToDashboard')}</button>
-        <div className="error-banner">
-          <span>{error || t('project.noRepos')}</span>
-          <button className="btn btn-sm" onClick={() => id && getProjectDetail(Number(id)).then(setProject).catch(() => {})}>{t('common.retry')}</button>
-        </div>
+        <ErrorBanner message={error || t('project.noRepos')} onRetry={retry} />
         <StatusBar />
       </div>
     )

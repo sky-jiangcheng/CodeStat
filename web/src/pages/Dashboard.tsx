@@ -12,6 +12,7 @@ import StatusBar from '../components/StatusBar'
 import DatePicker from '../components/DatePicker'
 import ProjectCard from '../components/ProjectCard'
 import ProjectSearchDropdown from './dashboard/ProjectSearchDropdown'
+import ErrorBanner from '../components/ErrorBanner'
 import { useScanPolling } from '../hooks/useScanPolling'
 import { getYesterday } from '../utils/dates'
 import { usePageMeta } from '../utils/seo'
@@ -224,10 +225,7 @@ function Dashboard() {
         </div>
 
         {error && (
-          <div className="error-banner">
-            <span>{error}</span>
-            <button className="btn btn-sm" onClick={() => void fetchData(date)}>{t('common.retry')}</button>
-          </div>
+          <ErrorBanner message={error} onRetry={() => void fetchData(date)} />
         )}
       </div>
 
