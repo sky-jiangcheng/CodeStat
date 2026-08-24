@@ -9,7 +9,6 @@
 ### 变更
 
 - **定位治理（PR1）**：统一对外定位为「本地优先的代码项目上下文库」，核心闭环为「发现本地项目 → 理解项目 → 沉淀知识 → 检索知识 → 交给 AI 使用」；仪表盘与统计降级为支持能力（前端默认页已是知识库，导航顺序 知识库 → 仪表盘 → 设置）。README 截图与功能特性表按核心能力优先重排（知识库 / 项目详情 / AI 接口在前，仪表盘在后）；`docs/positioning-brief.md` 新增「统一对外口径（权威短文案）」节，写入中英文三句定位与 release note。详见 [ADR-0006](docs/adr/0006-scope-freeze.md)。
-- **错误一致性与可用性（PR2）**：新增 `web/src/components/ErrorBanner.tsx` 作为页面级错误的统一渲染路径（消息 + 重试按钮 + i18n），替换 Dashboard / ProjectDetail / Knowledge / Settings 四页各自内联的 `error-banner` JSX 与重复 catch 样板。ProjectDetail 与 Settings 的重试改为复用与初次加载相同的加载函数，修复旧实现只 setProject / 漏 reset loading 的半状态问题。`NoteSection` 的 create/save/move/delete/pin/restore/diff 等原本 `/* ignore */` 的静默 catch 改走统一的 `run(op, errMsg)` 包装：失败时 setError 并记录最近失败操作供 ErrorBanner 的重试按钮重放；乐观 pin 失败回滚原状态。
 
 ## [1.7.0] - 2026-08-17
 
