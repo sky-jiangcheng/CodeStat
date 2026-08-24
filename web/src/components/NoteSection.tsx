@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   listNotes, createNoteWithMeta, updateNoteFull, deleteNote, pinNote, moveNote,
@@ -8,6 +8,7 @@ import {
 import { renderMarkdown } from '../utils/markdown'
 import NoteEditor, { type NoteDraft } from './notes/NoteEditor'
 import VersionHistoryPanel from './notes/VersionHistoryPanel'
+import ErrorBanner from './ErrorBanner'
 import { useConfirmClick } from '../hooks/useConfirmClick'
 
 interface Props {
@@ -76,6 +77,23 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
   const [restoringId, setRestoringId] = useState<number | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  // The last failed mutation, replayed by the ErrorBanner retry button so a
+  // failed create/save/delete/etc. is recoverable instead of silently dead.
+  const lastOpRef = useRef<(() => Promise<void>) | null>(null)
+
+  // run wraps a mutation with the same error path every handler used to
+  // swallow with `/* ignore */`. On failure it stores the error message and
+  // the op so the banner's retry can replay it.
+  const run = useCallback(async (op: () => Promise<void>, errMsg: string) => {
+    setError('')
+    try {
+      await op()
+    } catch (e) {
+      lastOpRef.current = op
+      setError(errMsg + (e instanceof Error ? e.message : t('common.unknownError')))
+    }
+  }, [t])
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
@@ -106,7 +124,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const handleCreate = async () => {
     if (!draft.content.trim()) return
     setSaving(true)
-    try {
+    await run(async () => {
       await createNoteWithMeta(projectId, draft.content.trim(), {
         title: draft.title.trim(),
         tags: draft.tags.trim(),
@@ -116,8 +134,8 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       try { localStorage.removeItem(draftKey(projectId)) } catch { /* ignore */ }
       setIsNew(false)
       fetchNotes()
-    } catch { /* ignore */ }
-    finally { setSaving(false) }
+    }, t('project.saveFailed') + ': ')
+    setSaving(false)
   }
 
   const startEdit = (note: Note) => {
@@ -135,7 +153,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const handleSaveEdit = async () => {
     if (editingId === null || !editDraft.content.trim()) return
     setSaving(true)
-    try {
+    await run(async () => {
       await updateNoteFull(
         editingId,
         editDraft.content.trim(),
@@ -146,29 +164,34 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       )
       setEditingId(null)
       fetchNotes()
-    } catch { /* ignore */ }
-    finally { setSaving(false) }
+    }, t('project.saveFailed') + ': ')
+    setSaving(false)
   }
 
   const handleMoveProject = async (noteId: number, targetProjectId: number) => {
     if (targetProjectId === projectId) return
-    try {
+    await run(async () => {
       await moveNote(noteId, targetProjectId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
       if (editingId === noteId) setEditingId(null)
-    } catch { /* ignore */ }
+    }, t('project.saveFailed') + ': ')
   }
 
   const handleDelete = async (noteId: number) => {
-    try {
+    await run(async () => {
       await deleteNote(noteId)
       setNotes(prev => prev.filter(n => n.id !== noteId))
-    } catch { /* ignore */ }
+    }, t('project.saveFailed') + ': ')
   }
 
   const handlePin = async (note: Note) => {
-    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: !note.pinned } : n))
-    try { await pinNote(note.id, !note.pinned) } catch { setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n)) }
+    const nextPinned = !note.pinned
+    setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: nextPinned } : n))
+    await run(async () => {
+      await pinNote(note.id, nextPinned)
+    }, t('project.saveFailed') + ': ')
+    // Roll back the optimistic toggle if the pin actually failed.
+    if (lastOpRef.current) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
   }
 
   const openVersionHistory = async (noteId: number) => {
@@ -181,19 +204,21 @@ function NoteSection({ projectId, autoNew = false }: Props) {
     setCurrentNoteId(noteId)
     setVersionHistory(null)
     setDiffText(null)
-    setVersionHistory(await listNoteVersions(noteId))
+    await run(async () => {
+      setVersionHistory(await listNoteVersions(noteId))
+    }, t('project.saveFailed') + ': ')
   }
 
   const handleRestoreVersion = async (versionId: number) => {
     if (currentNoteId === null) return
     setRestoringId(versionId)
-    try {
+    await run(async () => {
       await restoreNoteVersion(currentNoteId, versionId)
       setVersionHistory(null)
       setCurrentNoteId(null)
       fetchNotes()
-    } catch { /* ignore */ }
-    finally { setRestoringId(null) }
+    }, t('project.saveFailed') + ': ')
+    setRestoringId(null)
   }
 
   const handleShowDiff = async (versionId: number) => {
@@ -202,8 +227,16 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       setDiffText(null)
       return
     }
-    const diff = await diffNoteVersions(currentNoteId, versionId)
-    setDiffText(`${currentNoteId}-${versionId}\n${diff}`)
+    await run(async () => {
+      const diff = await diffNoteVersions(currentNoteId, versionId)
+      setDiffText(`${currentNoteId}-${versionId}\n${diff}`)
+    }, t('project.saveFailed') + ': ')
+  }
+
+  // Retry replays the last failed mutation captured by `run`.
+  const retryLast = () => {
+    const op = lastOpRef.current
+    if (op) { lastOpRef.current = null; void op() }
   }
 
   const filteredNotes = notes.filter(n => {
@@ -230,6 +263,10 @@ function NoteSection({ projectId, autoNew = false }: Props) {
           <button className="btn btn-sm btn-primary" onClick={startNew}>{t('project.createNote')}</button>
         )}
       </div>
+
+      {error && (
+        <ErrorBanner message={error} onRetry={retryLast} />
+      )}
 
       {notes.length > 0 && (
         <div className="note-filters">

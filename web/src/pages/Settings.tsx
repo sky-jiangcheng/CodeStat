@@ -9,6 +9,7 @@ import AuthorsTab from './settings/AuthorsTab'
 import AppearanceTab from './settings/AppearanceTab'
 import PluginsTab from './settings/PluginsTab'
 import ActionsTab from './settings/ActionsTab'
+import ErrorBanner from '../components/ErrorBanner'
 
 type TabKey = 'scan' | 'standards' | 'authors' | 'appearance' | 'plugins' | 'actions'
 const TAB_KEYS: TabKey[] = ['scan', 'standards', 'authors', 'appearance', 'plugins', 'actions']
@@ -30,14 +31,23 @@ function Settings() {
     timerRef.current = setTimeout(() => setMessage(''), 3000)
   }
 
-  useEffect(() => {
-    setThemeMode(getStoredTheme()) // eslint-disable-line react-hooks/set-state-in-effect
+  // Single load path for the initial fetch and the retry button — previously
+  // the inline retry duplicated the catch/finally body and forgot to reset
+  // loading, so a failed retry left the page in a half-state.
+  const loadConfig = () => {
+    setLoading(true)
     setError('')
     getConfig()
       .then(setData)
-      .catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) })
+      .catch((e: unknown) => setError(e instanceof Error ? e.message : t('common.failed')))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    setThemeMode(getStoredTheme()) // eslint-disable-line react-hooks/set-state-in-effect
+    loadConfig()
     return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t])
 
   if (loading) {
@@ -55,10 +65,7 @@ function Settings() {
     return (
       <div className="settings">
         <h1>{t('settings.title')}</h1>
-        <div className="error-banner">
-          <span>{error}</span>
-          <button className="btn btn-sm" onClick={() => { setError(''); getConfig().then(setData).catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) }) }}>{t('common.retry')}</button>
-        </div>
+        <ErrorBanner message={error} onRetry={loadConfig} />
       </div>
     )
   }
