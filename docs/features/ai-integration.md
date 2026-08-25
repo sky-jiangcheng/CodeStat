@@ -48,12 +48,7 @@ claude mcp add gitboard -- /path/to/gitboard-mcp
 
 ## agent-score 自检
 
-```bash
-go build -o gitboard-agent-score ./tools/agent-score/
-./gitboard-agent-score
-```
-
-输出 8 项 AI 就绪度评分：数据库健康、笔记数、FTS5 可用、Claude 记忆源、MCP 二进制、llms.txt 导出、SKILL.md、i18n。
+agent-score 已合并为 MCP 工具 `gitboard_agent_score`，无需独立构建。通过任意 MCP 客户端调用即可获取 7 项 AI 就绪度评分。
 
 ## 面向 AI 代理的技能卡
 

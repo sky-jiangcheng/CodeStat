@@ -16,13 +16,11 @@ import ErrorBanner from '../components/ErrorBanner'
 import { useScanPolling } from '../hooks/useScanPolling'
 import { useApiData, invalidateCache } from '../hooks/useApiData'
 import { getYesterday } from '../utils/dates'
-import { usePageMeta } from '../utils/seo'
 
 type SortKey = 'name' | 'my_added' | 'my_files' | 'repo_count'
 
 function Dashboard() {
   const { t } = useTranslation()
-  usePageMeta({ title: `${t('dashboard.title')} - GitBuddy`, description: 'GitBuddy Dashboard: daily commit stats, goal progress, heatmap and project trends.', path: '/dashboard' })
   const [summary, setSummary] = useState<Summary | null>(null)
   const [dailyGoal, setDailyGoal] = useState(500)
   const [date, setDate] = useState(getYesterday())

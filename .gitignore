@@ -10,7 +10,7 @@
 gitboard
 git-dashboard
 gitboard-mcp
-gitboard-agent-score
+# gitboard-agent-score (merged into MCP tool)
 gitbuddy
 gitbuddy-mcp
 gitbuddy-agent-score
@@ -32,6 +32,7 @@ build/appicon.png
 docs/**/*.html
 
 # AI tooling artifacts / AI 工具产物
+.agents/
 .trae-html-share-packages/
 .workbuddy/
 .zcode/

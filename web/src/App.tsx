@@ -9,7 +9,6 @@ import CommandPalette from './components/CommandPalette'
 import ToastHost, { type ToastItem } from './components/Toast'
 import { listenImportCompleted } from './api/transport'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
-import { onInstallPrompt, consumeInstallPrompt } from './utils/install'
 import { setLanguage, getCurrentLanguage } from './i18n'
 import i18n from './i18n'
 import { getConnectionKind, subscribeConnection, startHealthPoll } from './api/transport'
@@ -230,22 +229,6 @@ function App() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [])
-
-  // Surface the browser install prompt as a toast with an action. The shared
-  // capture lives in utils/install.ts (also used by the Settings page).
-  useEffect(() => {
-    return onInstallPrompt(prompt => {
-      if (!prompt) return
-      pushToast({
-        kind: 'info',
-        title: t('common.installDesktop', { defaultValue: 'Install GitBuddy to Desktop' }),
-        message: t('common.installMsg', { defaultValue: 'Install for standalone window and offline use.' }),
-        actionLabel: t('common.install', { defaultValue: 'Install' }),
-        onAction: () => consumeInstallPrompt(),
-        duration: 60_000,
-      })
-    })
-  }, [t])
 
   const connBanner = connKind === 'offline'
     ? t('status.offline', { defaultValue: 'Offline' })

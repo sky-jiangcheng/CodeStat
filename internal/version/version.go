@@ -1,8 +1,8 @@
-// Package version holds the single source of truth for the GitBuddy
-// application version. All binaries (desktop app, CLI, MCP server,
-// agent-score) and the OpenAPI spec read it from here; scripts/bump-version.sh
-// keeps wails.json and web/package.json in sync with this constant.
+// app via `-ldflags "-X main.version=$(VERSION)"`. When built without
+// ldflags the constant below is used as the default.
 package version
 
-// Version is the current GitBuddy version.
+// Version is the current GitBuddy version. The canonical value lives in
+// wails.json (info.productVersion); scripts/bump-version.sh propagates it
+// here. CI builds override this via ldflags at link time.
 const Version = "1.7.2"

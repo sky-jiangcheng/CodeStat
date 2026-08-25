@@ -8,12 +8,10 @@ import StatusBar from '../components/StatusBar'
 import ProjectPanel from '../components/ProjectPanel'
 import ProjectOverviewSection from './project/ProjectOverviewSection'
 import ErrorBanner from '../components/ErrorBanner'
-import { usePageMeta } from '../utils/seo'
 
 function ProjectDetailPage() {
   const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
-  usePageMeta({ title: `${t('project.title')} - GitBuddy`, description: 'GitBuddy 项目详情：提交趋势、热力图、仓库知识挖掘、待办与笔记。', path: `/project/${id ?? ''}` })
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const dateParam = searchParams.get('date') || ''

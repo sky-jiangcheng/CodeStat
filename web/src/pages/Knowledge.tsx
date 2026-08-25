@@ -10,13 +10,11 @@ import DOMPurify from 'dompurify'
 import { useDebouncedCallback } from '../hooks/useDebouncedCallback'
 import KnowledgeCard from './knowledge/KnowledgeCard'
 import ErrorBanner from '../components/ErrorBanner'
-import { usePageMeta } from '../utils/seo'
 
 type KindFilter = 'all' | 'knowledge' | 'other'
 
 function KnowledgePage() {
   const { t } = useTranslation()
-  usePageMeta({ title: `${t('knowledge.title')} - GitBuddy`, description: 'GitBuddy 跨项目知识库：Markdown 笔记、标签、置顶与全文搜索。', path: '/knowledge' })
   const navigate = useNavigate()
   const [notes, setNotes] = useState<NoteWithProject[]>([])
   const [tags, setTags] = useState<string[]>([])

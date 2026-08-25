@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import { triggerScan, importClaudeMemory } from '../../api/client'
-import { useInstallPrompt } from '../../utils/install'
 
 interface Props {
   showMessage: (msg: string) => void
@@ -10,7 +9,6 @@ interface Props {
 
 export default function ActionsTab({ showMessage }: Props) {
   const { t } = useTranslation()
-  const { canInstall, installed, promptInstall } = useInstallPrompt()
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
 
@@ -56,19 +54,6 @@ export default function ActionsTab({ showMessage }: Props) {
         </button>
         <Link to="/knowledge" className="btn btn-secondary">{t('settings.gotoKnowledge')}</Link>
       </div>
-
-      <h2 style={{ marginTop: 24 }}>{t('settings.installTitle')}</h2>
-      <p className="section-desc">
-        {t('settings.installDesc')}{' '}
-        {installed ? t('settings.installedMode') : canInstall ? t('settings.supportsInstall') : t('settings.browserSupport')}
-      </p>
-      {canInstall && (
-        <div className="action-row">
-          <button className="btn btn-primary" onClick={() => void promptInstall()}>
-            {t('settings.installApp')}
-          </button>
-        </div>
-      )}
     </div>
   )
 }

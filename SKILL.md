@@ -27,9 +27,12 @@ go build -o /usr/local/bin/gitboard-mcp ./cmd/mcp/
 | `gitboard_notes_list` | List all notes |
 | `gitboard_notes_search` | FTS5 search (query string) |
 | `gitboard_notes_read` | Read note by ID |
+| `gitboard_notes_create` | Create a new note (params: project_id, title, content, category?, tags?) |
+| `gitboard_notes_update` | Update note content/metadata (params: id, content?, title?, tags?, category?) |
 | `gitboard_projects_list` | List all projects |
 | `gitboard_projects_stats` | Project stats by ID |
 | `gitboard_ask` | Ask a question, get top-5 results |
+| `gitboard_agent_score` | Check AI-readiness (database, notes, search, llms.txt, SKILL.md, i18n) |
 
 ### Registering with clients
 
@@ -51,17 +54,6 @@ Or in a project-level `.mcp.json` / user-level MCP config (Cursor: Settings → 
 
 > Windows path example: `"command": "C:\\Tools\\gitboard-mcp.exe"`.
 
-## Agent Score
-
-Check AI-readiness of the local install:
-
-```bash
-go build -o gitboard-agent-score ./tools/agent-score/
-./gitboard-agent-score
-```
-
-Scores 8 checks: database health, notes count, FTS5 search, Claude memory sources, MCP binary, llms.txt export, SKILL.md, i18n locales.
-
 ## Key File Paths
 
 | Content | macOS | Linux | Windows |
@@ -79,6 +71,6 @@ Scores 8 checks: database health, notes count, FTS5 search, Claude memory source
 - **Search**: FTS5 trigram + bm25, LIKE fallback for short CJK queries
 - **i18n**: react-i18next, zh-CN + en
 - **Markdown**: Mermaid, KaTeX, callouts, highlight.js
-- **Plugins**: yaegi in-process Go scripts (see docs/plugins/overview.md)
+- **Plugins**: yaegi in-process Go scripts for knowledge source import (see docs/plugins/overview.md)
 
 Docs: <https://sky-jiangcheng.github.io/gitbuddy/> · Repo: <https://github.com/sky-jiangcheng/gitbuddy>

@@ -26,7 +26,7 @@
 
 ![仪表盘首页](screenshots/dashboard.png)
 
-> 截图按核心能力优先排列（知识库 / 项目详情属核心，仪表盘属支持能力，见 [ADR-0006](docs/adr/0006-scope-freeze.md)）。截图为示意渲染（由 `scripts/generate_screenshots.py` 生成），实际界面以应用为准。
+> 截图按核心能力优先排列（知识库 / 项目详情属核心，仪表盘属支持能力，见 [ADR-0006](docs/adr/0006-scope-freeze.md)）。
 
 ## 功能特性
 
@@ -51,10 +51,9 @@
 
 | 通道 | 说明 |
 |------|------|
-| MCP Server | `gitboard-mcp` stdio 服务器，6 个只读工具，可接入 Claude Code / Cursor 等（AI 执行的唯一接口） |
+| MCP Server | `gitboard-mcp` stdio 服务器，9 个工具（笔记 CRUD + 项目查询 + 搜索 + agent-score 自检），可接入 Claude Code / Cursor 等（AI 执行的唯一接口） |
 | llms.txt | `GenerateLLMsTxt` 生成面向 LLM 的知识库总览 Markdown |
 | 笔记导出 | 任意笔记导出为带 YAML frontmatter 的 `.md` |
-| agent-score | `gitboard-agent-score` 自检 AI 就绪度（数据库/搜索/MCP/llms.txt） |
 | Claude 记忆导入 | 一键将 `~/.claude/projects/*/memory/*.md` 幂等导入为知识笔记（**支持**） |
 
 ### 仪表盘与统计（支持）
@@ -75,7 +74,7 @@
 
 | 特性 | 说明 |
 |------|------|
-| 插件系统 | yaegi 进程内 Go 脚本插件 + 知识源导入器（示例见 `examples/plugins/`，指南见[插件手册](docs/plugins/overview.md)；**实验性**，暂停平台基础设施扩展） |
+| 插件系统 | yaegi 进程内 Go 脚本 + 知识源导入器（[知识源导入](docs/plugins/overview.md)；**实验性**，暂停平台基础设施扩展） |
 | i18n | 中文 / English 一键切换（react-i18next，zh-CN + en） |
 | PWA | 可安装到桌面 / 主屏幕，离线 fallback（**暂缓**：评估是否移出桌面主构建） |
 | 单文件跨平台 | Go 编译单二进制，无运行时依赖 |
@@ -120,9 +119,8 @@ cd web && npm install && npm run build && cd ..
 # 桌面应用
 go build -ldflags "-s -w" -o gitboard .
 
-# MCP server / agent-score
+# MCP server
 go build -o gitboard-mcp ./cmd/mcp/
-go build -o gitboard-agent-score ./tools/agent-score/
 
 # 或使用脚本
 ./scripts/build.sh
@@ -165,8 +163,7 @@ internal/
   platform/              # OS 差异：数据目录、日志路径、扫描根默认值
   version/ diff/         # 单一版本号源、笔记行级 diff
 cmd/
-  mcp/                   # MCP stdio 服务器（AI 执行接口）
-tools/agent-score/       # AI 就绪度自检
+  mcp/                   # MCP stdio 服务器（AI 执行接口 + agent-score 自检工具）
 web/src/
   api/                   # types + transport（Wails/HTTP 双模）+ endpoints
   hooks/                 # useApiData（缓存）/ useDebouncedCallback / useScanPolling…
@@ -182,8 +179,8 @@ web/src/
 |------|------|
 | [快速开始](docs/getting-started.md) | 安装、首次配置、扫描 |
 | [功能手册](docs/features/dashboard.md) | 仪表盘 / 知识库 / 项目详情 / 设置 / 命令面板 |
-| [插件手册](docs/plugins/overview.md) | 插件 SPI、事件、知识源导入器 |
-| [AI 集成](docs/features/ai-integration.md) | CLI、MCP、llms.txt、agent-score |
+| [知识源导入](docs/plugins/overview.md) | 插件 SPI、事件、知识源导入器 |
+| [AI 集成](docs/features/ai-integration.md) | CLI、MCP、llms.txt |
 | [API 参考](docs/api/reference.md) | Wails 绑定面契约 + OpenAPI |
 | [架构说明](docs/architecture.md) | 分层、数据流、关键决策 |
 | [故障排查](docs/troubleshooting.md) | FAQ 与日志路径 |
@@ -194,7 +191,16 @@ web/src/
 
 ## 参与贡献
 
-见 [CONTRIBUTING](CONTRIBUTING.md)。安全问题请走[私密报告渠道](SECURITY.md)。
+开发环境：**Go 1.25+**、**Node.js 20+**、Git。
+
+```bash
+cd web && npm install && npm run build && cd ..  # 前端构建
+go test ./...                                      # Go 测试
+cd web && npm test                                 # 前端测试
+wails dev                                          # 开发模式（可选）
+```
+
+架构约定见 [docs/architecture.md](docs/architecture.md) 与 [docs/adr/](docs/adr/)。提交规范采用 [Conventional Commits](https://www.conventionalcommits.org/)。安全问题请走[私密报告渠道](SECURITY.md)。
 
 ## 许可
 

@@ -4,8 +4,7 @@
 # SSOT (single source of truth): wails.json -> info.productVersion
 # This script writes the new version into wails.json, then propagates it to:
 #   - web/package.json           (version field)
-#   - internal/version/version.go                     (var version = "..." for ldflags injection)
-#   - docs/index.html            (badge text)
+#   - internal/version/version.go                     (const Version, also overridable via ldflags at CI build time)
 #
 # Usage:
 #   ./scripts/bump-version.sh 1.5.4

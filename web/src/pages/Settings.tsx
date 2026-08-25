@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { getConfig, type AppConfig } from '../api/client'
 import { getStoredTheme, type ThemeMode } from '../utils/theme'
-import { usePageMeta } from '../utils/seo'
 import ScanRootsTab from './settings/ScanRootsTab'
 import StandardsTab from './settings/StandardsTab'
 import AuthorsTab from './settings/AuthorsTab'
@@ -16,7 +15,6 @@ const TAB_KEYS: TabKey[] = ['scan', 'standards', 'authors', 'appearance', 'plugi
 
 function Settings() {
   const { t } = useTranslation()
-  usePageMeta({ title: `${t('settings.title')} - GitBuddy`, description: 'GitBuddy 设置：扫描目录、代码标准、作者配置、外观、插件与操作。', path: '/settings' })
   const [data, setData] = useState<AppConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')

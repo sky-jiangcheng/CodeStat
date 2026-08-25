@@ -74,6 +74,6 @@ styles/     设计系统：tokens / reset / components / layouts / features
 |------|------|------|
 | `gitboard` | 根包 | Wails 桌面应用（`scripts/build.sh`） |
 | `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询工具） |
-| `gitboard-agent-score` | `tools/agent-score` | AI 就绪度自检 |
+| `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询 + agent-score 自检） |
 
 CI（`.github/workflows/release.yml`）多平台构建 + macOS 签名公证；文档站（`pages.yml`）由 `scripts/build-docs.mjs` 从 `docs/**/*.md` 生成后部署 GitHub Pages。

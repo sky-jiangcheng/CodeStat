@@ -111,7 +111,7 @@ jobs:
           # step guarantees the binary itself reports the same version at runtime.
           APP_VERSION=$(grep -oE '"productVersion"[[:space:]]*:[[:space:]]*"[^"]+"' wails.json | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
           echo "Building version: $APP_VERSION"
-          LDFLAGS="-X main.version=$APP_VERSION"
+          LDFLAGS="-X gitboard/internal/version.Version=$APP_VERSION"
 
           export PATH=$PATH:$(go env GOPATH)/bin
           if [ "${{ runner.os }}" = "Linux" ]; then

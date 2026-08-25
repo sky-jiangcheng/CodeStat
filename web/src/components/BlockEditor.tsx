@@ -1,6 +1,10 @@
 import { useTranslation } from 'react-i18next'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// EDITOR-FROZEN: do not add new block types per ADR-0006 (scope freeze).
+// Current block types: paragraph, heading, code, blockquote, callout, list, table, math, hr, other.
+// This set is complete; any new structured blocks must go through an ADR first.
+//
 // BlockEditor is a lightweight block-based Markdown editor (gitbook-gap #19).
 //
 // - Content is split into blocks (paragraph/heading/code/callout/list/table/math…)

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-  getPluginStatuses, getKnowledgeSources, triggerKnowledgeImport, reloadPlugins,
-  updateConfig, type PluginStatus, type SourceStatus,
+  getKnowledgeSources, triggerKnowledgeImport,
+  updateConfig, type SourceStatus,
 } from '../../api/client'
 
 interface Props {
@@ -12,34 +12,14 @@ interface Props {
 
 export default function PluginsTab({ initialAutoImport, showMessage }: Props) {
   const { t } = useTranslation()
-  const [plugins, setPlugins] = useState<PluginStatus[]>([])
   const [sources, setSources] = useState<SourceStatus[]>([])
   const [importingSource, setImportingSource] = useState('')
   const [autoImport, setAutoImport] = useState(initialAutoImport)
   const [saving, setSaving] = useState(false)
 
-  const refreshPluginState = async () => {
-    const [p, s] = await Promise.all([getPluginStatuses(), getKnowledgeSources()])
-    setPlugins(p)
-    setSources(s)
-  }
-
   useEffect(() => {
-    void refreshPluginState() // eslint-disable-line react-hooks/set-state-in-effect
+    getKnowledgeSources().then(setSources).catch(() => {})
   }, [])
-
-  const handleReloadPlugins = async () => {
-    setSaving(true)
-    try {
-      setPlugins(await reloadPlugins())
-      setSources(await getKnowledgeSources())
-      showMessage(t('settings.pluginsReloaded'))
-    } catch (e: unknown) {
-      showMessage(t('settings.reloadFailedMsg', { msg: e instanceof Error ? e.message : t('common.unknownError') }))
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const handleImportSource = async (name: string) => {
     setImportingSource(name)
@@ -87,32 +67,6 @@ export default function PluginsTab({ initialAutoImport, showMessage }: Props) {
           </span>
         </div>
       </div>
-
-      <div className="section-header-row">
-        <h2 style={{ margin: 0 }}>{t('settings.loaded', { defaultValue: 'Loaded plugins' })}</h2>
-        <button className="btn btn-secondary btn-sm" onClick={handleReloadPlugins} disabled={saving}>
-          {t('settings.reload')}
-        </button>
-      </div>
-
-      {plugins.length === 0 ? (
-        <div className="empty-hint">{t('settings.noPlugins')}</div>
-      ) : (
-        <ul className="plugin-list">
-          {plugins.map((p) => (
-            <li key={p.path} className={`plugin-item ${p.loaded ? 'plugin-ok' : 'plugin-err'}`}>
-              <div className="plugin-info">
-                <span className="plugin-name">{p.name || t('settings.unnnamed')}</span>
-                <span className="plugin-path">{p.path}</span>
-              </div>
-              <span className={`plugin-badge ${p.loaded ? 'badge-ok' : 'badge-err'}`}>
-                {p.loaded ? t('settings.loaded') : t('common.failed')}
-              </span>
-              {p.error && <div className="plugin-error">{p.error}</div>}
-            </li>
-          ))}
-        </ul>
-      )}
 
       <h2 style={{ marginTop: 24 }}>{t('settings.tabs.plugins')}</h2>
       {sources.length === 0 ? (

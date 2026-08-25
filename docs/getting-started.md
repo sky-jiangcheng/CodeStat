@@ -60,9 +60,9 @@ iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scrip
 | 知识库 | 核心 | 跨项目笔记中心：Markdown、标签、置顶、FTS5 全文搜索、版本历史 |
 | 仓库知识挖掘 | 核心 | 自动提取 README、技术栈、语言占比、依赖、贡献者、活跃度 |
 | 项目理解与检索 | 核心 | 命令面板 `⌘/Ctrl+K`、全局搜索、项目上下文跳转 |
-| AI 集成 | 核心 | llms.txt、笔记导出、MCP server、agent-score（见[AI 集成](features/ai-integration.md)） |
+| AI 集成 | 核心 | llms.txt、笔记导出、MCP server（含 agent-score 自检，见[AI 集成](features/ai-integration.md)） |
 | 仪表盘 | 支持 | 每日目标进度环、项目卡片、趋势折线图、提交热力图 |
-| 插件系统 | 实验 | yaegi 进程内 Go 脚本插件（见[插件手册](plugins/overview.md)） |
+| 插件系统 | 实验 | yaegi 进程内 Go 脚本 + 知识源导入（见[知识源导入](plugins/overview.md)） |
 | PWA | 暂缓 | 支持安装到桌面/主屏幕，当前不再继续扩展 |
 
 ## 数据与日志位置
@@ -86,9 +86,8 @@ cd web && npm install && npm run build && cd ..
 # 桌面应用
 go build -ldflags="-s -w" -o gitboard .
 
-# MCP server / agent-score
+# MCP server
 go build -o gitboard-mcp ./cmd/mcp/
-go build -o gitboard-agent-score ./tools/agent-score/
 ```
 
 开发模式：`wails dev`（前端热更新 + Wails 绑定注入）。测试：`go test ./...`；前端 `npm test` / `npm run build`（tsc 严格检查）。

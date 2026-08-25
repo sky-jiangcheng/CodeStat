@@ -44,43 +44,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   </React.StrictMode>,
 )
 
-// --- Service Worker registration ---------------------------------------------
-//
-// The PWA service worker must NOT be registered inside a Wails WebView.
-// On Intel Macs the WKWebView's SW implementation is unreliable: the SW
-// intercepts navigation via a NavigationRoute and serves a broken/empty
-// response, causing a white screen on app launch.
-//
-// We register the SW only in a real browser. If a previous version of the
-// app already registered a SW inside Wails, we actively unregister it to
-// recover from the white-screen state.
-//
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return
 
-  // Detect Wails environment: window.go.main.App is injected by Wails.
-  const wailsGlobal = (window as unknown as { go?: unknown }).go
-  const isWails = !!wailsGlobal
-
-  if (isWails) {
-    // Inside Wails: unregister any leftover service worker to prevent it
-    // from intercepting navigation and causing a white screen.
-    navigator.serviceWorker.getRegistrations().then(regs => {
-      regs.forEach(reg => {
-        reg.unregister().then(() => {
-          console.info('[PWA] Unregistered stale service worker in Wails context')
-        })
-      })
-    }).catch(() => { /* ignore */ })
-    return
-  }
-
-  // Inside a real browser: register the service worker for offline support.
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(err => {
-      console.warn('[PWA] SW registration failed:', err)
-    })
-  })
-}
-
-registerServiceWorker()
