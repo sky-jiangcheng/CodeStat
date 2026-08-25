@@ -93,8 +93,9 @@ func main() {
 }
 
 // spaFallback serves index.html for any GET request the embedded Assets could
-// not resolve. With BrowserRouter the SPA owns real paths like /project/123, so
-// a direct load or refresh of a deep link must receive the app shell.
+// not resolve. The browser build may use real SPA paths, so a direct load or
+// refresh of a deep link must receive the app shell. The desktop WebView uses
+// hash navigation to avoid custom-origin history limitations.
 type spaFallback struct{}
 
 // ServeHTTP serves the SPA shell for any path not found in the embedded assets.

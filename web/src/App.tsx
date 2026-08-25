@@ -1,5 +1,5 @@
 import { Component, ReactNode, useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
+import { BrowserRouter, HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import Dashboard from './pages/Dashboard'
 import ProjectDetail from './pages/ProjectDetail'
@@ -151,6 +151,15 @@ function navClass(active: boolean) {
   return active ? 'active' : ''
 }
 
+function AppRouter({ children }: { children: ReactNode }) {
+  // Wails WebViews can reject BrowserRouter's history/location mutations on
+  // custom origins. Keep normal browser URLs for the PWA, but use hash URLs
+  // in the desktop shell so navigation never throws a DOMException.
+  const wails = typeof window !== 'undefined' && !!(window as unknown as { go?: { main?: { App?: unknown } } }).go?.main?.App
+  const Router = wails ? HashRouter : BrowserRouter
+  return <Router>{children}</Router>
+}
+
 function App() {
   const { t } = useTranslation()
   const [paletteOpen, setPaletteOpen] = useState(false)
@@ -167,7 +176,7 @@ function App() {
     return subscribeConnection(setConnKind)
   }, [])
 
-  // Focus main without touching location (BrowserRouter owns the history).
+  // Focus main without touching location (the active router owns navigation).
   const skipToContent = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
     const main = document.getElementById('main-content')
@@ -245,7 +254,7 @@ function App() {
       : null
 
   return (
-    <BrowserRouter>
+    <AppRouter>
       <div className="app">
         {connBanner && (
           <div className="conn-banner" role="alert" aria-live="polite">{connBanner}</div>
@@ -258,7 +267,7 @@ function App() {
         <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
         <ToastHost toasts={toasts} onDismiss={(id) => setToasts(prev => prev.filter(x => x.id !== id))} />
       </div>
-    </BrowserRouter>
+    </AppRouter>
   )
 }
 

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { Link } from 'react-router-dom'
 import {
   getProjects, getSummary, triggerScan, getTodoCounts, getNoteCounts, toggleStar,
-  refreshProjectHistory, getConfig, type Project, type Summary, type TodoCount, type NoteCount,
+  refreshProjectHistory, getConfig, type Summary, type TodoCount, type NoteCount,
 } from '../api/client'
 import SummaryBar from '../components/SummaryBar'
 import GoalRing from '../components/GoalRing'
@@ -14,6 +14,7 @@ import ProjectCard from '../components/ProjectCard'
 import ProjectSearchDropdown from './dashboard/ProjectSearchDropdown'
 import ErrorBanner from '../components/ErrorBanner'
 import { useScanPolling } from '../hooks/useScanPolling'
+import { useApiData, invalidateCache } from '../hooks/useApiData'
 import { getYesterday } from '../utils/dates'
 import { usePageMeta } from '../utils/seo'
 
@@ -22,45 +23,66 @@ type SortKey = 'name' | 'my_added' | 'my_files' | 'repo_count'
 function Dashboard() {
   const { t } = useTranslation()
   usePageMeta({ title: `${t('dashboard.title')} - GitBuddy`, description: 'GitBuddy Dashboard: daily commit stats, goal progress, heatmap and project trends.', path: '/dashboard' })
-  const [projects, setProjects] = useState<Project[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [dailyGoal, setDailyGoal] = useState(500)
   const [date, setDate] = useState(getYesterday())
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('my_added')
   const [confirmScan, setConfirmScan] = useState(false)
   const [todoCounts, setTodoCounts] = useState<TodoCount[]>([])
   const [noteCounts, setNoteCounts] = useState<NoteCount[]>([])
   const [showStarredOnly, setShowStarredOnly] = useState(true)
+  const [error, setError] = useState('') // scan / star failures
+  const [summaryError, setSummaryError] = useState('')
   const fetchSeq = useRef(0)
 
-  const fetchData = useCallback(async (selectedDate: string, starredOnly = showStarredOnly, silent = false) => {
+  // Projects are date-scoped (per-day stats drive the cards), so they use a
+  // dedicated cache key — distinct from the shared `projects:all` list used by
+  // NoteSection/CommandPalette. A star toggle invalidates `projects:all` so the
+  // move-to-project dropdown and command palette never show a stale state.
+  const { data: projectsData, loading: projectsLoading, error: projectsError, refetch: refetchProjects } =
+    useApiData(() => getProjects(date, showStarredOnly), [date, showStarredOnly], { cacheKey: 'dashProjects' })
+
+  // Optimistic star overlay: flips the UI instantly, reconciled by the cache
+  // invalidation below (server is the source of truth).
+  const [starOverride, setStarOverride] = useState<Record<number, boolean>>({})
+  const projects = useMemo(
+    () => (projectsData ?? []).map(p =>
+      starOverride[p.id] !== undefined ? { ...p, is_starred: starOverride[p.id] } : p
+    ),
+    [projectsData, starOverride]
+  )
+
+  const [summaryLoading, setSummaryLoading] = useState(true)
+  const loading = projectsLoading || summaryLoading
+  const displayedError = error || projectsError || summaryError
+
+  // Drop stale star overlays whenever the underlying project query changes.
+  useEffect(() => { setStarOverride({}) }, [date, showStarredOnly])
+
+  const fetchSummary = useCallback(async (selectedDate: string, silent = false) => {
     const seq = ++fetchSeq.current
-    if (!silent) setLoading(true)
-    setError('')
+    if (!silent) setSummaryLoading(true)
+    setSummaryError('')
     try {
-      const [projData, sumData, counts, noteCountsData] = await Promise.all([
-        getProjects(selectedDate, starredOnly),
+      const [sumData, counts, noteCountsData] = await Promise.all([
         getSummary(selectedDate),
         getTodoCounts(),
         getNoteCounts(),
       ])
       if (seq !== fetchSeq.current) return
-      setProjects(projData)
       setSummary(sumData)
       setTodoCounts(counts)
       setNoteCounts(noteCountsData)
     } catch (e: unknown) {
       if (seq !== fetchSeq.current) return
-      setError(e instanceof Error ? e.message : t('common.failed'))
+      setSummaryError(e instanceof Error ? e.message : t('common.failed'))
     } finally {
-      if (seq === fetchSeq.current && !silent) setLoading(false)
+      if (seq === fetchSeq.current && !silent) setSummaryLoading(false)
     }
-  }, [showStarredOnly, t])
+  }, [t])
 
   const { scanning, message: scanMsg, doneMessage: scanDoneMsg, start: startScanPolling } = useScanPolling(
-    () => { void fetchData(date, showStarredOnly) }
+    () => { void fetchSummary(date); void refetchProjects() }
   )
 
   useEffect(() => {
@@ -70,7 +92,7 @@ function Dashboard() {
         if (!isNaN(v) && v > 0) setDailyGoal(v)
       })
       .catch(() => {})
-    void fetchData(date, showStarredOnly) // eslint-disable-line react-hooks/set-state-in-effect
+    void fetchSummary(date) // eslint-disable-line react-hooks/set-state-in-effect
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, showStarredOnly])
 
@@ -86,14 +108,17 @@ function Dashboard() {
   }
 
   const handleToggleStar = async (projectId: number): Promise<boolean> => {
+    const current = projects.find(p => p.id === projectId)?.is_starred ?? false
+    const optimistic = !current
+    setStarOverride(prev => ({ ...prev, [projectId]: optimistic }))
     try {
       const newStarred = await toggleStar(projectId)
-      setProjects(prev => prev.map(p => p.id === projectId ? { ...p, is_starred: newStarred } : p))
-      if (showStarredOnly && !newStarred) {
-        setProjects(prev => prev.filter(p => p.id !== projectId))
-      }
+      setStarOverride(prev => ({ ...prev, [projectId]: newStarred }))
+      // Refresh the shared base list so NoteSection/CommandPalette reflect it.
+      invalidateCache('projects:all')
       return newStarred
     } catch (e: unknown) {
+      setStarOverride(prev => { const n = { ...prev }; delete n[projectId]; return n })
       setError(e instanceof Error ? e.message : t('common.failed'))
       throw e
     }
@@ -102,11 +127,12 @@ function Dashboard() {
   const handleRefreshHistory = useCallback(async (projectId: number) => {
     try {
       await refreshProjectHistory(projectId)
-      await fetchData(date, showStarredOnly, true)
+      await fetchSummary(date, true)
+      await refetchProjects()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('common.failed'))
     }
-  }, [date, showStarredOnly, fetchData, t])
+  }, [date, showStarredOnly, fetchSummary, t])
 
   const sortOptions = useMemo(() => [
     { key: 'name' as const, label: t('dashboard.sortName', { defaultValue: 'Name' }) },
@@ -224,8 +250,8 @@ function Dashboard() {
           </div>
         </div>
 
-        {error && (
-          <ErrorBanner message={error} onRetry={() => void fetchData(date)} />
+        {displayedError && (
+          <ErrorBanner message={displayedError} onRetry={() => { setError(''); setSummaryError(''); void fetchSummary(date); void refetchProjects() }} />
         )}
       </div>
 
