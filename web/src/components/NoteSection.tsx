@@ -10,6 +10,7 @@ import NoteEditor, { type NoteDraft } from './notes/NoteEditor'
 import VersionHistoryPanel from './notes/VersionHistoryPanel'
 import ErrorBanner from './ErrorBanner'
 import { useConfirmClick } from '../hooks/useConfirmClick'
+import { useApiData } from '../hooks/useApiData'
 
 interface Props {
   projectId: number
@@ -72,7 +73,10 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [filter, setFilter] = useState<KindFilter>('all')
 
   const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))
-  const [projects, setProjects] = useState<Project[]>([])
+  // The move-to-project dropdown reuses the shared "all projects" list, cached
+  // and deduped across components via useApiData (same key as CommandPalette).
+  const { data: projectsData } = useApiData(() => getProjects(undefined, false), [], { cacheKey: 'projects:all' })
+  const projects = projectsData ?? []
   const [versionHistory, setVersionHistory] = useState<NoteVersion[] | null>(null)
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
   const [restoringId, setRestoringId] = useState<number | null>(null)
@@ -100,10 +104,6 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   }, [projectId])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
-
-  useEffect(() => {
-    getProjects().then(setProjects).catch(() => setProjects([]))
-  }, [])
 
   useEffect(() => {
     if (autoNew) {

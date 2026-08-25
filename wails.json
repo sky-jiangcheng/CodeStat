@@ -7,7 +7,6 @@
   "frontend:dev:watcher": "npm run dev",
   "frontend:dev:serverUrl": "http://localhost:5173",
   "frontend:dir": "web",
-  "wailsjsdir": "web/src/lib",
   "author": {
     "name": "sky-jiangcheng",
     "email": ""

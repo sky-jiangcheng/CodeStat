@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { getProjects, searchAll, Project, SearchHit } from '../api/client'
+import { getProjects, searchAll, SearchHit } from '../api/client'
 import { useTranslation } from 'react-i18next'
 import DOMPurify from 'dompurify'
+import { useApiData } from '../hooks/useApiData'
 
 interface Props {
   open: boolean
@@ -21,7 +22,10 @@ export default function CommandPalette({ open, onClose }: Props) {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [hits, setHits] = useState<SearchHit[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
+  // All-projects list for the quick-jump suggestions, shared with NoteSection
+  // via the same cache key so only one request is ever made.
+  const { data: projectsData } = useApiData(() => getProjects(undefined, false), [], { cacheKey: 'projects:all' })
+  const projects = projectsData ?? []
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
@@ -33,7 +37,6 @@ export default function CommandPalette({ open, onClose }: Props) {
       setQuery('') // eslint-disable-line react-hooks/set-state-in-effect
       setHits([])
       setActiveIndex(0)
-      getProjects('', false).then(setProjects).catch(() => setProjects([]))
       setTimeout(() => inputRef.current?.focus(), 30)
     } else {
       // Restore focus to the triggering element when the palette closes.
