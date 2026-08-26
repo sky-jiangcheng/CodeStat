@@ -9,16 +9,19 @@ GitBuddy 面向 AI 代理提供读取通道与自检工具，全部复用同一 
 
 ## MCP Server（`gitboard-mcp`）
 
-MCP 是唯一的 AI 执行接口（`gitboard` CLI 未随版本发布）。stdio 协议，进程内单次开库，6 个只读工具：
+MCP 是唯一的 AI 执行接口（`gitboard` CLI 未随版本发布）。stdio 协议，进程内单次开库，9 个工具（含 2 个写操作）：
 
-| 工具 | 说明 |
-|------|------|
-| `gitboard_notes_list` | 全部笔记 |
-| `gitboard_notes_search` | FTS5 搜索（query） |
-| `gitboard_notes_read` | 按 ID 读笔记 |
-| `gitboard_projects_list` | 全部项目 |
-| `gitboard_projects_stats` | 项目统计（id） |
-| `gitboard_ask` | 问答式检索，Top-5 文本 |
+| 工具 | 说明 | 读写 |
+|------|------|------|
+| `gitboard_notes_list` | 全部笔记 | 读 |
+| `gitboard_notes_search` | FTS5 搜索（query） | 读 |
+| `gitboard_notes_read` | 按 ID 读笔记 | 读 |
+| `gitboard_notes_create` | 新建知识笔记 | 写 |
+| `gitboard_notes_update` | 更新笔记内容与元数据 | 写 |
+| `gitboard_projects_list` | 全部项目 | 读 |
+| `gitboard_projects_stats` | 项目统计（按 id） | 读 |
+| `gitboard_ask` | 问答式检索，Top-5 文本 | 读 |
+| `gitboard_agent_score` | 检查本地 AI 就绪度（DB/笔记/搜索/MCP/llms.txt/SKILL.md/i18n） | 读 |
 
 ### 接入 Claude Code
 
