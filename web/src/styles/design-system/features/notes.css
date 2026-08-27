@@ -264,3 +264,15 @@
 .diff-pre code {
   font-family: inherit;
 }
+
+.diff-line-add {
+  display: block;
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.diff-line-del {
+  display: block;
+  background: var(--danger-soft);
+  color: var(--danger);
+}

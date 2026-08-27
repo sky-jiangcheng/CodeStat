@@ -465,9 +465,3 @@
 .chart-container {
   height: 320px;
 }
-
-.chart-empty {
-  color: var(--text-tertiary);
-  text-align: center;
-  padding: 24px;
-}

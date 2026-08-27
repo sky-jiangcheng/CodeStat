@@ -1,17 +1,20 @@
-import { Component, ReactNode, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react'
 import { BrowserRouter, HashRouter, Routes, Route, Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import Dashboard from './pages/Dashboard'
-import ProjectDetail from './pages/ProjectDetail'
-import Settings from './pages/Settings'
-import Knowledge from './pages/Knowledge'
 import CommandPalette from './components/CommandPalette'
 import ToastHost, { type ToastItem } from './components/Toast'
 import { listenImportCompleted } from './api/transport'
 import { applyTheme, getStoredTheme, listenSystemTheme } from './utils/theme'
+import ErrorBoundary from './components/ErrorBoundary'
 import { setLanguage, getCurrentLanguage } from './i18n'
-import i18n from './i18n'
 import { getConnectionKind, subscribeConnection, startHealthPoll } from './api/transport'
+
+// Lazy-loaded pages. The initial route (Knowledge) is still eagerly loaded by
+// the browser, but subsequent navigations only fetch the chunks that are needed.
+const Dashboard = lazy(() => import('./pages/Dashboard'))
+const ProjectDetail = lazy(() => import('./pages/ProjectDetail'))
+const Settings = lazy(() => import('./pages/Settings'))
+const Knowledge = lazy(() => import('./pages/Knowledge'))
 
 type LanguageOption = 'zh-CN' | 'en'
 
@@ -20,45 +23,20 @@ const LANG_OPTIONS: { code: LanguageOption; label: string; flag: string }[] = [
   { code: 'en', label: 'English', flag: '🇺🇸' },
 ]
 
-// ErrorBoundary prevents a render crash in any routed page from black-screening
-// the whole app with no way back. It shows a recoverable error and a button that
-// clears the error and returns to the dashboard. It also auto-resets when the
-// route changes, so navigating away from a broken page recovers automatically.
-class ErrorBoundary extends Component<
-  { resetKey: string; children: ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  state: { hasError: boolean; error: Error | null } = { hasError: false, error: null }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error }
-  }
-
-  componentDidUpdate(prevProps: { resetKey: string }) {
-    if (prevProps.resetKey !== this.props.resetKey && this.state.hasError) {
-      this.setState({ hasError: false, error: null })
-    }
-  }
-
-  handleReset = () => {
-    this.setState({ hasError: false, error: null })
-    window.location.href = '/'
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div style={{ padding: 32, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'flex-start' }}>
-          <div className="error-banner">
-            <span>{i18n.t('common.pageError', { defaultValue: '页面加载出错' })}: {this.state.error?.message || 'Unknown error'}</span>
-          </div>
-          <button className="btn btn-primary" onClick={this.handleReset}>{i18n.t('project.backToDashboard')}</button>
-        </div>
-      )
-    }
-    return this.props.children
-  }
+// Minimal page loader shown while a lazy chunk is being fetched.
+function PageLoader() {
+  return (
+    <div className="panel-section">
+      <div className="skeleton skeleton-text" style={{ height: 20, width: 180, marginBottom: 12 }} />
+      <div className="skeleton skeleton-text" style={{ height: 14, width: '60%', marginBottom: 24 }} />
+      <div className="skeleton skeleton-text" style={{ height: 120, width: '100%' }} />
+    </div>
+  )
 }
+
+// ErrorBoundary prevents a render crash in any routed page from black-screening
+// the whole app with no way back. Uses the standalone ErrorBoundary component
+// with resetKey-based auto-recovery on route changes.
 
 function NavBar({ onOpenPalette }: { onOpenPalette: () => void }) {
   const { pathname } = useLocation()
@@ -257,17 +235,21 @@ function App() {
 // RoutedApp wraps the routes in an ErrorBoundary keyed to the current path, so a
 // crash in a destination page (e.g. clicking a scan result) shows a recoverable
 // error instead of a black screen, and recovers when the route changes.
+// Suspense is placed OUTSIDE the ErrorBoundary so a failed chunk load is also
+// caught and displayed as a recoverable error rather than a blank page.
 function RoutedApp() {
   const { pathname } = useLocation()
   return (
     <ErrorBoundary resetKey={pathname}>
-      <Routes>
-        <Route path="/" element={<Knowledge />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/project/:id" element={<ProjectDetail />} />
-        <Route path="/knowledge" element={<Knowledge />} />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Knowledge />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/project/:id" element={<ProjectDetail />} />
+          <Route path="/knowledge" element={<Knowledge />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Suspense>
     </ErrorBoundary>
   )
 }

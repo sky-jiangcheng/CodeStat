@@ -63,11 +63,20 @@ func searchNotesFTS(db *sql.DB, q string) ([]SearchHit, error) {
 }
 
 // searchNotesLike is the LIKE-based fallback used for short or special queries.
+// It assigns a synthetic rank: title matches score higher than content-only
+// matches, pinned notes get a bonus, and recent updates rank higher.
 func searchNotesLike(db *sql.DB, q string) ([]SearchHit, error) {
 	pattern := "%" + escapeLike(q) + "%"
+	// Weighted rank: title match = -10, content match = -5, pinned = -20,
+	// recency bonus via julian day diff (lower is better).
+	rankExpr := "CASE WHEN title LIKE ? ESCAPE '\\' THEN -10 ELSE -5 END " +
+		"+ CASE WHEN pinned THEN -20 ELSE 0 END " +
+		"+ (julianday('now') - julianday(updated_at)) * -0.01"
 	rows, err := db.Query(
-		"SELECT id, project_id, title, content FROM project_notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' ORDER BY pinned DESC, updated_at DESC LIMIT ?",
-		pattern, pattern, searchResultLimit)
+		"SELECT id, project_id, title, content, "+rankExpr+" AS rank "+
+			"FROM project_notes WHERE title LIKE ? ESCAPE '\\' OR content LIKE ? ESCAPE '\\' "+
+			"ORDER BY rank LIMIT ?",
+		pattern, pattern, pattern, searchResultLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -76,11 +85,10 @@ func searchNotesLike(db *sql.DB, q string) ([]SearchHit, error) {
 	for rows.Next() {
 		var h SearchHit
 		var content string
-		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &content); err != nil {
+		if err := rows.Scan(&h.ID, &h.ProjectID, &h.Title, &content, &h.Rank); err != nil {
 			return nil, err
 		}
 		h.Type = "note"
-		h.Rank = 0 // LIKE fallback has no bm25 score
 		h.Snippet = makeSnippet(content, q)
 		hits = append(hits, h)
 	}

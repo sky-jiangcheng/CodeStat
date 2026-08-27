@@ -1,109 +1,57 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   listNotes, createNoteWithMeta, updateNoteFull, deleteNote, pinNote, moveNote,
-  listNoteVersions, restoreNoteVersion, diffNoteVersions, getProjects,
-  type Note, type NoteVersion, type Project,
+  getProjects,
+  type Note, type Project,
 } from '../api/client'
 import { renderMarkdown } from '../utils/markdown'
+import { useApiData } from '../hooks/useApiData'
+import { useConfirmClick } from '../hooks/useConfirmClick'
+import { useNoteMutations } from '../hooks/useNoteMutations'
+import { useNoteDraft } from '../hooks/useNoteDraft'
+import { useNoteVersionHistory } from '../hooks/useNoteVersionHistory'
+import { useFilteredNotes } from '../hooks/useFilteredNotes'
+import type { KindFilter } from '../types/kind'
 import NoteEditor, { type NoteDraft } from './notes/NoteEditor'
+import NoteFilterBar from './notes/NoteFilterBar'
 import VersionHistoryPanel from './notes/VersionHistoryPanel'
 import ErrorBanner from './ErrorBanner'
-import { useConfirmClick } from '../hooks/useConfirmClick'
-import { useApiData } from '../hooks/useApiData'
 
 interface Props {
   projectId: number
   autoNew?: boolean
 }
 
-type KindFilter = 'all' | 'knowledge' | 'other'
-
-function draftKey(projectId: number) {
-  return `gitbuddy-note-draft-${projectId}`
-}
-
-function legacyDraftKey(projectId: number) {
-  return `gitboard-note-draft-${projectId}`
-}
-
-const emptyDraft: NoteDraft = { content: '', title: '', tags: '', kind: 'knowledge' }
-
-function loadDraft(projectId: number): NoteDraft {
-  try {
-    let raw = localStorage.getItem(draftKey(projectId))
-    if (!raw) {
-      raw = localStorage.getItem(legacyDraftKey(projectId))
-      if (raw) {
-        localStorage.setItem(draftKey(projectId), raw)
-        localStorage.removeItem(legacyDraftKey(projectId))
-      }
-    }
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      // Validate structure — discard if shape doesn't match NoteDraft
-      if (
-        typeof parsed === 'object' && parsed !== null &&
-        typeof parsed.content === 'string' &&
-        typeof parsed.title === 'string' &&
-        typeof parsed.tags === 'string' &&
-        typeof parsed.kind === 'string'
-      ) {
-        return {
-          content: parsed.content,
-          title: parsed.title,
-          tags: parsed.tags,
-          kind: parsed.kind,
-          pinned: typeof parsed.pinned === 'boolean' ? parsed.pinned : undefined,
-        }
-      }
-    }
-  } catch { /* ignore */ }
-  return { ...emptyDraft }
-}
-
 function NoteSection({ projectId, autoNew = false }: Props) {
   const { t } = useTranslation()
   const [notes, setNotes] = useState<Note[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [editDraft, setEditDraft] = useState<NoteDraft>({ ...emptyDraft })
-  const [isNew, setIsNew] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [filter, setFilter] = useState<KindFilter>('all')
+  const [saving, setSaving] = useState(false)
 
-  const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))
-  // The move-to-project dropdown reuses the shared "all projects" list, cached
-  // and deduped across components via useApiData (same key as CommandPalette).
+  const [draft, setDraft, clearDraft] = useNoteDraft(projectId)
   const { data: projectsData } = useApiData(() => getProjects(undefined, false), [], { cacheKey: 'projects:all' })
   const projects = projectsData ?? []
-  const [versionHistory, setVersionHistory] = useState<NoteVersion[] | null>(null)
-  const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
-  const [restoringId, setRestoringId] = useState<number | null>(null)
-  const [diffText, setDiffText] = useState<string | null>(null)
-  const [error, setError] = useState('')
-  // The last failed mutation, replayed by the ErrorBanner retry button so a
-  // failed create/save/delete/etc. is recoverable instead of silently dead.
-  const lastOpRef = useRef<(() => Promise<void>) | null>(null)
 
-  // run wraps a mutation with the same error path every handler used to
-  // swallow with `/* ignore */`. On failure it stores the error message and
-  // the op so the banner's retry can replay it.
-  const run = useCallback(async (op: () => Promise<void>, errMsg: string) => {
-    setError('')
-    try {
-      await op()
-    } catch (e) {
-      lastOpRef.current = op
-      setError(errMsg + (e instanceof Error ? e.message : t('common.unknownError')))
-    }
-  }, [t])
+  const { run, retryLast, lastOpRef } = useNoteMutations(setError)
+  const vh = useNoteVersionHistory(run)
 
   const fetchNotes = useCallback(() => {
     listNotes(projectId).then(setNotes).finally(() => setLoading(false))
   }, [projectId])
 
   useEffect(() => { fetchNotes() }, [fetchNotes])
+
+  const [isNew, setIsNew] = useState(false)
+  const [editDraft, setEditDraft] = useState<NoteDraft>({ ...draft })
+
+  // Keep editDraft in sync with draft when creating a new note
+  useEffect(() => {
+    if (isNew) setEditDraft(draft)
+  }, [draft, isNew])
 
   useEffect(() => {
     if (autoNew) {
@@ -112,9 +60,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
     }
   }, [autoNew])
 
-  useEffect(() => {
-    try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }
-  }, [draft, projectId])
+  const filteredNotes = useFilteredNotes(notes, filter)
 
   const startNew = () => {
     setIsNew(true)
@@ -130,8 +76,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
         tags: draft.tags.trim(),
         kind: draft.kind,
       })
-      setDraft({ ...emptyDraft })
-      try { localStorage.removeItem(draftKey(projectId)) } catch { /* ignore */ }
+      clearDraft()
       setIsNew(false)
       fetchNotes()
     }, t('project.saveFailed') + ': ')
@@ -194,57 +139,6 @@ function NoteSection({ projectId, autoNew = false }: Props) {
     if (lastOpRef.current) setNotes(prev => prev.map(n => n.id === note.id ? { ...n, pinned: note.pinned } : n))
   }
 
-  const openVersionHistory = async (noteId: number) => {
-    if (currentNoteId === noteId && versionHistory !== null) {
-      setVersionHistory(null)
-      setCurrentNoteId(null)
-      setDiffText(null)
-      return
-    }
-    setCurrentNoteId(noteId)
-    setVersionHistory(null)
-    setDiffText(null)
-    await run(async () => {
-      setVersionHistory(await listNoteVersions(noteId))
-    }, t('project.saveFailed') + ': ')
-  }
-
-  const handleRestoreVersion = async (versionId: number) => {
-    if (currentNoteId === null) return
-    setRestoringId(versionId)
-    await run(async () => {
-      await restoreNoteVersion(currentNoteId, versionId)
-      setVersionHistory(null)
-      setCurrentNoteId(null)
-      fetchNotes()
-    }, t('project.saveFailed') + ': ')
-    setRestoringId(null)
-  }
-
-  const handleShowDiff = async (versionId: number) => {
-    if (currentNoteId === null) return
-    if (diffText !== null && diffText.startsWith(`${currentNoteId}-${versionId}`)) {
-      setDiffText(null)
-      return
-    }
-    await run(async () => {
-      const diff = await diffNoteVersions(currentNoteId, versionId)
-      setDiffText(`${currentNoteId}-${versionId}\n${diff}`)
-    }, t('project.saveFailed') + ': ')
-  }
-
-  // Retry replays the last failed mutation captured by `run`.
-  const retryLast = () => {
-    const op = lastOpRef.current
-    if (op) { lastOpRef.current = null; void op() }
-  }
-
-  const filteredNotes = notes.filter(n => {
-    if (filter === 'knowledge') return n.kind === 'knowledge'
-    if (filter === 'other') return n.kind !== 'knowledge'
-    return true
-  })
-
   if (loading) {
     return (
       <div className="panel-section">
@@ -268,20 +162,14 @@ function NoteSection({ projectId, autoNew = false }: Props) {
         <ErrorBanner message={error} onRetry={retryLast} />
       )}
 
-      {notes.length > 0 && (
-        <div className="note-filters">
-          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>{t('project.filterAll')}</button>
-          <button className={`filter-btn ${filter === 'knowledge' ? 'active' : ''}`} onClick={() => setFilter('knowledge')}>{t('project.kinds.knowledge')}</button>
-          <button className={`filter-btn ${filter === 'other' ? 'active' : ''}`} onClick={() => setFilter('other')}>{t('project.kinds.other')}</button>
-        </div>
-      )}
+      <NoteFilterBar filter={filter} setFilter={setFilter} notesCount={notes.length} t={t} />
 
       {isNew && (
         <NoteEditor
           value={draft}
           onChange={setDraft}
           onSave={handleCreate}
-          onCancel={() => { setIsNew(false); setDraft({ ...emptyDraft }) }}
+          onCancel={() => { setIsNew(false); clearDraft() }}
           saving={saving}
         />
       )}
@@ -305,21 +193,21 @@ function NoteSection({ projectId, autoNew = false }: Props) {
               onMoveProject={handleMoveProject}
               onPin={handlePin}
               onEdit={startEdit}
-              onOpenHistory={openVersionHistory}
+              onOpenHistory={vh.openVersionHistory}
               onDelete={handleDelete}
             />
           ))}
         </div>
       )}
 
-      {versionHistory !== null && (
+      {vh.versionHistory !== null && (
         <VersionHistoryPanel
-          versions={versionHistory}
-          restoringId={restoringId}
-          diffText={diffText}
-          onRestore={handleRestoreVersion}
-          onShowDiff={handleShowDiff}
-          onClose={() => { setVersionHistory(null); setCurrentNoteId(null); setDiffText(null) }}
+          versions={vh.versionHistory}
+          restoringId={vh.restoringId}
+          diffText={vh.diffText}
+          onRestore={vh.handleRestoreVersion}
+          onShowDiff={vh.handleShowDiff}
+          onClose={vh.closeVersionHistory}
         />
       )}
     </div>
@@ -384,7 +272,7 @@ function NoteCard({
       <div className="note-body markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
       {note.tags && (
         <div className="note-tags-row">
-          {note.tags.split(',').map(t => t.trim()).filter(Boolean).map(t => <span key={t} className="note-tag-chip">#{t}</span>)}
+          {note.tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => <span key={tag} className="note-tag-chip">#{tag}</span>)}
         </div>
       )}
       <div className="note-meta">

@@ -14,6 +14,7 @@ gitboard-mcp
 gitbuddy
 gitbuddy-mcp
 gitbuddy-agent-score
+mcp
 
 # Database files / 数据库文件
 *.db
@@ -33,6 +34,7 @@ docs/**/*.html
 
 # AI tooling artifacts / AI 工具产物
 .agents/
+.claude/
 .trae-html-share-packages/
 .workbuddy/
 .zcode/

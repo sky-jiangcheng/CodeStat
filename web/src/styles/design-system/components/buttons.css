@@ -96,8 +96,3 @@
   opacity: 0.3;
   cursor: not-allowed;
 }
-
-.btn-delete:hover:not(:disabled) {
-  color: var(--danger);
-  background: var(--danger-soft);
-}

@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { NoteVersion } from '../../api/client'
 
@@ -8,6 +9,30 @@ interface Props {
   onRestore: (versionId: number) => void
   onShowDiff: (versionId: number) => void
   onClose: () => void
+}
+
+/**
+ * Parse unified diff text into styled lines: '+' → green, '-' → red,
+ * ' ' → context. Falls back to plain text for unparseable content.
+ */
+function DiffViewer({ text }: { text: string }) {
+  const lines = useMemo(() => text.split('\n'), [text])
+
+  return (
+    <div className="diff-panel">
+      <pre className="diff-pre">
+        {lines.map((line, i) => {
+          if (line.startsWith('+')) {
+            return <code key={i} className="diff-line-add">{line}</code>
+          }
+          if (line.startsWith('-')) {
+            return <code key={i} className="diff-line-del">{line}</code>
+          }
+          return <code key={i}>{line}</code>
+        })}
+      </pre>
+    </div>
+  )
 }
 
 /** Version history list for one note, with per-version diff and restore. */
@@ -45,11 +70,7 @@ export default function VersionHistoryPanel({ versions, restoringId, diffText, o
           ))}
         </div>
       )}
-      {diffText !== null && (
-        <div className="diff-panel">
-          <pre className="diff-pre"><code>{diffText}</code></pre>
-        </div>
-      )}
+      {diffText !== null && <DiffViewer text={diffText} />}
     </div>
   )
 }

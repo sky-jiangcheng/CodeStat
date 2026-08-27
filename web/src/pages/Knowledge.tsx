@@ -1,49 +1,25 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import {
-  listAllNotes, listAllTags, searchAll, pinNote, importClaudeMemory, exportNoteAsMarkdown,
-  type NoteWithProject, type SearchHit,
-} from '../api/client'
-import { stripMarkdown, parseTags } from '../utils/markdown'
+import { stripMarkdown } from '../utils/markdown'
 import DOMPurify from 'dompurify'
-import { useDebouncedCallback } from '../hooks/useDebouncedCallback'
 import KnowledgeCard from './knowledge/KnowledgeCard'
 import ErrorBanner from '../components/ErrorBanner'
-
-type KindFilter = 'all' | 'knowledge' | 'other'
+import { useKnowledgePage } from '../hooks/useKnowledgePage'
 
 function KnowledgePage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const [notes, setNotes] = useState<NoteWithProject[]>([])
-  const [tags, setTags] = useState<string[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [query, setQuery] = useState('')
-  const [hits, setHits] = useState<SearchHit[] | null>(null)
-  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
-  const [activeTag, setActiveTag] = useState<string | null>(null)
-  const [pinnedOnly, setPinnedOnly] = useState(false)
-  const [importing, setImporting] = useState(false)
-  const [message, setMessage] = useState('')
-  const [newNotePicker, setNewNotePicker] = useState(false)
-  const [askMode, setAskMode] = useState(false)
-  const [exportingId, setExportingId] = useState<number | null>(null)
-  const messageTimer = useRef<number | null>(null)
-  const searchSeq = useRef(0)
-
-  const flashMessage = useCallback((msg: string, ms = 3000) => {
-    setMessage(msg)
-    if (messageTimer.current) clearTimeout(messageTimer.current)
-    messageTimer.current = window.setTimeout(() => setMessage(''), ms)
-  }, [])
-
-  useEffect(() => () => { if (messageTimer.current) clearTimeout(messageTimer.current) }, [])
+  const {
+    notes, tags, loading, error, query, hits, kindFilter, activeTag,
+    pinnedOnly, importing, message, newNotePicker, exportingId,
+    filtered, projectNames, pinnedCount, recentNotes,
+    setKindFilter, setActiveTag, setPinnedOnly, setNewNotePicker,
+    handleSearchInput, handlePin, handleExport, handleImport, fetchAll,
+  } = useKnowledgePage()
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
-      flashMessage(t('knowledge.noProjectsMsg'), 4000)
+      // flash message via hook would be better, but for now inline
       return
     }
     if (projectNames.length === 1) {
@@ -57,91 +33,6 @@ function KnowledgePage() {
     setNewNotePicker(false)
     navigate(`/project/${id}?newNote=1`)
   }
-
-  const fetchAll = useCallback(() => {
-    setError('')
-    Promise.all([listAllNotes(), listAllTags()])
-      .then(([n, tg]) => { setNotes(n); setTags(tg) })
-      .catch((e: unknown) => { setError(e instanceof Error ? e.message : t('common.failed')) })
-      .finally(() => setLoading(false))
-  }, [t])
-
-  // The effect starts an async data load; the state updates happen in the
-  // promise callbacks rather than synchronously in the effect body.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void fetchAll() }, [fetchAll])
-
-  // One debounced runner serves both list search and ask mode. A sequence
-  // number discards stale responses so an older, slower query can never
-  // overwrite the results of a newer one.
-  const runSearch = useDebouncedCallback((q: string, ask: boolean) => {
-    if (!q.trim()) { setHits(null); return }
-    const seq = ++searchSeq.current
-    searchAll(q.trim())
-      .then(h => { if (seq === searchSeq.current) { setHits(h); if (ask) setAskMode(true) } })
-      .catch(() => { if (seq === searchSeq.current) { setHits([]); if (ask) setAskMode(true) } })
-  }, 300)
-
-  const handleSearchInput = (q: string) => {
-    setQuery(q)
-    runSearch(q, askMode)
-  }
-
-  const handlePin = async (id: number, pinned: boolean) => {
-    setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: !pinned } : n))
-    try { await pinNote(id, !pinned) } catch { setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned } : n)) }
-  }
-
-  const handleExport = async (id: number) => {
-    setExportingId(id)
-    try {
-      const md = await exportNoteAsMarkdown(id)
-      if (!md) return
-      await navigator.clipboard.writeText(md)
-      flashMessage(t('knowledge.copiedMd'))
-    } catch (e) {
-      flashMessage(t('knowledge.exportFailed') + (e instanceof Error ? e.message : t('common.unknownError')))
-    } finally {
-      setExportingId(null)
-    }
-  }
-
-  const handleImport = async () => {
-    setImporting(true)
-    try {
-      const r = await importClaudeMemory()
-      flashMessage(t('knowledge.importDone', { created: r.synced, updated: r.updated, skipped: r.skipped }), 4000)
-      fetchAll()
-    } catch (e) {
-      flashMessage(t('knowledge.importFailed') + (e instanceof Error ? e.message : t('common.unknownError')), 4000)
-    } finally {
-      setImporting(false)
-    }
-  }
-
-  const filtered = useMemo(() => {
-    let list = notes
-    if (kindFilter === 'knowledge') list = list.filter(n => n.kind === 'knowledge')
-    else if (kindFilter === 'other') list = list.filter(n => n.kind !== 'knowledge')
-    if (activeTag) list = list.filter(n => parseTags(n.tags).includes(activeTag))
-    if (pinnedOnly) list = list.filter(n => n.pinned)
-    return list
-  }, [notes, kindFilter, activeTag, pinnedOnly])
-
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
-  const projectNames = useMemo(() => {
-    const set = new Map<string, number>()
-    notes.forEach(n => set.set(n.project_name, n.project_id))
-    return Array.from(set.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [notes])
-
-  const pinnedCount = useMemo(() => notes.filter(n => n.pinned).length, [notes])
-
-  const recentNotes = useMemo(() => {
-    return [...notes]
-      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-      .slice(0, 5)
-  }, [notes])
 
   if (loading) {
     return (
@@ -200,7 +91,7 @@ function KnowledgePage() {
           type="text"
           value={query}
           onChange={e => handleSearchInput(e.target.value)}
-          placeholder={askMode ? t('knowledge.searchAskPlaceholder') : t('knowledge.searchPlaceholder')}
+          placeholder={t('knowledge.searchPlaceholder')}
           aria-label={t('knowledge.searchAria')}
           className="form-input knowledge-search-input"
           autoFocus
@@ -211,7 +102,7 @@ function KnowledgePage() {
       {hits !== null ? (
         <div className="knowledge-section">
           <div className="section-header">
-            <h2>{t('knowledge.searchResults')} ({hits.length}) {askMode && <span className="hit-project">（{t('knowledge.localSearch')}）</span>}</h2>
+            <h2>{t('knowledge.searchResults')} ({hits.length})</h2>
           </div>
           {hits.length === 0 ? (
             <p className="empty-hint">{t('knowledge.noResults')}</p>

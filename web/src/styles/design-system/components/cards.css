@@ -70,16 +70,6 @@
   font-weight: 600;
 }
 
-.badge-ok {
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.badge-err {
-  background: var(--danger-soft);
-  color: var(--danger);
-}
-
 .badge-source {
   background: var(--info-soft);
   color: var(--info);
