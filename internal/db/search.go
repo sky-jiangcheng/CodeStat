@@ -69,8 +69,10 @@ func searchNotesLike(db *sql.DB, q string) ([]SearchHit, error) {
 	pattern := "%" + escapeLike(q) + "%"
 	// Weighted rank: title match = -10, content match = -5, pinned = -20,
 	// recency bonus via julian day diff (lower is better).
+	// COALESCE(pinned, 0) handles the NULL case that occurs during migration
+	// before the ALTER TABLE ADD COLUMN DEFAULT 0 is applied to all rows.
 	rankExpr := "CASE WHEN title LIKE ? ESCAPE '\\' THEN -10 ELSE -5 END " +
-		"+ CASE WHEN pinned THEN -20 ELSE 0 END " +
+		"+ CASE WHEN COALESCE(pinned, 0) = 1 THEN -20 ELSE 0 END " +
 		"+ (julianday('now') - julianday(updated_at)) * -0.01"
 	rows, err := db.Query(
 		"SELECT id, project_id, title, content, "+rankExpr+" AS rank "+

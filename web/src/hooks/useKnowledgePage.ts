@@ -66,8 +66,11 @@ export function useKnowledgePage() {
 
   const handlePin = useCallback(async (id: number, pinned: boolean) => {
     setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned: !pinned } : n))
-    try { await pinNote(id, !pinned) } catch { setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned } : n)) }
-  }, [])
+    try { await pinNote(id, !pinned) } catch (e: unknown) {
+      setNotes(prev => prev.map(n => n.id === id ? { ...n, pinned } : n))
+      flashMessage(t('knowledge.pinFailed', { defaultValue: 'Failed to pin note' }) + (e instanceof Error ? ' ' + e.message : ''))
+    }
+  }, [flashMessage, t])
 
   const handleExport = useCallback(async (id: number) => {
     setExportingId(id)
@@ -128,6 +131,6 @@ export function useKnowledgePage() {
     filtered, projectNames, pinnedCount, recentNotes,
     // Actions
     setQuery, setKindFilter, setActiveTag, setPinnedOnly, setNewNotePicker,
-    handleSearchInput, handlePin, handleExport, handleImport, fetchAll,
+    handleSearchInput, handlePin, handleExport, handleImport, fetchAll, flashMessage,
   }
 }

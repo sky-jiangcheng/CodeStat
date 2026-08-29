@@ -19,6 +19,11 @@ const migrationVersionKey = "schema_version"
 //
 // All statements are idempotent (IF NOT EXISTS) so they are safe to run from
 // both the schema migration and the test harness.
+//
+// IMPORTANT: The insert trigger (_ai) must appear before the delete trigger
+// (_ad) in this list. FTS5 requires the virtual table to be created and the
+// insert trigger to be defined before delete/update triggers can reference
+// the fts table by name in their SQL body.
 var ftsSchemaStatements = []string{
 	`CREATE VIRTUAL TABLE IF NOT EXISTS project_notes_fts USING fts5(title, content, content='project_notes', content_rowid='id', tokenize='trigram')`,
 	`CREATE VIRTUAL TABLE IF NOT EXISTS project_todos_fts USING fts5(title, content='project_todos', content_rowid='id', tokenize='trigram')`,
