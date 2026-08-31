@@ -11,15 +11,15 @@ function KnowledgePage() {
   const navigate = useNavigate()
   const {
     notes, tags, loading, error, query, hits, kindFilter, activeTag,
-    pinnedOnly, importing, message, newNotePicker, exportingId,
+    pinnedOnly, importing, message, newNotePicker, askMode, exportingId,
     filtered, projectNames, pinnedCount, recentNotes,
     setKindFilter, setActiveTag, setPinnedOnly, setNewNotePicker,
-    handleSearchInput, handlePin, handleExport, handleImport, fetchAll,
+    handleSearchInput, handlePin, handleExport, handleImport, fetchAll, flashMessage,
   } = useKnowledgePage()
 
   const handleQuickCreate = () => {
     if (projectNames.length === 0) {
-      // flash message via hook would be better, but for now inline
+      flashMessage(t('knowledge.noProjectsMsg', { defaultValue: 'No projects configured. Add one in Settings.' }), 4000)
       return
     }
     if (projectNames.length === 1) {
@@ -91,7 +91,7 @@ function KnowledgePage() {
           type="text"
           value={query}
           onChange={e => handleSearchInput(e.target.value)}
-          placeholder={t('knowledge.searchPlaceholder')}
+          placeholder={askMode ? t('knowledge.searchAskPlaceholder') : t('knowledge.searchPlaceholder')}
           aria-label={t('knowledge.searchAria')}
           className="form-input knowledge-search-input"
           autoFocus
@@ -102,7 +102,7 @@ function KnowledgePage() {
       {hits !== null ? (
         <div className="knowledge-section">
           <div className="section-header">
-            <h2>{t('knowledge.searchResults')} ({hits.length})</h2>
+            <h2>{t('knowledge.searchResults')} ({hits.length}) {askMode && <span className="hit-project">（{t('knowledge.localSearch')}）</span>}</h2>
           </div>
           {hits.length === 0 ? (
             <p className="empty-hint">{t('knowledge.noResults')}</p>

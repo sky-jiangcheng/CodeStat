@@ -78,6 +78,7 @@ export function useDashboardData() {
         if (!isNaN(v) && v > 0) setDailyGoal(v)
       })
       .catch(() => {})
+    // First load: non-silent so loading state is properly managed.
     void fetchSummary(date) // eslint-disable-line react-hooks/set-state-in-effect
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date, showStarredOnly])
@@ -100,6 +101,7 @@ export function useDashboardData() {
     try {
       const newStarred = await toggleStar(projectId)
       setStarOverride(prev => ({ ...prev, [projectId]: newStarred }))
+      // Refresh the shared base list so NoteSection/CommandPalette reflect it.
       invalidateCache('projects:all')
       return newStarred
     } catch (e: unknown) {
@@ -117,7 +119,7 @@ export function useDashboardData() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('common.failed'))
     }
-  }, [date, showStarredOnly, fetchSummary, t])
+  }, [date, fetchSummary, t])
 
   const sortOptions = useMemo(() => [
     { key: 'name' as const, label: t('dashboard.sortName', { defaultValue: 'Name' }) },

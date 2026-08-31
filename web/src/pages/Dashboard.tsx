@@ -8,7 +8,7 @@ import DatePicker from '../components/DatePicker'
 import ProjectCard from '../components/ProjectCard'
 import ProjectSearchDropdown from './dashboard/ProjectSearchDropdown'
 import ErrorBanner from '../components/ErrorBanner'
-import { useDashboardData } from '../hooks/useDashboardData'
+import { useDashboardData, type SortKey } from '../hooks/useDashboardData'
 
 function Dashboard() {
   const { t } = useTranslation()
@@ -67,7 +67,7 @@ function Dashboard() {
             </div>
             <div className="sort-control">
               <label htmlFor="dashboard-sort">{t('dashboard.sortBy')}</label>
-              <select id="dashboard-sort" value={sortKey} onChange={(e) => setSortKey(e.target.value as 'name' | 'my_added' | 'my_files' | 'repo_count')} className="form-input sort-select">
+              <select id="dashboard-sort" value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)} className="form-input sort-select">
                 {sortOptions.map(opt => <option key={opt.key} value={opt.key}>{opt.label}</option>)}
               </select>
             </div>

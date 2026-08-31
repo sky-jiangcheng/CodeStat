@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
 import type { NoteDraft } from '../components/notes/NoteEditor'
 
 const emptyDraft: NoteDraft = { content: '', title: '', tags: '', kind: 'knowledge' }
@@ -39,7 +39,7 @@ function loadDraft(projectId: number): NoteDraft {
         }
       }
     }
-  } catch { /* ignore */ }
+  } catch (e: unknown) { console.error('[useNoteDraft] loadDraft failed:', e) }
   return { ...emptyDraft }
 }
 
@@ -48,7 +48,7 @@ function loadDraft(projectId: number): NoteDraft {
  * it to localStorage keyed by projectId. Supports migration from the old
  * `gitboard-` key prefix.
  */
-export function useNoteDraft(projectId: number): [NoteDraft, React.Dispatch<React.SetStateAction<NoteDraft>>, () => void] {
+export function useNoteDraft(projectId: number): [NoteDraft, Dispatch<SetStateAction<NoteDraft>>, () => void] {
   const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))
   const draftRef = useRef(draft)
   draftRef.current = draft

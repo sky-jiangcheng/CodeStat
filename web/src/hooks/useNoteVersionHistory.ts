@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { NoteVersion } from '../api/client'
 
 interface VersionHistoryState {
@@ -27,17 +27,22 @@ export function useNoteVersionHistory(
   const [currentNoteId, setCurrentNoteId] = useState<number | null>(null)
   const [restoringId, setRestoringId] = useState<number | null>(null)
   const [diffText, setDiffText] = useState<string | null>(null)
+  // Use a ref-based tuple as cache key to avoid string-prefix collision
+  // (a diff text itself could start with "123-456\n...").
+  const diffCacheKeyRef = useRef<[number, number] | null>(null)
 
   const openVersionHistory = async (noteId: number) => {
     if (currentNoteId === noteId && versionHistory !== null) {
       setVersionHistory(null)
       setCurrentNoteId(null)
       setDiffText(null)
+      diffCacheKeyRef.current = null
       return
     }
     setCurrentNoteId(noteId)
     setVersionHistory(null)
     setDiffText(null)
+    diffCacheKeyRef.current = null
     await run(async () => {
       const { listNoteVersions } = await import('../api/client')
       setVersionHistory(await listNoteVersions(noteId))
@@ -52,20 +57,25 @@ export function useNoteVersionHistory(
       await restoreNoteVersion(currentNoteId, versionId)
       setVersionHistory(null)
       setCurrentNoteId(null)
+      diffCacheKeyRef.current = null
     }, 'Failed to restore version')
     setRestoringId(null)
   }
 
   const handleShowDiff = async (versionId: number) => {
     if (currentNoteId === null) return
-    if (diffText !== null && diffText.startsWith(`${currentNoteId}-${versionId}`)) {
+    const key: [number, number] = [currentNoteId, versionId]
+    if (diffCacheKeyRef.current !== null &&
+      diffCacheKeyRef.current[0] === key[0] && diffCacheKeyRef.current[1] === key[1]) {
       setDiffText(null)
+      diffCacheKeyRef.current = null
       return
     }
     await run(async () => {
       const { diffNoteVersions } = await import('../api/client')
       const diff = await diffNoteVersions(currentNoteId, versionId)
-      setDiffText(`${currentNoteId}-${versionId}\n${diff}`)
+      setDiffText(diff)
+      diffCacheKeyRef.current = key
     }, 'Failed to load diff')
   }
 
@@ -73,6 +83,7 @@ export function useNoteVersionHistory(
     setVersionHistory(null)
     setCurrentNoteId(null)
     setDiffText(null)
+    diffCacheKeyRef.current = null
   }
 
   return {
