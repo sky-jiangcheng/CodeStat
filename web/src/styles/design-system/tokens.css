@@ -1,19 +1,19 @@
 /* ============================================
    Design Tokens
-   Claude-inspired minimal style
+   Claude-inspired minimal style — refined for better visual hierarchy
    ============================================ */
 
 :root {
   /* Backgrounds */
-  --bg-primary: #fafaf9;
+  --bg-primary: #f5f5f3;
   --bg-secondary: #ffffff;
-  --bg-tertiary: #f5f5f3;
-  --bg-hover: #f2f2f0;
-  --bg-active: #ebebe8;
+  --bg-tertiary: #eeece8;
+  --bg-hover: #eceae6;
+  --bg-active: #e6e3dd;
 
   /* Borders */
-  --border-subtle: #ececea;
-  --border-default: #e4e3df;
+  --border-subtle: #e0ded8;
+  --border-default: #ccc9c1;
 
   /* Text */
   --text-primary: #1a1a1a;
@@ -23,10 +23,10 @@
   --text-danger: #8b4a4a;
 
   /* Accents / semantic */
-  --accent: #1a1a1a;
-  --accent-light: #333333;
-  --accent-dark: #111111;
-  --accent-soft: #f0f0ee;
+  --accent: #2563eb;
+  --accent-light: #3b82f6;
+  --accent-dark: #1d4ed8;
+  --accent-soft: #eff6ff;
 
   --danger: #8b4a4a;
   --danger-soft: #f5ecec;
@@ -41,9 +41,9 @@
   --success-soft: #e8f3e8;
 
   /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.04);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.10);
 
   /* Radii */
   --radius-sm: 6px;
@@ -83,10 +83,10 @@
   --text-danger: #d97373;
 
   /* Accents / semantic */
-  --accent: #e8e8e8;
-  --accent-light: #ffffff;
-  --accent-dark: #cccccc;
-  --accent-soft: #2a2a2a;
+  --accent: #60a5fa;
+  --accent-light: #93c5fd;
+  --accent-dark: #3b82f6;
+  --accent-soft: #1e3a5f;
 
   --danger: #d97373;
   --danger-soft: #3a2a2a;

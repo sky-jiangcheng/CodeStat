@@ -1,13 +1,13 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { getProjectDetail, getProjectOverview, updateProjectLevel, type ProjectDetail, type ProjectOverview } from '../api/client'
 import { useTranslation } from 'react-i18next'
-import TrendChart, { type TrendDataset } from '../components/TrendChart'
+import TrendChart from '../components/TrendChart'
 import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
 import ProjectPanel from '../components/ProjectPanel'
 import ProjectOverviewSection from './project/ProjectOverviewSection'
 import ErrorBanner from '../components/ErrorBanner'
+import { useProjectDetail } from '../hooks/useProjectDetail'
 
 function ProjectDetailPage() {
   const { t } = useTranslation()
@@ -16,11 +16,11 @@ function ProjectDetailPage() {
   const [searchParams] = useSearchParams()
   const dateParam = searchParams.get('date') || ''
 
-  const [project, setProject] = useState<ProjectDetail | null>(null)
-  const [overview, setOverview] = useState<ProjectOverview | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [range, setRange] = useState<'week' | 'month' | 'all'>('week')
+  const {
+    project, overview, loading, error, setError,
+    range, setRange, trendData, totals, retry, handleLevelChange,
+  } = useProjectDetail(id)
+
   const [copied, setCopied] = useState(false)
 
   const handleCopyContext = async () => {
@@ -41,97 +41,6 @@ function ProjectDetailPage() {
       setError(t('common.failed'))
     }
   }
-
-  useEffect(() => {
-    if (!id) return
-    let cancelled = false
-    setLoading(true) // eslint-disable-line react-hooks/set-state-in-effect
-    setError('')
-    getProjectDetail(Number(id))
-      .then(p => {
-        if (cancelled) return
-        setProject(p)
-        getProjectOverview(Number(id)).then(o => { if (!cancelled) setOverview(o) }).catch(() => {})
-      })
-      .catch((e) => { if (!cancelled) setError(e instanceof Error ? e.message : t('common.failed')) })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [id, t])
-
-  // Retry reuses the same load path as the effect so error state, loading flag
-  // and overview are all reset consistently (the inline retry previously only
-  // set the project and silently swallowed follow-up errors).
-  const retry = () => {
-    if (!id) return
-    setLoading(true)
-    setError('')
-    getProjectDetail(Number(id))
-      .then(p => {
-        setProject(p)
-        getProjectOverview(Number(id)).then(setOverview).catch(() => {})
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : t('common.failed')))
-      .finally(() => setLoading(false))
-  }
-
-  const handleLevelChange = async (direction: 'up' | 'down') => {
-    if (!id) return
-    try {
-      await updateProjectLevel(Number(id), direction)
-      const updated = await getProjectDetail(Number(id))
-      setProject(updated)
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : t('common.failed'))
-    }
-  }
-
-  const stats = useMemo(() => {
-    const map = new Map<string, { added: number; deleted: number; files: number; commits: number }>()
-    if (project?.repos) {
-      project.repos.forEach((repo) => {
-        repo.stats?.forEach((stat) => {
-          const cur = map.get(stat.stat_date) || { added: 0, deleted: 0, files: 0, commits: 0 }
-          cur.added += stat.lines_added
-          cur.deleted += stat.lines_deleted
-          cur.files += stat.files_changed
-          cur.commits++
-          map.set(stat.stat_date, cur)
-        })
-      })
-    }
-    return map
-  }, [project])
-
-  const trendData = useMemo(() => {
-    let dates = Array.from(stats.keys()).sort()
-    if (range === 'week') {
-      const weekDates = new Set(getLastDays(7))
-      dates = dates.filter((d) => weekDates.has(d))
-    } else if (range === 'month') {
-      const monthDates = new Set(getLastDays(30))
-      dates = dates.filter((d) => monthDates.has(d))
-    }
-
-    return {
-      labels: dates,
-      datasets: [
-        { label: t('dashboard.sortMyAdded', { defaultValue: 'Lines Added' }), data: dates.map((d) => stats.get(d)!.added), color: '#4a7d4a' },
-        { label: t('project.deletedLines'), data: dates.map((d) => stats.get(d)!.deleted), color: '#c95757' },
-        { label: t('dashboard.sortMyFiles', { defaultValue: 'Files Changed' }), data: dates.map((d) => stats.get(d)!.files), color: '#5a7fa0' },
-      ] as TrendDataset[],
-    }
-  }, [stats, range, t])
-
-  const totals = useMemo(() => {
-    let added = 0, deleted = 0, files = 0, active = 0
-    stats.forEach((v) => {
-      added += v.added
-      deleted += v.deleted
-      files += v.files
-      if (v.added + v.deleted > 0) active++
-    })
-    return { added, deleted, files, active, repos: project?.repos?.length || 0 }
-  }, [stats, project])
 
   if (loading) {
     return (
@@ -300,17 +209,6 @@ function ProjectDetailPage() {
       <StatusBar />
     </div>
   )
-}
-
-function getLastDays(n: number): string[] {
-  const result: string[] = []
-  const now = new Date()
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now)
-    d.setDate(d.getDate() - i)
-    result.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
-  }
-  return result
 }
 
 export default ProjectDetailPage

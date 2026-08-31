@@ -1,72 +1,7 @@
 /* ============================================
-   Notes (list + editor)
+   Notes (shared editor + version-history styles)
+   Scoped card/list/meta styles → NoteSection.module.css (Sprint 10)
    ============================================ */
-
-.note-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.note-header h3 {
-  margin-bottom: 0;
-}
-
-.note-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
-}
-
-.note-title-text {
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--text-primary);
-}
-
-.note-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.note-card {
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-  background: var(--bg-tertiary);
-}
-
-.note-card.pinned {
-  border-color: var(--warning);
-  background: var(--warning-soft);
-}
-
-.note-body {
-  font-size: 13px;
-  margin-bottom: 8px;
-  color: var(--text-primary);
-  line-height: 1.6;
-}
-
-.note-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.note-time {
-  font-family: var(--font-mono);
-}
-
-.note-actions {
-  display: flex;
-  gap: 4px;
-}
 
 .note-editor {
   margin-bottom: 14px;
@@ -150,27 +85,6 @@
   font-size: 11px;
   color: var(--text-muted);
   margin-left: auto;
-}
-
-.note-title-badges {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.note-tags-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.note-tag-chip {
-  font-size: 10px;
-  padding: 1px 7px;
-  border-radius: 8px;
-  background: var(--bg-tertiary);
-  color: var(--text-tertiary);
 }
 
 .note-pin-toggle {

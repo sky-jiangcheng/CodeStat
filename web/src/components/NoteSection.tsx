@@ -17,6 +17,7 @@ import NoteEditor, { type NoteDraft } from './notes/NoteEditor'
 import NoteFilterBar from './notes/NoteFilterBar'
 import VersionHistoryPanel from './notes/VersionHistoryPanel'
 import ErrorBanner from './ErrorBanner'
+import s from './NoteSection.module.css'
 
 interface Props {
   projectId: number
@@ -151,7 +152,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
 
   return (
     <div className="panel-section">
-      <div className="note-header">
+      <div className={s.header}>
         <h3>{t('knowledge.notesTitle', { defaultValue: '知识笔记' })} ({notes.length})</h3>
         {!isNew && editingId === null && (
           <button className="btn btn-sm btn-primary" onClick={startNew}>{t('project.createNote')}</button>
@@ -177,7 +178,7 @@ function NoteSection({ projectId, autoNew = false }: Props) {
       {filteredNotes.length === 0 && !isNew ? (
         <p className="empty-hint">{filter !== 'all' ? t('knowledge.noMatch') : t('project.noNotesHint')}</p>
       ) : (
-        <div className="note-list">
+        <div className={s.list}>
           {filteredNotes.map(note => (
             <NoteCard
               key={note.id}
@@ -239,7 +240,7 @@ function NoteCard({
 
   if (editing) {
     return (
-      <div className="note-card">
+      <div className={s.card}>
         <NoteEditor
           value={editDraft}
           onChange={onEditDraftChange}
@@ -256,10 +257,10 @@ function NoteCard({
   }
 
   return (
-    <div className={`note-card ${note.pinned ? 'pinned' : ''}`}>
-      <div className="note-title-row">
-        <span className="note-title-text">{note.title || note.content.split('\n')[0] || t('project.noteWord')}</span>
-        <div className="note-title-badges">
+    <div className={`${s.card} ${note.pinned ? s.cardPinned : ''}`}>
+      <div className={s.titleRow}>
+        <span className={s.titleText}>{note.title || note.content.split('\n')[0] || t('project.noteWord')}</span>
+        <div className={s.titleBadges}>
           {note.kind === 'knowledge' && <span className="badge-note-sm">{t('project.kinds.knowledge')}</span>}
           {note.source === 'claude' && <span className="badge-note-sm badge-source">Claude</span>}
           <button
@@ -269,19 +270,19 @@ function NoteCard({
           >★</button>
         </div>
       </div>
-      <div className="note-body markdown-body" dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
+      <div className={`${s.body} markdown-body`} dangerouslySetInnerHTML={{ __html: renderMarkdown(note.content) }} />
       {note.tags && (
-        <div className="note-tags-row">
-          {note.tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => <span key={tag} className="note-tag-chip">#{tag}</span>)}
+        <div className={s.tagsRow}>
+          {note.tags.split(',').map(tag => tag.trim()).filter(Boolean).map(tag => <span key={tag} className={s.tagChip}>#{tag}</span>)}
         </div>
       )}
-      <div className="note-meta">
-        <span className="note-time">
+      <div className={s.meta}>
+        <span className={s.time}>
           {note.updated_at !== note.created_at
             ? `${t('project.updatedAtPrefix')} ${note.updated_at}`
             : `${t('project.createdAtPrefix')} ${note.created_at}`}
         </span>
-        <div className="note-actions">
+        <div className={s.actions}>
           <button className="btn btn-sm" onClick={() => onEdit(note)}>{t('project.edit')}</button>
           <button
             className="btn btn-sm"
