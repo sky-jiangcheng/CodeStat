@@ -34,7 +34,10 @@ export function useProjectDetail(id: string | undefined) {
       .finally(() => setLoading(false))
   }, [id, t])
 
-  useEffect(() => { load() }, [load])
+  // Initial + on-`id`-change data load. Synchronous setState (loading/error
+  // reset) is intentional here; matches the established set-state-in-effect
+  // disable pattern used across the codebase.
+  useEffect(() => { load() }, [load]) // eslint-disable-line react-hooks/set-state-in-effect
 
   const handleLevelChange = async (direction: 'up' | 'down') => {
     if (!id) return

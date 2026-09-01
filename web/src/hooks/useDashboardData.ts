@@ -43,7 +43,14 @@ export function useDashboardData() {
   const loading = projectsLoading || summaryLoading
   const displayedError = error || projectsError || summaryError
 
-  useEffect(() => { setStarOverride({}) }, [date, showStarredOnly])
+  // Reset optimistic star overrides whenever the project list is re-scoped
+  // (date or starred-only filter changes). Done in the setters instead of an
+  // effect to avoid a synchronous setState-in-effect.
+  const setDateScoped = useCallback((d: string) => { setStarOverride({}); setDate(d) }, [setDate])
+  const setShowStarredOnlyScoped = useCallback(
+    (v: boolean) => { setStarOverride({}); setShowStarredOnly(v) },
+    [setShowStarredOnly]
+  )
 
   const fetchSummary = useCallback(async (selectedDate: string, silent = false) => {
     const seq = ++fetchSeq.current
@@ -119,7 +126,7 @@ export function useDashboardData() {
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t('common.failed'))
     }
-  }, [date, fetchSummary, t])
+  }, [date, fetchSummary, refetchProjects, t])
 
   const sortOptions = useMemo(() => [
     { key: 'name' as const, label: t('dashboard.sortName', { defaultValue: 'Name' }) },
@@ -181,7 +188,7 @@ export function useDashboardData() {
     projects, sorted, starredProjects, unstarredProjects,
     todoMap, noteMap, globalTodoCount, myAdded, isWorkday, sortOptions,
     // Setters
-    setDate, setSortKey, setConfirmScan, setShowStarredOnly,
+    setDate: setDateScoped, setSortKey, setConfirmScan, setShowStarredOnly: setShowStarredOnlyScoped,
     // Actions
     handleScan, handleToggleStar, handleRefreshHistory, fetchSummary,
     refetchProjects, setError, setSummaryError,

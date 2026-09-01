@@ -49,11 +49,6 @@ function NoteSection({ projectId, autoNew = false }: Props) {
   const [isNew, setIsNew] = useState(false)
   const [editDraft, setEditDraft] = useState<NoteDraft>({ ...draft })
 
-  // Keep editDraft in sync with draft when creating a new note
-  useEffect(() => {
-    if (isNew) setEditDraft(draft)
-  }, [draft, isNew])
-
   useEffect(() => {
     if (autoNew) {
       setIsNew(true) // eslint-disable-line react-hooks/set-state-in-effect

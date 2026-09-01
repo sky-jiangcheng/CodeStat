@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type Dispatch, type SetStateAction } from 'react'
+import { useState, useEffect, type Dispatch, type SetStateAction } from 'react'
 import type { NoteDraft } from '../components/notes/NoteEditor'
 
 const emptyDraft: NoteDraft = { content: '', title: '', tags: '', kind: 'knowledge' }
@@ -52,8 +52,6 @@ function loadDraft(projectId: number): NoteDraft {
  */
 export function useNoteDraft(projectId: number): [NoteDraft, Dispatch<SetStateAction<NoteDraft>>, () => void] {
   const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))
-  const draftRef = useRef(draft)
-  draftRef.current = draft
 
   useEffect(() => {
     try { localStorage.setItem(draftKey(projectId), JSON.stringify(draft)) } catch { /* ignore */ }

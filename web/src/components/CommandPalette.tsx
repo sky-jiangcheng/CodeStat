@@ -25,7 +25,9 @@ export default function CommandPalette({ open, onClose }: Props) {
   // All-projects list for the quick-jump suggestions, shared with NoteSection
   // via the same cache key so only one request is ever made.
   const { data: projectsData } = useApiData(() => getProjects(undefined, false), [], { cacheKey: 'projects:all' })
-  const projects = projectsData ?? []
+  // Stabilize the fallback so the useMemo below doesn't re-run every render
+  // (the `?? []` would otherwise allocate a fresh array on each pass).
+  const projects = useMemo(() => projectsData ?? [], [projectsData])
   const [activeIndex, setActiveIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
   const previouslyFocused = useRef<HTMLElement | null>(null)
