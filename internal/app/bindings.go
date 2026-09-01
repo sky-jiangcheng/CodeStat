@@ -3,9 +3,9 @@ package app
 import (
 	"context"
 
-	pluginruntime "gitboard/internal/core/plugin/runtime"
-	"gitboard/internal/domain"
-	"gitboard/internal/service"
+	pluginruntime "gitbuddy/internal/core/plugin/runtime"
+	"gitbuddy/internal/domain"
+	"gitbuddy/internal/service"
 )
 
 // --- Projects ---------------------------------------------------------------

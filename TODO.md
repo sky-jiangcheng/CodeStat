@@ -17,7 +17,7 @@
 |----|------|------|
 | D1 | 删除 `scripts/legacy/` | S1 |
 | D2 | 删除 `scripts/generate_screenshots.py` | S1 |
-| D3 | `tools/agent-score/` → MCP `gitboard_agent_score` | S1 |
+| D3 | `tools/agent-score/` → MCP `gitbuddy_agent_score` | S1 |
 | D4 | 社区文件精简 | S1 |
 | D5 | 删除 `.agents/` + gitignore | S1 |
 | D6 | 删除 `.workbuddy/` + gitignore | S1 |

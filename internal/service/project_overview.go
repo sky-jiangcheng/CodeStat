@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 
-	"gitboard/internal/db"
-	"gitboard/internal/domain"
-	"gitboard/internal/knowledge"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/domain"
+	"gitbuddy/internal/knowledge"
+	"gitbuddy/internal/stats"
 )
 
 

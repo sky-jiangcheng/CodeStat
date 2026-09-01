@@ -71,7 +71,7 @@ jobs:
           if [ -f "build/icon.svg" ]; then
             # Initialize a temp package.json in root so npm install works
             if [ ! -f "package.json" ]; then
-              node -e "require('fs').writeFileSync('package.json', JSON.stringify({name:'gitboard-build',version:'0.0.0',private:true},null,2))"
+              node -e "require('fs').writeFileSync('package.json', JSON.stringify({name:'gitbuddy-build',version:'0.0.0',private:true},null,2))"
             fi
             npm install --no-save sharp 2>&1 || true
             if node scripts/generate-icons.mjs 2>&1; then
@@ -111,7 +111,7 @@ jobs:
           # step guarantees the binary itself reports the same version at runtime.
           APP_VERSION=$(grep -oE '"productVersion"[[:space:]]*:[[:space:]]*"[^"]+"' wails.json | head -1 | sed -E 's/.*"([^"]+)"$/\1/')
           echo "Building version: $APP_VERSION"
-          LDFLAGS="-X gitboard/internal/version.Version=$APP_VERSION"
+          LDFLAGS="-X gitbuddy/internal/version.Version=$APP_VERSION"
 
           export PATH=$PATH:$(go env GOPATH)/bin
           if [ "${{ runner.os }}" = "Linux" ]; then
@@ -131,7 +131,7 @@ jobs:
         run: |
           cd build/bin
           mkdir -p release
-          tar -czf "release/gitboard-linux-amd64.tar.gz" gitboard
+          tar -czf "release/gitbuddy-linux-amd64.tar.gz" gitbuddy
           echo "RELEASE_DIR=build/bin/release" >> $GITHUB_ENV
 
       - name: Package macOS
@@ -175,14 +175,14 @@ jobs:
               --app-drop-link 400 280 \
               --background "$STAGING/.background/background.png" \
               --format UDZO \
-              "release/gitboard-${{ matrix.target }}.dmg" \
+              "release/gitbuddy-${{ matrix.target }}.dmg" \
               "$STAGING/"
             rm -rf "$STAGING"
 
             if [ -n "$APPLE_CERTIFICATE" ] && [ -n "$APPLE_ID" ]; then
               echo "Notarizing DMG..."
-              xcrun notarytool submit "release/gitboard-${{ matrix.target }}.dmg" --keychain-profile "github-actions" --wait 2>&1 || true
-              xcrun stapler staple "release/gitboard-${{ matrix.target }}.dmg" 2>&1 || true
+              xcrun notarytool submit "release/gitbuddy-${{ matrix.target }}.dmg" --keychain-profile "github-actions" --wait 2>&1 || true
+              xcrun stapler staple "release/gitbuddy-${{ matrix.target }}.dmg" 2>&1 || true
             fi
           fi
           echo "RELEASE_DIR=release" >> $GITHUB_ENV
@@ -192,8 +192,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p release
-          if [ -f "build/bin/gitboard.exe" ]; then
-            powershell Compress-Archive -Path "build/bin/gitboard.exe" -DestinationPath "release/gitboard-windows-amd64.zip"
+          if [ -f "build/bin/gitbuddy.exe" ]; then
+            powershell Compress-Archive -Path "build/bin/gitbuddy.exe" -DestinationPath "release/gitbuddy-windows-amd64.zip"
           fi
           echo "RELEASE_DIR=release" >> "$GITHUB_ENV"
 

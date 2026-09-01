@@ -1,8 +1,8 @@
 package git
 
 import (
-	"gitboard/internal/knowledge"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/knowledge"
+	"gitbuddy/internal/stats"
 )
 
 // LocalGitProvider is the default Provider implementation that shells out to

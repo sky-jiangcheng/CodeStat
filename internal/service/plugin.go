@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	pluginruntime "gitboard/internal/core/plugin/runtime"
-	"gitboard/internal/importers/claude"
-	"gitboard/internal/platform"
+	pluginruntime "gitbuddy/internal/core/plugin/runtime"
+	"gitbuddy/internal/importers/claude"
+	"gitbuddy/internal/platform"
 )
 
 // pluginsDir resolves the plugin directory; a thin seam over platform so the

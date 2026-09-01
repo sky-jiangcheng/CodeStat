@@ -49,7 +49,7 @@ scan_roots ──▶ scanner.ScanRepositories ──▶ grouper.GroupRepositorie
 
 ### 插件运行时（ADR-0002）
 
-yaegi 解释 `<config>/gitboard/plugins/*/plugin.go`；事件总线 + 知识源注册表；内置 `claude` 导入器与脚本插件同一 upsert 路径。
+yaegi 解释 `<config>/gitbuddy/plugins/*/plugin.go`；事件总线 + 知识源注册表；内置 `claude` 导入器与脚本插件同一 upsert 路径。
 
 ## 前端（web/src）
 
@@ -72,8 +72,8 @@ styles/     设计系统：tokens / reset / components / layouts / features
 
 | 产物 | 来源 | 说明 |
 |------|------|------|
-| `gitboard` | 根包 | Wails 桌面应用（`scripts/build.sh`） |
-| `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询工具） |
-| `gitboard-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询 + agent-score 自检） |
+| `gitbuddy` | 根包 | Wails 桌面应用（`scripts/build.sh`） |
+| `gitbuddy-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询工具） |
+| `gitbuddy-mcp` | `cmd/mcp` | MCP stdio 服务器（知识库查询 + agent-score 自检） |
 
 CI（`.github/workflows/release.yml`）多平台构建 + macOS 签名公证；文档站（`pages.yml`）由 `scripts/build-docs.mjs` 从 `docs/**/*.md` 生成后部署 GitHub Pages。

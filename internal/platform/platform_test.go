@@ -41,8 +41,8 @@ func TestGetDbPath(t *testing.T) {
 	if path == "" {
 		t.Fatal("GetDbPath returned empty string")
 	}
-	if !strings.HasSuffix(path, filepath.Join("gitboard", "dashboard.db")) {
-		t.Errorf("GetDbPath = %s, want it inside a gitboard directory ending with dashboard.db", path)
+	if !strings.HasSuffix(path, filepath.Join("gitbuddy", "dashboard.db")) {
+		t.Errorf("GetDbPath = %s, want it inside a gitbuddy directory ending with dashboard.db", path)
 	}
 }
 
@@ -51,7 +51,7 @@ func TestGetLogPath(t *testing.T) {
 	if path == "" {
 		t.Fatal("GetLogPath returned empty string")
 	}
-	if !strings.HasSuffix(path, "gitboard.log") {
-		t.Errorf("GetLogPath = %s, want it to end with gitboard.log", path)
+	if !strings.HasSuffix(path, "gitbuddy.log") {
+		t.Errorf("GetLogPath = %s, want it to end with gitbuddy.log", path)
 	}
 }

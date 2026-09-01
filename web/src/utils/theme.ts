@@ -1,6 +1,9 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 const STORAGE_KEY = 'gitbuddy-theme'
+// Spelling is intentional: this names the key written by builds before the
+// GitBoard -> GitBuddy rename, and migrateLegacyTheme() moves its value over.
+// Renaming it would silently reset everyone's theme on upgrade.
 const LEGACY_STORAGE_KEY = 'gitboard-theme'
 
 function migrateLegacyTheme() {

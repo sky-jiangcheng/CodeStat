@@ -7,12 +7,12 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"gitboard/internal/service"
+	"gitbuddy/internal/service"
 )
 
 func registerProjectTools(s *server.MCPServer, svc *service.Service) {
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_projects_list",
+		Name:        "gitbuddy_projects_list",
 		Description: "List all tracked projects with their paths and IDs",
 		InputSchema: mcp.ToolInputSchema{
 			Type:       "object",
@@ -23,7 +23,7 @@ func registerProjectTools(s *server.MCPServer, svc *service.Service) {
 	})
 
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_projects_stats",
+		Name:        "gitbuddy_projects_stats",
 		Description: "Get statistics for a specific project (repos, commit stats, activity)",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",

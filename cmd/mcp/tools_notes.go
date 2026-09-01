@@ -7,13 +7,13 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"gitboard/internal/domain"
-	"gitboard/internal/service"
+	"gitbuddy/internal/domain"
+	"gitbuddy/internal/service"
 )
 
 func registerNoteTools(s *server.MCPServer, svc *service.Service) {
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_notes_list",
+		Name:        "gitbuddy_notes_list",
 		Description: "List all knowledge notes across projects",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
@@ -33,7 +33,7 @@ func registerNoteTools(s *server.MCPServer, svc *service.Service) {
 	})
 
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_notes_search",
+		Name:        "gitbuddy_notes_search",
 		Description: "Search notes and todos by query using FTS5 full-text search",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
@@ -58,7 +58,7 @@ func registerNoteTools(s *server.MCPServer, svc *service.Service) {
 	})
 
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_notes_read",
+		Name:        "gitbuddy_notes_read",
 		Description: "Read a single note by ID",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
@@ -79,7 +79,7 @@ func registerNoteTools(s *server.MCPServer, svc *service.Service) {
 	})
 
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_notes_create",
+		Name:        "gitbuddy_notes_create",
 		Description: "Create a new knowledge note. Recommended workflow: read project first, then create with appropriate tags.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
@@ -126,7 +126,7 @@ func registerNoteTools(s *server.MCPServer, svc *service.Service) {
 	})
 
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_notes_update",
+		Name:        "gitbuddy_notes_update",
 		Description: "Update an existing note's content and/or metadata. Pass only the fields you want to change.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",

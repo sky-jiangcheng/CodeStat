@@ -7,7 +7,7 @@ package app
 import (
 	"context"
 
-	"gitboard/internal/service"
+	"gitbuddy/internal/service"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )

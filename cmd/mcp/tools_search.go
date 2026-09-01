@@ -7,12 +7,12 @@ import (
 
 	"github.com/mark3labs/mcp-go/mcp"
 
-	"gitboard/internal/service"
+	"gitbuddy/internal/service"
 )
 
 func registerSearchTool(s *server.MCPServer, svc *service.Service) {
 	s.AddTool(mcp.Tool{
-		Name:        "gitboard_ask",
+		Name:        "gitbuddy_ask",
 		Description: "Ask a question against the local knowledge base (notes + todos search). Returns formatted answers with source references. Recommended workflow: search first (notes_search), then ask for synthesized answers.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",

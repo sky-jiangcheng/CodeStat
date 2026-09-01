@@ -3,8 +3,8 @@ package app
 import (
 	"testing"
 
-	"gitboard/internal/db"
-	"gitboard/internal/service"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/service"
 )
 
 // setupTestApp creates an in-memory App for integration testing, using the

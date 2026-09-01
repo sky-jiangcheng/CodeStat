@@ -3,8 +3,8 @@
 set -e
 
 INSTALL_DIR="/usr/local/bin"
-BINARY_NAME="gitboard"
-REPO="sky-jiangcheng/gitbuddy"
+BINARY_NAME="gitbuddy"
+REPO="sky-jiangcheng/GitBuddy"
 
 OS=$(uname -s | tr '[:upper:]' '[:lower:]')
 ARCH=$(uname -m)
@@ -29,7 +29,7 @@ esac
 
 echo "Downloading GitBuddy for $TARGET..."
 
-DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/gitboard-$TARGET"
+DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/gitbuddy-$TARGET"
 
 if [ ! -w "$INSTALL_DIR" ]; then
   echo "Need sudo to install to $INSTALL_DIR"
@@ -42,4 +42,4 @@ fi
 
 echo ""
 echo "GitBuddy installed to $INSTALL_DIR/$BINARY_NAME"
-echo "Run 'gitboard' to start!"
+echo "Run 'gitbuddy' to start!"

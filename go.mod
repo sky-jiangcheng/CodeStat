@@ -1,4 +1,4 @@
-module gitboard
+module gitbuddy
 
 go 1.25.5
 

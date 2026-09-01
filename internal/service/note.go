@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"gitboard/internal/db"
-	"gitboard/internal/domain"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/domain"
 )
 
 // ListNotes returns all notes for a project.

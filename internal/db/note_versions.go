@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"gitboard/internal/diff"
+	"gitbuddy/internal/diff"
 )
 
 // ListNoteVersions returns the recent version history for a note, ordered by

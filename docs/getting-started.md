@@ -12,16 +12,16 @@ GitBuddy 是一款本地优先的桌面应用（Wails v2，单文件、零运行
 ### macOS / Linux
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/GitBuddy/master/scripts/install.sh | bash
 ```
 
 ### Windows
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.ps1 | iex
+iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/GitBuddy/master/scripts/install.ps1 | iex
 ```
 
-或从 [GitHub Releases](https://github.com/sky-jiangcheng/gitbuddy/releases) 下载对应平台的二进制文件。
+或从 [GitHub Releases](https://github.com/sky-jiangcheng/GitBuddy/releases) 下载对应平台的二进制文件。
 
 ## 首次启动
 
@@ -69,9 +69,9 @@ iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scrip
 
 | 内容 | macOS | Windows | Linux |
 |------|-------|---------|-------|
-| 数据库 | `~/Library/Application Support/gitboard/dashboard.db` | `%APPDATA%\gitboard\dashboard.db` | `~/.config/gitboard/dashboard.db` |
-| 插件目录 | `…/gitboard/plugins/` | `…/gitboard\plugins\` | `…/gitboard/plugins/` |
-| 日志 | `~/Library/Logs/gitboard.log` | `%APPDATA%\gitboard\logs\gitboard.log` | `$XDG_STATE_HOME/gitboard/gitboard.log`（默认 `~/.local/state/gitboard/`） |
+| 数据库 | `~/Library/Application Support/gitbuddy/dashboard.db` | `%APPDATA%\gitbuddy\dashboard.db` | `~/.config/gitbuddy/dashboard.db` |
+| 插件目录 | `…/gitbuddy/plugins/` | `…/gitbuddy\plugins\` | `…/gitbuddy/plugins/` |
+| 日志 | `~/Library/Logs/gitbuddy.log` | `%APPDATA%\gitbuddy\logs\gitbuddy.log` | `$XDG_STATE_HOME/gitbuddy/gitbuddy.log`（默认 `~/.local/state/gitbuddy/`） |
 
 升级时 schema 自动迁移，数据无需手工处理。详细排障见[故障排查](troubleshooting.md)。
 
@@ -84,10 +84,10 @@ iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scrip
 cd web && npm install && npm run build && cd ..
 
 # 桌面应用
-go build -ldflags="-s -w" -o gitboard .
+go build -ldflags="-s -w" -o gitbuddy .
 
 # MCP server
-go build -o gitboard-mcp ./cmd/mcp/
+go build -o gitbuddy-mcp ./cmd/mcp/
 ```
 
 开发模式：`wails dev`（前端热更新 + Wails 绑定注入）。测试：`go test ./...`；前端 `npm test` / `npm run build`（tsc 严格检查）。

@@ -70,9 +70,9 @@ FTS5 trigram 索引最短匹配 3 字符；更短的查询自动降级为 LIKE �
 
 | 平台 | 日志路径 |
 |------|---------|
-| macOS | `~/Library/Logs/gitboard.log` |
-| Linux | `$XDG_STATE_HOME/gitboard/gitboard.log`（默认 `~/.local/state/gitboard/gitboard.log`） |
-| Windows | `%APPDATA%\gitboard\logs\gitboard.log` |
+| macOS | `~/Library/Logs/gitbuddy.log` |
+| Linux | `$XDG_STATE_HOME/gitbuddy/gitbuddy.log`（默认 `~/.local/state/gitbuddy/gitbuddy.log`） |
+| Windows | `%APPDATA%\gitbuddy\logs\gitbuddy.log` |
 
 日志同时记录 PATH 环境与插件运行时状态，报告问题时请附带。
 
@@ -84,4 +84,4 @@ FTS5 trigram 索引最短匹配 3 字符；更短的查询自动降级为 LIKE �
 
 ## 报告问题
 
-如发现 Bug 或有功能建议，请在 [GitHub Issues](https://github.com/sky-jiangcheng/gitbuddy/issues) 提交（含版本号、平台、日志片段）。安全漏洞请走[私密报告渠道](https://github.com/sky-jiangcheng/gitbuddy/security/advisories/new)。
+如发现 Bug 或有功能建议，请在 [GitHub Issues](https://github.com/sky-jiangcheng/GitBuddy/issues) 提交（含版本号、平台、日志片段）。安全漏洞请走[私密报告渠道](https://github.com/sky-jiangcheng/GitBuddy/security/advisories/new)。

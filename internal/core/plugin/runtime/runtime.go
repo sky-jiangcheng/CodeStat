@@ -9,7 +9,7 @@
 //	func Source() string                                   // optional, defaults to Name
 //	func Import(ctx *plugin.Context) ([]plugin.ImportDoc, error) // optional knowledge source
 //
-// Scripts import "gitboard/internal/core/plugin" for the host-provided types.
+// Scripts import "gitbuddy/internal/core/plugin" for the host-provided types.
 // All plugin calls are wrapped in recover() so a panicking plugin can never
 // crash the host process.
 package runtime
@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gitboard/internal/core/plugin"
-	"gitboard/internal/db"
+	"gitbuddy/internal/core/plugin"
+	"gitbuddy/internal/db"
 )
 
 // PluginStatus describes the load result of one plugin, surfaced on the

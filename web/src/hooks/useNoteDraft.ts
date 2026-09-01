@@ -7,6 +7,8 @@ function draftKey(projectId: number) {
   return `gitbuddy-note-draft-${projectId}`
 }
 
+// Spelling is intentional: this names the key written by builds before the
+// GitBoard -> GitBuddy rename, and loadDraft() moves its value over.
 function legacyDraftKey(projectId: number) {
   return `gitboard-note-draft-${projectId}`
 }
@@ -46,7 +48,7 @@ function loadDraft(projectId: number): NoteDraft {
 /**
  * useNoteDraft manages the draft state for the current note editor, persisting
  * it to localStorage keyed by projectId. Supports migration from the old
- * `gitboard-` key prefix.
+ * `gitbuddy-` key prefix.
  */
 export function useNoteDraft(projectId: number): [NoteDraft, Dispatch<SetStateAction<NoteDraft>>, () => void] {
   const [draft, setDraft] = useState<NoteDraft>(() => loadDraft(projectId))

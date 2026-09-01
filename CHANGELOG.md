@@ -27,7 +27,7 @@
 - **前端 API 层拆分**：627 行 client.ts → types / transport / endpoints，统一 `call()` 路由
 - **前端 hooks 层**：`useApiData`（TTL 缓存 + 请求去重，待接入页面）、`useDebouncedCallback`、`useScanPolling`、`useConfirmClick`
 - **组件拆分**：Dashboard 搜索下拉、Settings 六个 tab、NoteSection 统一 NoteEditor + 版本历史面板、ProjectDetail 概览面板、Knowledge 卡片
-- 日志路径按平台（Linux `$XDG_STATE_HOME`、Windows `%APPDATA%\gitboard\logs`），修复非 macOS 平台写入 `~/Library/Logs`
+- 日志路径按平台（Linux `$XDG_STATE_HOME`、Windows `%APPDATA%\gitbuddy\logs`），修复非 macOS 平台写入 `~/Library/Logs`
 - MCP server 进程内单次开库（此前每次工具调用都执行全套迁移）
 - vitest + ESLint 工具链（ESLint 受 TS7 兼容性阻塞，见 [TODO](TODO.md)）；tsconfig 恢复 `noUnusedLocals/Parameters`
 - 仓库卫生：移除误提交的 20MB 二进制与 AI 工具产物目录，遗留脚本归档至 `scripts/legacy/`
@@ -64,7 +64,7 @@
 
 ### 新增
 
-- 产品正式更名为 GitBuddy（旧名 GitBoard 残留仅保留 module/包路径级引用）
+- 产品正式更名为 GitBuddy（旧名 GitBoard，当时仅 module/包路径级引用待跟进）
 - 记录产品定位决策 ADR 0002，并标记 RFC 0001（插件平台）为 Superseded
 - 社区健康文件（issue #25）：CHANGELOG / CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / SUPPORT / Issue+PR 模板 / Dependabot
 - 进程内插件系统：yaegi 脚本运行时（目录扫描 / 加载 / 事件总线 / panic 隔离），插件接口见 `internal/core/plugin`
@@ -88,7 +88,7 @@
 - 用户文档站（issue #26）：使用手册 / 教程 / FAQ（docs/ 落地页）
 - API 参考文档（issue #27）：OpenAPI 渲染 + 端点说明
 - OpenAPI spec + REST 版本化（issue #22）+ OpenAPI 自动渲染与 Try-it（issue #17）
-- CLI + MCP + agent-score（issue #28）：`gitboard-mcp`、`tools/agent-score` 自检工具
+- CLI + MCP + agent-score（issue #28）：`gitbuddy-mcp`、`tools/agent-score` 自检工具
 
 ## [1.5.7] - 2026-08-10
 
@@ -171,25 +171,25 @@
 
 - 首个正式版本：Wails 桌面应用骨架、GitHub Actions 多平台构建发布
 
-[Unreleased]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.2...HEAD
-[1.7.2]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.1...v1.7.2
-[1.7.1]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.7.0...v1.7.1
-[1.7.0]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.3...v1.7.0
-[1.6.3]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.2...v1.6.3
-[1.6.2]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.6.1...v1.6.2
-[1.6.1]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.6.1
-[1.5.7]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.5.5...v1.5.7
-[1.5.6]: https://github.com/sky-jiangcheng/gitbuddy/compare/v1.5.5...v1.5.6
-[1.5.5]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.5
-[1.5.3]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.3
-[1.5.2]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.2
-[1.5.1]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.1
-[1.5.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.5.0
-[1.4.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.4.0
-[1.3.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.3.0
-[1.2.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.2.0
-[1.1.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.1.0
-[1.0.0]: https://github.com/sky-jiangcheng/gitbuddy/releases/tag/v1.0.0
+[Unreleased]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.2...HEAD
+[1.7.2]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.1...v1.7.2
+[1.7.1]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.6.3...v1.7.0
+[1.6.3]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.6.2...v1.6.3
+[1.6.2]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.6.1
+[1.5.7]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.5.5...v1.5.7
+[1.5.6]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.5.5...v1.5.6
+[1.5.5]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.5.5
+[1.5.3]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.5.3
+[1.5.2]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.5.2
+[1.5.1]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.5.1
+[1.5.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.5.0
+[1.4.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.4.0
+[1.3.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.3.0
+[1.2.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.2.0
+[1.1.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.1.0
+[1.0.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.0.0
 
 ## [1.7.2] - 2026-08-18
 

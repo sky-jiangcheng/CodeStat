@@ -35,9 +35,9 @@ GitBuddy 的核心价值是：**让本地 Git 项目从‘散落在终端和记�
 
 本手册覆盖 GitBuddy 的核心功能与使用场景。文档以 Markdown 编写（唯一内容源，存放于仓库 `docs/` 目录），由 `scripts/build-docs.mjs` 生成 HTML 后部署到 GitHub Pages。
 
-- **在线浏览**：<https://sky-jiangcheng.github.io/gitbuddy/>，随 master 分支自动更新
+- **在线浏览**：<https://sky-jiangcheng.github.io/GitBuddy/>，随 master 分支自动更新
 - **本地生成**：`node scripts/build-docs.mjs`（依赖 `web/node_modules` 中的 marked）
-- **问题反馈**：<https://github.com/sky-jiangcheng/gitbuddy/issues>
+- **问题反馈**：<https://github.com/sky-jiangcheng/GitBuddy/issues>
 
 ## 快速导览
 

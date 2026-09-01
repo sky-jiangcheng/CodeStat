@@ -5,10 +5,10 @@ import (
 	"database/sql"
 	"testing"
 
-	"gitboard/internal/core/git"
-	"gitboard/internal/db"
-	"gitboard/internal/domain"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/core/git"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/domain"
+	"gitbuddy/internal/stats"
 )
 
 // fakeGit is an in-memory git.Provider used to test the stats refresh and

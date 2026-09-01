@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"reflect"
 
-	"gitboard/internal/core/plugin"
+	"gitbuddy/internal/core/plugin"
 
 	"github.com/traefik/yaegi/interp"
 	"github.com/traefik/yaegi/stdlib"
 )
 
 // exportedTypes is the set of host symbols exposed to plugin scripts via the
-// import path "gitboard/internal/core/plugin". Scripts use plugin.Context and
+// import path "gitbuddy/internal/core/plugin". Scripts use plugin.Context and
 // plugin.ImportDoc.
 var exportedTypes = interp.Exports{
-	"gitboard/internal/core/plugin/plugin": {
+	"gitbuddy/internal/core/plugin/plugin": {
 		"Context":   reflect.ValueOf((*Context)(nil)),
 		"Event":     reflect.ValueOf(plugin.Event{}),
 		"ImportDoc": reflect.ValueOf(plugin.ImportDoc{}),

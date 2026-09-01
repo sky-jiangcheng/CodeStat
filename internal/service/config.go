@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
-	"gitboard/internal/db"
+	"gitbuddy/internal/db"
 )
 
 // ConfigData holds the application configuration sent to the frontend.

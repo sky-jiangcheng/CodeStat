@@ -7,11 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"gitboard/internal/app"
-	"gitboard/internal/db"
-	"gitboard/internal/platform"
-	"gitboard/internal/service"
-	"gitboard/internal/version"
+	"gitbuddy/internal/app"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/platform"
+	"gitbuddy/internal/service"
+	"gitbuddy/internal/version"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"

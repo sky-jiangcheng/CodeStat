@@ -7,26 +7,26 @@ order: 7
 
 GitBuddy 面向 AI 代理提供读取通道与自检工具，全部复用同一 `internal/service` 实现（与桌面端行为一致）。
 
-## MCP Server（`gitboard-mcp`）
+## MCP Server（`gitbuddy-mcp`）
 
-MCP 是唯一的 AI 执行接口（`gitboard` CLI 未随版本发布）。stdio 协议，进程内单次开库，9 个工具（含 2 个写操作）：
+MCP 是唯一的 AI 执行接口（`gitbuddy` CLI 未随版本发布）。stdio 协议，进程内单次开库，9 个工具（含 2 个写操作）：
 
 | 工具 | 说明 | 读写 |
 |------|------|------|
-| `gitboard_notes_list` | 全部笔记 | 读 |
-| `gitboard_notes_search` | FTS5 搜索（query） | 读 |
-| `gitboard_notes_read` | 按 ID 读笔记 | 读 |
-| `gitboard_notes_create` | 新建知识笔记 | 写 |
-| `gitboard_notes_update` | 更新笔记内容与元数据 | 写 |
-| `gitboard_projects_list` | 全部项目 | 读 |
-| `gitboard_projects_stats` | 项目统计（按 id） | 读 |
-| `gitboard_ask` | 问答式检索，Top-5 文本 | 读 |
-| `gitboard_agent_score` | 检查本地 AI 就绪度（DB/笔记/搜索/MCP/llms.txt/SKILL.md/i18n） | 读 |
+| `gitbuddy_notes_list` | 全部笔记 | 读 |
+| `gitbuddy_notes_search` | FTS5 搜索（query） | 读 |
+| `gitbuddy_notes_read` | 按 ID 读笔记 | 读 |
+| `gitbuddy_notes_create` | 新建知识笔记 | 写 |
+| `gitbuddy_notes_update` | 更新笔记内容与元数据 | 写 |
+| `gitbuddy_projects_list` | 全部项目 | 读 |
+| `gitbuddy_projects_stats` | 项目统计（按 id） | 读 |
+| `gitbuddy_ask` | 问答式检索，Top-5 文本 | 读 |
+| `gitbuddy_agent_score` | 检查本地 AI 就绪度（DB/笔记/搜索/MCP/llms.txt/SKILL.md/i18n） | 读 |
 
 ### 接入 Claude Code
 
 ```bash
-claude mcp add gitboard -- /path/to/gitboard-mcp
+claude mcp add gitbuddy -- /path/to/gitbuddy-mcp
 ```
 
 或写入 `.mcp.json`（项目级）/ `~/.claude.json`（用户级）：
@@ -34,14 +34,14 @@ claude mcp add gitboard -- /path/to/gitboard-mcp
 ```json
 {
   "mcpServers": {
-    "gitboard": { "command": "/usr/local/bin/gitboard-mcp", "args": [] }
+    "gitbuddy": { "command": "/usr/local/bin/gitbuddy-mcp", "args": [] }
   }
 }
 ```
 
 ### 接入 Cursor / 其他 MCP 客户端
 
-在对应客户端的 MCP 配置中添加同样的 `command` 指向 `gitboard-mcp` 二进制（Cursor：`Settings → MCP → Add Server`）。
+在对应客户端的 MCP 配置中添加同样的 `command` 指向 `gitbuddy-mcp` 二进制（Cursor：`Settings → MCP → Add Server`）。
 
 ## llms.txt 与 Markdown 导出（应用内）
 
@@ -51,8 +51,8 @@ claude mcp add gitboard -- /path/to/gitboard-mcp
 
 ## agent-score 自检
 
-agent-score 已合并为 MCP 工具 `gitboard_agent_score`，无需独立构建。通过任意 MCP 客户端调用即可获取 7 项 AI 就绪度评分。
+agent-score 已合并为 MCP 工具 `gitbuddy_agent_score`，无需独立构建。通过任意 MCP 客户端调用即可获取 7 项 AI 就绪度评分。
 
 ## 面向 AI 代理的技能卡
 
-仓库根目录的 [SKILL.md](https://github.com/sky-jiangcheng/gitbuddy/blob/master/SKILL.md) 是给代理阅读的能力卡片（命令、工具表、路径），可直接投喂。
+仓库根目录的 [SKILL.md](https://github.com/sky-jiangcheng/GitBuddy/blob/master/SKILL.md) 是给代理阅读的能力卡片（命令、工具表、路径），可直接投喂。

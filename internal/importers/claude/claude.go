@@ -13,8 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitboard/internal/core/plugin"
-	"gitboard/internal/db"
+	"gitbuddy/internal/core/plugin"
+	"gitbuddy/internal/db"
 )
 
 // SourceName is the stable knowledge-source identifier registered by this

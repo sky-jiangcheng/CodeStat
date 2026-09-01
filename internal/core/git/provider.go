@@ -6,8 +6,8 @@
 package git
 
 import (
-	"gitboard/internal/knowledge"
-	"gitboard/internal/stats"
+	"gitbuddy/internal/knowledge"
+	"gitbuddy/internal/stats"
 )
 
 // Provider is the single abstraction for all Git interactions used by

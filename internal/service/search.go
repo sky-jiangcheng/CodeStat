@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"gitboard/internal/db"
-	"gitboard/internal/domain"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/domain"
 )
 
 // SearchNotes searches note content/title/tags across all projects,

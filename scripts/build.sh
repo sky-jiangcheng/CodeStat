@@ -18,9 +18,9 @@ echo "  Frontend built to web/dist/"
 echo "[2/2] Building Go binary..."
 cd "$PROJECT_ROOT"
 export GOPROXY=https://goproxy.cn,direct
-go build -ldflags="-s -w" -o gitboard .
-echo "  Binary: $PROJECT_ROOT/gitboard"
+go build -ldflags="-s -w" -o gitbuddy .
+echo "  Binary: $PROJECT_ROOT/gitbuddy"
 
 echo ""
 echo "=== Build complete ==="
-ls -lh gitboard
+ls -lh gitbuddy

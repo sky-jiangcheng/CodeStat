@@ -55,5 +55,5 @@ body:
     id: logs
     attributes:
       label: 日志
-      description: 相关日志内容（macOS: ~/Library/Logs/gitboard.log）
+      description: 相关日志内容（macOS: ~/Library/Logs/gitbuddy.log）
       render: text

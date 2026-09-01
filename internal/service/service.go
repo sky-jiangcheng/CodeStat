@@ -2,7 +2,7 @@
 // the repository scan pipeline, stats refresh, knowledge notes, search and
 // AI-facing exports. It is the single layer that talks to the database
 // (internal/db) and the git provider (internal/core/git); the Wails binding
-// layer (internal/app), the CLI (cmd/gitboard) and the MCP server (cmd/mcp)
+// layer (internal/app), the CLI (cmd/gitbuddy) and the MCP server (cmd/mcp)
 // are thin adapters over it and share one implementation.
 package service
 
@@ -13,10 +13,10 @@ import (
 	"sync"
 	"time"
 
-	"gitboard/internal/core/git"
-	pluginruntime "gitboard/internal/core/plugin/runtime"
-	"gitboard/internal/db"
-	"gitboard/internal/version"
+	"gitbuddy/internal/core/git"
+	pluginruntime "gitbuddy/internal/core/plugin/runtime"
+	"gitbuddy/internal/db"
+	"gitbuddy/internal/version"
 )
 
 // ImportEventPayload is the data broadcast after a knowledge-source import.
