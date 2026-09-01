@@ -27,6 +27,9 @@ func (f *fakeGit) GetTodayDate() string      { return "2026-08-16" }
 func (f *fakeGit) GetYesterdayDate() string  { return "2026-08-15" }
 func (f *fakeGit) ValidateDate(string) error { return nil }
 func (f *fakeGit) IsWorkday(string) bool     { return true }
+func (f *fakeGit) GetRecentCommits([]string, string, int) ([]stats.RecentCommit, error) {
+	return nil, nil
+}
 
 func setupService(t *testing.T) (*Service, *fakeGit) {
 	t.Helper()

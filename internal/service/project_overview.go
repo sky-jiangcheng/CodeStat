@@ -148,8 +148,27 @@ func (s *Service) GetProjectOverview(projectID int64) (*ProjectOverview, error) 
 	for _, r := range repos {
 		repoPaths = append(repoPaths, r.Path)
 	}
-	if commits, err := s.git.GetRecentCommits(repoPaths, s.gitUser(), 8); err == nil {
+	if commits, err := s.git.GetRecentCommits(repoPaths, s.gitUser(), 8); err == nil && commits != nil {
 		resp.RecentCommits = commits
+	}
+	// Normalize nil slices to empty (non-nil) so JSON consumers never see
+	// `null` for a field documented as an array. A nil slice marshals to JSON
+	// `null`, which crashes frontends that read `field.length` directly
+	// (e.g. ProjectOverviewSection on the project detail page).
+	if resp.TechStack == nil {
+		resp.TechStack = []knowledge.Tech{}
+	}
+	if resp.Languages == nil {
+		resp.Languages = []knowledge.LanguageStat{}
+	}
+	if resp.Dependencies == nil {
+		resp.Dependencies = []knowledge.Dependency{}
+	}
+	if resp.TopContributors == nil {
+		resp.TopContributors = []knowledge.TopContributor{}
+	}
+	if resp.RecentCommits == nil {
+		resp.RecentCommits = []stats.RecentCommit{}
 	}
 	return resp, nil
 }
