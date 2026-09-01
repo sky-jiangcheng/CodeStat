@@ -1,14 +1,22 @@
 import { useTranslation } from 'react-i18next'
 import { useEffect, useState, useMemo } from 'react'
 import { getHeatmapData, type HeatmapDay } from '../api/client'
+import type { Scope } from './ScopeToggle'
 
-const WEEKS = 52
 const DAYS_PER_WEEK = 7
+
+const SCOPE_DAYS: Record<Scope, number> = {
+  week: 7,
+  month: 30,
+  all: 364,
+}
 
 interface Props {
   onDayClick?: (date: string) => void
   /** Restrict the heatmap to one project's repositories (0 = global). */
   projectId?: number
+  /** Time window shown: week = 7d, month = 30d, all = ~52w. */
+  scope?: Scope
 }
 
 function getLevel(day: HeatmapDay | null): number {
@@ -21,7 +29,7 @@ function getLevel(day: HeatmapDay | null): number {
   return 4
 }
 
-function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
+function generateGrid(days: HeatmapDay[], daysToShow: number): (HeatmapDay | null)[][] {
   const dayMap = new Map<string, HeatmapDay>()
   for (const d of days) {
     dayMap.set(d.date, d)
@@ -31,18 +39,19 @@ function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const startDate = new Date(today)
-  startDate.setDate(startDate.getDate() - (WEEKS * 7 - 1))
+  // Anchor the window end at today and align the start to the beginning of a week.
+  const start = new Date(today)
+  start.setDate(start.getDate() - (daysToShow - 1))
+  const startDay = start.getDay()
+  start.setDate(start.getDate() - startDay)
 
-  const startDay = startDate.getDay()
-  startDate.setDate(startDate.getDate() - startDay)
+  const weeks = Math.ceil((daysToShow + startDay) / 7)
 
-  for (let w = 0; w < WEEKS; w++) {
+  for (let w = 0; w < weeks; w++) {
     const week: (HeatmapDay | null)[] = []
     for (let d = 0; d < DAYS_PER_WEEK; d++) {
-      const date = new Date(startDate)
+      const date = new Date(start)
       date.setDate(date.getDate() + w * 7 + d)
-      // Use local date (not UTC) so the heatmap cell matches the user's calendar day.
       const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
       week.push(dayMap.get(dateStr) || null)
     }
@@ -52,7 +61,7 @@ function generateGrid(days: HeatmapDay[]): (HeatmapDay | null)[][] {
   return grid
 }
 
-export default function Heatmap({ onDayClick, projectId = 0 }: Props) {
+export default function Heatmap({ onDayClick, projectId = 0, scope = 'all' }: Props) {
   const { t } = useTranslation()
   const [days, setDays] = useState<HeatmapDay[]>([])
   const [loading, setLoading] = useState(true)
@@ -66,13 +75,23 @@ export default function Heatmap({ onDayClick, projectId = 0 }: Props) {
     return () => { cancelled = true }
   }, [projectId])
 
-  const grid = useMemo(() => generateGrid(days), [days])
-  const stats = useMemo(() => ({
-    active: days.filter(d => (d.lines_added || 0) + (d.lines_deleted || 0) > 0).length,
-    commits: days.reduce((sum, d) => sum + (d.commits || 0), 0),
-    added: days.reduce((sum, d) => sum + (d.lines_added || 0), 0),
-    deleted: days.reduce((sum, d) => sum + (d.lines_deleted || 0), 0),
-  }), [days])
+  const grid = useMemo(() => generateGrid(days, SCOPE_DAYS[scope]), [days, scope])
+  const stats = useMemo(() => {
+    // Stats reflect the visible window only.
+    const visible = days.filter(d => {
+      const dt = new Date(`${d.date}T00:00:00`)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      const diff = (today.getTime() - dt.getTime()) / 86400000
+      return diff >= 0 && diff < SCOPE_DAYS[scope]
+    })
+    return {
+      active: visible.filter(d => (d.lines_added || 0) + (d.lines_deleted || 0) > 0).length,
+      commits: visible.reduce((sum, d) => sum + (d.commits || 0), 0),
+      added: visible.reduce((sum, d) => sum + (d.lines_added || 0), 0),
+      deleted: visible.reduce((sum, d) => sum + (d.lines_deleted || 0), 0),
+    }
+  }, [days, scope])
 
   if (loading) {
     return (
@@ -82,10 +101,17 @@ export default function Heatmap({ onDayClick, projectId = 0 }: Props) {
     )
   }
 
+  if (stats.active === 0) {
+    return (
+      <div className="heatmap-simple heatmap-empty-state">
+        <p className="empty-hint">{t('heatmap.noActivityInRange')}</p>
+      </div>
+    )
+  }
+
   return (
     <div className="heatmap-simple">
       <div className="heatmap-header">
-        <h3 className="heatmap-title">{t('heatmap.title')}</h3>
         <div className="heatmap-stats">
           <div className="heatmap-stat">
             <span className="heatmap-stat-label">{t('heatmap.active')}</span>

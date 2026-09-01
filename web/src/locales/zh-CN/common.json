@@ -240,8 +240,8 @@
     "manualGroup": "手动分组",
     "levelUp": "提升分组级别",
     "levelDown": "降低分组级别",
-    "realtimeMining": "实时挖掘",
-    "fromCache": "来自缓存",
+    "realtimeMining": "实时",
+    "fromCache": "缓存",
     "noRepos": "项目未找到",
     "overview": "概览",
     "subRepos": "子仓库",
@@ -283,8 +283,12 @@
     "copyContext": "复制 AI 上下文",
     "copied": "已复制",
     "techStack": "技术栈",
+    "mainLanguage": "主语言",
+    "groupLevel": "分组级别 {{n}}",
+    "groupLevelHint": "调整聚合粒度：数字越小，归并的项目范围越大",
+    "scope": "范围",
     "overviewEmpty": "等待首次挖掘",
-    "overviewEmptyHint": "打开项目详情时会自动提取 README、技术栈、依赖、贡献者与最近提交；稍后重进本页即可看到。"
+    "overviewEmptyHint": "打开详情即自动提取，稍后刷新即可"
   },
   "common": {
     "unknownError": "未知错误",
@@ -369,7 +373,8 @@
     "deleted": "删除",
     "less": "少",
     "more": "多",
-    "noData": "无数据"
+    "noData": "无数据",
+    "noActivityInRange": "该时间范围内暂无活动"
   },
   "trend": {
     "commits": "代码提交",

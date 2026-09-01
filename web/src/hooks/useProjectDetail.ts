@@ -19,7 +19,7 @@ export function useProjectDetail(id: string | undefined) {
   const [overview, setOverview] = useState<ProjectOverview | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [range, setRange] = useState<'week' | 'month' | 'all'>('week')
+  const [scope, setScope] = useState<'week' | 'month' | 'all'>('week')
 
   const load = useCallback(() => {
     if (!id) return
@@ -69,10 +69,10 @@ export function useProjectDetail(id: string | undefined) {
 
   const trendData = useMemo(() => {
     let dates = Array.from(stats.keys()).sort()
-    if (range === 'week') {
+    if (scope === 'week') {
       const weekDates = new Set(getLastDays(7))
       dates = dates.filter((d) => weekDates.has(d))
-    } else if (range === 'month') {
+    } else if (scope === 'month') {
       const monthDates = new Set(getLastDays(30))
       dates = dates.filter((d) => monthDates.has(d))
     }
@@ -85,7 +85,7 @@ export function useProjectDetail(id: string | undefined) {
         { label: t('dashboard.sortMyFiles', { defaultValue: 'Files Changed' }), data: dates.map((d) => stats.get(d)!.files), color: '#5a7fa0' },
       ] as TrendDataset[],
     }
-  }, [stats, range, t])
+  }, [stats, scope, t])
 
   const totals = useMemo(() => {
     let added = 0, deleted = 0, files = 0, active = 0
@@ -104,8 +104,8 @@ export function useProjectDetail(id: string | undefined) {
     loading,
     error,
     setError,
-    range,
-    setRange,
+    scope,
+    setScope,
     trendData,
     totals,
     retry: load,

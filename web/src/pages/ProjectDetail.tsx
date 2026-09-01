@@ -5,6 +5,7 @@ import TrendChart from '../components/TrendChart'
 import Heatmap from '../components/Heatmap'
 import StatusBar from '../components/StatusBar'
 import ProjectPanel from '../components/ProjectPanel'
+import ScopeToggle from '../components/ScopeToggle'
 import ProjectOverviewSection from './project/ProjectOverviewSection'
 import ErrorBanner from '../components/ErrorBanner'
 import { useProjectDetail } from '../hooks/useProjectDetail'
@@ -18,7 +19,7 @@ function ProjectDetailPage() {
 
   const {
     project, overview, loading, error, setError,
-    range, setRange, trendData, totals, retry, handleLevelChange,
+    scope, setScope, trendData, totals, retry, handleLevelChange,
   } = useProjectDetail(id)
 
   const [copied, setCopied] = useState(false)
@@ -82,47 +83,66 @@ function ProjectDetailPage() {
               <p className="detail-path">{project.root_path}</p>
             </div>
             <div className="detail-actions">
-              <button className="btn btn-sm" onClick={() => navigate(`/project/${id}?newNote=1`)}>
-                {t('project.quickNote')}
-              </button>
-              <button className="btn btn-sm" onClick={handleCopyContext}>
+              <button className="btn btn-primary btn-sm" onClick={handleCopyContext}>
                 {copied ? t('project.copied') : t('project.copyContext')}
-              </button>
-              <button className="btn btn-sm" onClick={() => handleLevelChange('down')}>
-                {t('project.levelDown')}
-              </button>
-              <button className="btn btn-sm" onClick={() => handleLevelChange('up')}>
-                {t('project.levelUp')}
               </button>
             </div>
           </div>
 
+          {overview && (
+            <div className="detail-summary-row">
+              {overview.languages?.[0] && (
+                <span className="summary-chip">
+                  <span className="summary-label">{t('project.mainLanguage')}</span>
+                  {overview.languages[0].language}
+                </span>
+              )}
+              {overview.tech_stack?.length ? (
+                <span className="summary-chip">
+                  <span className="summary-label">{t('project.techStack')}</span>
+                  {overview.tech_stack.slice(0, 3).map(t => t.name).join('·')}
+                </span>
+              ) : null}
+              {overview.activity?.last_commit_date && (
+                <span className="summary-chip">
+                  <span className="summary-label">{t('project.lastCommit')}</span>
+                  {overview.activity.last_commit_date}
+                </span>
+              )}
+              <span className="summary-chip">
+                <span className="summary-label">{t('project.subRepos')}</span>
+                {project.repos?.length || 0}
+              </span>
+            </div>
+          )}
+
           <div className="detail-stats-grid">
             <div className="detail-stat">
-              <span className="stat-label">{t('project.subRepos')}</span>
-              <span className="stat-value">{totals.repos}</span>
-            </div>
-            <div className="detail-stat">
               <span className="stat-label">{t('project.activeDays')}</span>
-              <span className="stat-value">{totals.active}</span>
+              <span className="stat-value minor">{totals.active}</span>
             </div>
             <div className="detail-stat">
               <span className="stat-label">{t('project.fileChanges')}</span>
-              <span className="stat-value">{totals.files}</span>
+              <span className="stat-value minor">{totals.files}</span>
             </div>
             <div className="detail-stat">
               <span className="stat-label">{t('project.added')}</span>
-              <span className="stat-value green">+{totals.added}</span>
+              <span className="stat-value green">{totals.added}</span>
             </div>
             <div className="detail-stat">
               <span className="stat-label">{t('project.deleted')}</span>
-              <span className="stat-value red">-{totals.deleted}</span>
+              <span className="stat-value red">{totals.deleted}</span>
             </div>
           </div>
 
           <div className="detail-meta-row">
             <span className="meta-pill">{project.is_auto_grouped ? t('project.autoGroup') : t('project.manualGroup')}</span>
             {dateParam && <span className="meta-pill">{t('project.datePill')}: {dateParam}</span>}
+            <span className="level-control" title={t('project.groupLevelHint')}>
+              <button className="btn btn-sm btn-icon" onClick={() => handleLevelChange('down')} aria-label={t('project.levelDown')}>−</button>
+              <span className="level-value">{t('project.groupLevel', { n: project.level_override || 0 })}</span>
+              <button className="btn btn-sm btn-icon" onClick={() => handleLevelChange('up')} aria-label={t('project.levelUp')}>＋</button>
+            </span>
           </div>
         </div>
       </div>
@@ -133,24 +153,15 @@ function ProjectDetailPage() {
         <div className="detail-section">
           <div className="section-header">
             <h2>{t('heatmap.title')}</h2>
+            <ScopeToggle scope={scope} onChange={setScope} />
           </div>
-          <Heatmap projectId={Number(id)} />
+          <Heatmap projectId={Number(id)} scope={scope} />
         </div>
 
         <div className="detail-section">
           <div className="section-header">
             <h2>{t('project.trendTitle')}</h2>
-            <div className="range-toggle">
-              <button className={`btn btn-sm ${range === 'week' ? 'btn-active' : ''}`} onClick={() => setRange('week')}>
-                {t('project.rangeWeek')}
-              </button>
-              <button className={`btn btn-sm ${range === 'month' ? 'btn-active' : ''}`} onClick={() => setRange('month')}>
-                {t('project.rangeMonth')}
-              </button>
-              <button className={`btn btn-sm ${range === 'all' ? 'btn-active' : ''}`} onClick={() => setRange('all')}>
-                {t('project.rangeAll')}
-              </button>
-            </div>
+            <ScopeToggle scope={scope} onChange={setScope} />
           </div>
           {trendData.labels.length > 0 ? (
             <TrendChart labels={trendData.labels} datasets={trendData.datasets} />
@@ -185,8 +196,8 @@ function ProjectDetailPage() {
                       {repo.stats && repo.stats.length > 0 && (
                         <div className="repo-stats">
                           {repo.stats.slice(0, 5).map((stat) => (
-                            <span key={stat.id} className="stat-tag">
-                              {stat.stat_date}: <span className="green">+{stat.lines_added}</span>{' '}
+                            <span key={stat.id} className="stat-tag" title={`${stat.stat_date} · ${stat.author}`}>
+                              {stat.author}: <span className="green">+{stat.lines_added}</span>{' '}
                               <span className="red">-{stat.lines_deleted}</span>
                             </span>
                           ))}

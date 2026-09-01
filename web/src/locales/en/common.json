@@ -240,8 +240,8 @@
     "manualGroup": "Manual grouping",
     "levelUp": "Increase group level",
     "levelDown": "Decrease group level",
-    "realtimeMining": "Real-time mining",
-    "fromCache": "From cache",
+    "realtimeMining": "Live",
+    "fromCache": "Cached",
     "noRepos": "Project not found",
     "overview": "Overview",
     "subRepos": "Repositories",
@@ -283,8 +283,12 @@
     "copyContext": "Copy AI Context",
     "copied": "Copied",
     "techStack": "Tech Stack",
+    "mainLanguage": "Main language",
+    "groupLevel": "Group level {{n}}",
+    "groupLevelHint": "Adjust aggregation granularity: a lower number merges a wider project scope",
+    "scope": "Scope",
     "overviewEmpty": "Awaiting first mining",
-    "overviewEmptyHint": "Opening the project detail triggers extraction of README, tech stack, dependencies, contributors and recent commits. Revisit this page shortly."
+    "overviewEmptyHint": "Auto-extracted when you open the page; refresh to see it."
   },
   "common": {
     "unknownError": "Unknown error",
@@ -369,7 +373,8 @@
     "deleted": "Deleted",
     "less": "Less",
     "more": "More",
-    "noData": "No data"
+    "noData": "No data",
+    "noActivityInRange": "No activity in this range"
   },
   "trend": {
     "commits": "Code Commits",
