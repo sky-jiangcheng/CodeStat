@@ -22,6 +22,11 @@ export default defineConfig({
     // Let the npm build script wipe dist; Vite's built-in emptyOutDir triggers
     // bulk-delete guards in this environment.
     emptyOutDir: false,
+    // The only remaining chunk above the 500 kB default is mermaid's shared
+    // diagram engine (~660 kB). Mermaid is imported on demand in
+    // utils/markdown.ts, so it never sits on the initial-load path and cannot
+    // be split further upstream.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         // Ensure each page becomes its own chunk so lazy-loaded navigation

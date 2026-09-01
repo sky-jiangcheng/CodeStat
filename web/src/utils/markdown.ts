@@ -1,20 +1,35 @@
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import hljs from 'highlight.js'
-import mermaid from 'mermaid'
+// 'highlight.js/lib/common' bundles ~37 common languages instead of all ~190.
+// The full entry point alone was ~1 MB and dragged the knowledge chunk past
+// Vite's 500 kB warning threshold; unknown languages still fall back to
+// auto-detection below.
+import hljs from 'highlight.js/lib/common'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 import 'highlight.js/styles/github.css'
 import 'highlight.js/styles/github-dark.css'
 
-// Initialize mermaid once at module load. securityLevel 'strict' (the default)
-// blocks click callbacks and HTML in diagram definitions; the rendered SVG is
-// also passed through DOMPurify afterwards.
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'default',
-  securityLevel: 'strict',
-})
+// Mermaid is by far the heaviest dependency (its diagram engines are several
+// MB on their own), so it is loaded on demand: notes without a ```mermaid
+// fence never download it.
+let mermaidModule: typeof import('mermaid')['default'] | null = null
+
+async function loadMermaid() {
+  if (!mermaidModule) {
+    const { default: mermaid } = await import('mermaid')
+    // securityLevel 'strict' (the default) blocks click callbacks and HTML in
+    // diagram definitions; the rendered SVG is also passed through DOMPurify
+    // afterwards.
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'default',
+      securityLevel: 'strict',
+    })
+    mermaidModule = mermaid
+  }
+  return mermaidModule
+}
 
 // marked.parse is synchronous by default, but its type union includes a Promise
 // form. Pin the options so we always get a string, then sanitize for safe HTML.
@@ -234,7 +249,14 @@ export async function renderMarkdownAsync(content: string): Promise<string> {
   return html
 }
 
+// MERMAID_FENCE is a cheap pre-check: /g is intentionally omitted so .test
+// does not advance lastIndex before the extraction regex runs below.
+const MERMAID_FENCE = /```mermaid/
+
 async function renderMermaidBlocks(text: string): Promise<string> {
+  if (!MERMAID_FENCE.test(text)) return text
+
+  const mermaid = await loadMermaid()
   const mermaidRegex = /```mermaid\s*\n([\s\S]*?)\n```/g
   let result = text
   let match
