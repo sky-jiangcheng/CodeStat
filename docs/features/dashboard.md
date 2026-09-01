@@ -51,4 +51,4 @@ order: 2
 
 ## 截图
 
-![仪表盘首页](../screenshots/dashboard.png)
+![仪表盘首页](screenshots/dashboard.png)

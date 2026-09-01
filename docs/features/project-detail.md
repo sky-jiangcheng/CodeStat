@@ -47,4 +47,4 @@ order: 4
 
 ## 截图
 
-![项目详情](../screenshots/project-detail.png)
+![项目详情](screenshots/project-detail.png)
