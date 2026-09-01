@@ -228,8 +228,10 @@ func makeSnippet(content, query string) string {
 		end = len(escaped)
 	}
 	// Clamp end to the last valid UTF-8 boundary so we don't split a multi-byte
-	// character (common with CJK text where each rune is 3 bytes).
-	for end > start && !utf8.RuneStart(escaped[end]) {
+	// character (common with CJK text where each rune is 3 bytes). The
+	// end < len(escaped) guard is essential: when end == len(escaped) the
+	// slice already ends on a valid boundary and escaped[end] would panic.
+	for end > start && end < len(escaped) && !utf8.RuneStart(escaped[end]) {
 		end--
 	}
 	snippet := escaped[start:end]

@@ -67,3 +67,14 @@ func TestInitDB_FTSMigrationSmoke(t *testing.T) {
 		t.Errorf("backfill should be idempotent; expected 1 hit, got %d (duplicate FTS rows?)", len(hits))
 	}
 }
+
+func TestReadSchemaVersion_InvalidValue(t *testing.T) {
+	db := setupTestDB(t)
+	defer db.Close()
+	if _, err := db.Exec("INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)", migrationVersionKey, "not-a-number"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := readSchemaVersion(db); err == nil {
+		t.Fatalf("expected error for invalid schema version, got nil")
+	}
+}

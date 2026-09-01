@@ -260,7 +260,7 @@ func readSchemaVersion(db *sql.DB) (int, error) {
 	}
 	v, err := strconv.Atoi(raw)
 	if err != nil {
-		return 0, nil
+		return 0, fmt.Errorf("invalid schema version %q: %w", raw, err)
 	}
 	return v, nil
 }

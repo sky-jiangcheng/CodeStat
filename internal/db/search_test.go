@@ -1,6 +1,7 @@
 package db
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -195,17 +196,27 @@ func TestSearchAll_NotesAndTodos(t *testing.T) {
 func TestFTSUsable(t *testing.T) {
 	cases := map[string]bool{
 		"login":      true,  // 5 chars
-		"登录模块":      true,  // 4 runes
+		"登录模块":       true,  // 4 runes
 		"login flow": true,  // both terms >=3
 		"登录":         false, // 2 runes
-		"ab":          false, // 2 chars
-		"login ab":    false, // one term <3
-		"":            false, // empty
-		"   ":         false, // whitespace only
+		"ab":         false, // 2 chars
+		"login ab":   false, // one term <3
+		"":           false, // empty
+		"   ":        false, // whitespace only
 	}
 	for q, want := range cases {
 		if got := ftsUsable(q); got != want {
 			t.Errorf("ftsUsable(%q) = %v, want %v", q, got, want)
 		}
+	}
+}
+
+func TestMakeSnippet_NearEndNoPanic(t *testing.T) {
+	// content longer than the snippet window with the query near the end:
+	// previously panicked with "index out of range" when end == len(escaped).
+	content := strings.Repeat("a", 120) + " hello "
+	snippet := makeSnippet(content, "hello")
+	if !strings.Contains(snippet, "<mark>hello</mark>") {
+		t.Errorf("expected query highlighted in snippet, got %q", snippet)
 	}
 }
