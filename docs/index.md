@@ -50,3 +50,4 @@ GitBuddy 的核心价值是：**让本地 Git 项目从‘散落在终端和记�
 | 让 Claude / Cursor 读写我的知识库 | [AI 集成](features/ai-integration.md) |
 | 写一个插件或知识源导入器 | [插件手册](plugins/overview.md) |
 | 理解代码分层与关键决策 | [架构说明](architecture.md)、[ADR](adr/index.md) |
+| 看懂存储结构与「为何不让 AI 直接读 git」 | [存储结构优化与 AI 价值](storage-optimization.md) |

@@ -27,6 +27,7 @@
       "title": "参考",
       "items": [
         { "file": "architecture", "label": "架构说明" },
+        { "file": "storage-optimization", "label": "存储结构优化与 AI 价值" },
         { "file": "api/reference", "label": "API 参考" },
         { "file": "troubleshooting", "label": "故障排查" },
         { "file": "adr/index", "label": "架构决策（ADR）" }

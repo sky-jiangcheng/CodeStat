@@ -7,6 +7,26 @@ order: 7
 
 GitBuddy 面向 AI 代理提供读取通道与自检工具，全部复用同一 `internal/service` 实现（与桌面端行为一致）。
 
+## 价值定位：GitBuddy 是 AI 的数据源，而非 AI 本身
+
+**GitBuddy 不调用任何大语言模型**——代码里没有 OpenAI / Anthropic / 任何 API key 配置，没有模型选择、没有 endpoint 设置。它的 AI 功能全部是「把项目知识出口给 AI 工具用」，而不是内置聊天或生成能力。更准确地说：
+
+- GitBuddy 是**数据底座**：把 git 原始信息建模成结构化、可索引、可物化的本地知识库（详见[存储结构优化与 AI 价值](../storage-optimization.md)）；
+- AI 工具（Claude Code / Cursor 等）通过 MCP 的 9 个工具来**消费**这层数据，按需取数、精确检索。
+
+这一层「为什么比让 AI 直接读 git 更优」的论证，见[存储结构优化与 AI 价值](../storage-optimization.md)。
+
+### 配置项（均与模型 / API 无关）
+
+`internal/service/config.go` 白名单只含 4 个配置键，**没有任何一项涉及 LLM**：
+
+| 键 | 类型 | 默认 | 用途 |
+|----|------|------|------|
+| `auto_import` | 0 / 1 | `1` | 是否自动导入 Claude 记忆（**唯一与 AI 相关的配置**） |
+| `daily_code_standard` | 整数 | `500` | 每日代码行数目标，用于仪表盘达标展示。名字带 “code standard” 但非 AI 规范，易误读 |
+| `scan_depth` | 整数 | `2` | 扫描目录深度 |
+| `git_author` | 字符串 | 系统 git 用户 | 影响「我的」统计 / 热力图归属 |
+
 ## MCP Server（`gitbuddy-mcp`）
 
 MCP 是唯一的 AI 执行接口（`gitbuddy` CLI 未随版本发布）。stdio 协议，进程内单次开库，9 个工具（含 2 个写操作）：
@@ -52,6 +72,16 @@ claude mcp add gitbuddy -- /path/to/gitbuddy-mcp
 ## agent-score 自检
 
 agent-score 已合并为 MCP 工具 `gitbuddy_agent_score`，无需独立构建。通过任意 MCP 客户端调用即可获取 7 项 AI 就绪度评分。
+
+## 为什么不直接让 AI 读 git 仓库
+
+一个常见疑问：既然 Claude Code / Cursor 都能直接 `git log`、读文件，为什么还要经过 GitBuddy？核心答案是**成本与确定性**：
+
+- **读得贵**：每次让 AI 直接 `git log` 或逐文件扫描都是一次性消费，重复读 = 重复 token；
+- **读得乱 / 不全**：大仓必超上下文窗口、被截断，模型还可能幻觉或漏读二进制 / `.gitignore`；
+- **读得慢**：每次重算统计，秒级任务退化成分钟级。
+
+GitBuddy 在**扫描时一次性**把 git 原始数据解析并物化进本地 SQLite（`daily_stats` 预聚合统计、`repo_meta` 缓存挖掘结果、`project_notes_fts` 建全文索引），之后 AI 只通过 MCP 工具**按需取数、精确命中**。完整对比与存储结构细节见[存储结构优化与 AI 价值](../storage-optimization.md)。
 
 ## 面向 AI 代理的技能卡
 
