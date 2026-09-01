@@ -186,6 +186,24 @@ func upgradeSchema(db *sql.DB) error {
 			"ALTER TABLE repo_meta ADD COLUMN top_contributors TEXT DEFAULT '[]'",
 			"ALTER TABLE repo_meta ADD COLUMN activity TEXT DEFAULT '{}'",
 		}},
+		// v11: narrow the note version snapshot trigger. It fired on every
+		// UPDATE, so pinning a note or moving it between projects created a
+		// duplicate version with identical content (updated_at always changes,
+		// so the row-level UPDATE cannot be filtered by comparing the whole
+		// row). Only the four columns actually stored in note_versions matter.
+		{id: 11, sql: []string{
+			`DROP TRIGGER IF EXISTS note_versions_snap`,
+			`CREATE TRIGGER IF NOT EXISTS note_versions_snap AFTER UPDATE ON project_notes` +
+				` FOR EACH ROW WHEN` +
+				`  new.content IS NOT old.content` +
+				`  OR new.title IS NOT old.title` +
+				`  OR new.tags IS NOT old.tags` +
+				`  OR new.kind IS NOT old.kind` +
+				` BEGIN` +
+				`  INSERT INTO note_versions(note_id, title, content, tags, kind)` +
+				`  VALUES (new.id, COALESCE(new.title, ''), new.content, new.tags, new.kind);` +
+				` END`,
+		}},
 	}
 
 	for _, m := range migrations {

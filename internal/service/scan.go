@@ -30,7 +30,8 @@ type ScanStatus struct {
 }
 
 // TriggerScan starts an async full repository scan and returns immediately.
-// Only projects marked as collected get their stats refreshed afterwards.
+// Stats are refreshed for every collected project, including the ones this
+// scan marks as collected.
 func (s *Service) TriggerScan() (*ScanResult, error) {
 	s.scanMu.Lock()
 	if s.scanning {
@@ -43,19 +44,10 @@ func (s *Service) TriggerScan() (*ScanResult, error) {
 	s.scanning = true
 	s.scanMu.Unlock()
 
-	collectedIDs, err := db.GetCollectedProjectIDs(ctx, s.db)
-	if err != nil {
-		s.scanMu.Lock()
-		s.scanning = false
-		s.scanCancel = nil
-		s.scanMu.Unlock()
-		return nil, err
-	}
-
 	taskID := fmt.Sprintf("%d", time.Now().UnixNano())
 
 	go func() {
-		s.runCollectedScan(ctx, collectedIDs)
+		s.runCollectedScan(ctx)
 		s.scanMu.Lock()
 		s.scanning = false
 		s.scanProgress = 0
@@ -88,8 +80,9 @@ func (s *Service) GetScanStatus() *ScanStatus {
 
 // runCollectedScan is the single scan pipeline: filesystem scan → grouping →
 // transactional sync of projects/repos → stale cleanup → stats refresh for
-// collected projects.
-func (s *Service) runCollectedScan(ctx context.Context, collectedIDs []int64) {
+// collected projects. Collected ids are re-read after the transaction commits
+// so projects discovered by this scan are included.
+func (s *Service) runCollectedScan(ctx context.Context) {
 	defer func() {
 		if r := recover(); r != nil {
 			log.Printf("panic in collected scan: %v", r)
@@ -111,8 +104,7 @@ func (s *Service) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 
 	// Group discovered repositories into projects. Repositories returned by
 	// the scanner are filesystem paths without a DB id, so they are all
-	// grouped and then synced; collectedIDs is used below to refresh stats
-	// only for those.
+	// grouped and then synced.
 	groups := grouper.GroupRepositories(repos)
 
 	s.scanMu.Lock()
@@ -169,6 +161,14 @@ func (s *Service) runCollectedScan(ctx context.Context, collectedIDs []int64) {
 		return
 	}
 
+	// Re-read after commit: projects found by this scan were just marked
+	// collected, so they now show up and get their history backfilled in the
+	// same run instead of waiting for a second scan.
+	collectedIDs, err := db.GetCollectedProjectIDs(ctx, s.db)
+	if err != nil {
+		log.Printf("load collected projects error: %v", err)
+		return
+	}
 	s.refreshCollectedStats(ctx, collectedIDs)
 	_ = db.SetConfig(s.db, "last_stats_backfill", s.git.GetTodayDate())
 	log.Printf("scan complete: %d repos, %d projects", len(repos), len(groups))
