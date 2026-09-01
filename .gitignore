@@ -7,14 +7,23 @@
 *.bak
 
 # Built binaries (see scripts/build.sh) / 构建产物
-gitboard
-git-dashboard
-gitboard-mcp
+# Anchored with "/" so they only match repo-root binaries; unanchored patterns
+# also swallowed cmd/mcp/ and hid cmd/mcp/results.go from version control.
+/gitboard
+/git-dashboard
+/gitboard-mcp
 # gitboard-agent-score (merged into MCP tool)
-gitbuddy
-gitbuddy-mcp
-gitbuddy-agent-score
-mcp
+/gitbuddy
+/gitbuddy-mcp
+/gitbuddy-agent-score
+/mcp
+
+# Wails build output / Wails 构建输出
+build/bin/
+build/darwin/
+
+# Wails frontend dependency cache / Wails 前端依赖缓存
+web/package.json.md5
 
 # Database files / 数据库文件
 *.db
