@@ -231,9 +231,9 @@ func (r ImportRun) Total() int { return r.Created + r.Updated + r.Skipped }
 // SourceRun pairs a knowledge source with its latest import run, returned by
 // ImportAll for reporting on startup auto-imports.
 type SourceRun struct {
-	Name string `json:"name"`
+	Name string    `json:"name"`
 	Run  ImportRun `json:"run"`
-	Err  string `json:"error,omitempty"`
+	Err  string    `json:"error,omitempty"`
 }
 
 // ImportAll triggers every registered knowledge source and returns per-source

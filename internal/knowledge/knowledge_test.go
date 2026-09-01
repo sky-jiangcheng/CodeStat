@@ -51,10 +51,10 @@ func TestExtractREADMENoReadme(t *testing.T) {
 
 func TestDetectTechStack(t *testing.T) {
 	root := writeTemp(t, map[string]string{
-		"package.json":         `{"name":"x","dependencies":{"react":"^19.0.0"}}`,
-		"go.mod":               "module x\n\ngo 1.25\n",
-		"Dockerfile":           "FROM alpine\n",
-		"not-a-manifest.txt":   "ignore me",
+		"package.json":       `{"name":"x","dependencies":{"react":"^19.0.0"}}`,
+		"go.mod":             "module x\n\ngo 1.25\n",
+		"Dockerfile":         "FROM alpine\n",
+		"not-a-manifest.txt": "ignore me",
 	})
 	techs, err := DetectTechStack(root)
 	if err != nil {

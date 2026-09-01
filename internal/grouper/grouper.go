@@ -10,19 +10,19 @@ import (
 
 // ProjectGroup represents a grouped project containing one or more repositories.
 type ProjectGroup struct {
-	Name         string             // display name
-	RootPath     string             // project root directory
-	Repos        []scanner.RepoInfo // repositories in this group
-	IsAutoGrouped bool              // whether this was auto-grouped
+	Name          string             // display name
+	RootPath      string             // project root directory
+	Repos         []scanner.RepoInfo // repositories in this group
+	IsAutoGrouped bool               // whether this was auto-grouped
 }
 
 // GroupRepositories groups discovered repositories into projects based on directory structure.
 //
 // Rules:
-// 1. If a parent directory contains a single git repo, the parent becomes the project.
-// 2. If a parent directory contains multiple git repos, they are grouped under the parent.
-// 3. If a parent directory is itself a git repo and contains sub-repos, the parent repo
-//    is kept as a separate project from its children.
+//  1. If a parent directory contains a single git repo, the parent becomes the project.
+//  2. If a parent directory contains multiple git repos, they are grouped under the parent.
+//  3. If a parent directory is itself a git repo and contains sub-repos, the parent repo
+//     is kept as a separate project from its children.
 func GroupRepositories(repos []scanner.RepoInfo) []ProjectGroup {
 	if len(repos) == 0 {
 		return nil

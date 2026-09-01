@@ -11,7 +11,6 @@ import (
 	"gitbuddy/internal/stats"
 )
 
-
 // GetProjectDetail returns a project with all its repositories and stats.
 func (s *Service) GetProjectDetail(id int64) (*ProjectDetailResponse, error) {
 	project, err := db.GetProjectByID(s.db, id)

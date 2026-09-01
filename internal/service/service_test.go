@@ -23,8 +23,8 @@ func (f *fakeGit) QueryStatsRange(repoPath, startDate, endDate, author string) (
 	return f.ranges[repoPath+"|"+author], nil
 }
 
-func (f *fakeGit) GetTodayDate() string     { return "2026-08-16" }
-func (f *fakeGit) GetYesterdayDate() string { return "2026-08-15" }
+func (f *fakeGit) GetTodayDate() string      { return "2026-08-16" }
+func (f *fakeGit) GetYesterdayDate() string  { return "2026-08-15" }
 func (f *fakeGit) ValidateDate(string) error { return nil }
 func (f *fakeGit) IsWorkday(string) bool     { return true }
 

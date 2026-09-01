@@ -39,10 +39,10 @@ type ActivityStat struct {
 
 // RepoKnowledge is the aggregated, mineable knowledge for one repository.
 type RepoKnowledge struct {
-	ReadmeExcerpt   string            `json:"readme_excerpt"`
-	TechStack       []Tech            `json:"tech_stack"`
-	Languages       []LanguageStat    `json:"languages"`
-	Dependencies    []Dependency      `json:"dependencies,omitempty"`
-	TopContributors []TopContributor  `json:"top_contributors,omitempty"`
-	Activity        *ActivityStat     `json:"activity,omitempty"`
+	ReadmeExcerpt   string           `json:"readme_excerpt"`
+	TechStack       []Tech           `json:"tech_stack"`
+	Languages       []LanguageStat   `json:"languages"`
+	Dependencies    []Dependency     `json:"dependencies,omitempty"`
+	TopContributors []TopContributor `json:"top_contributors,omitempty"`
+	Activity        *ActivityStat    `json:"activity,omitempty"`
 }

@@ -41,12 +41,12 @@ type Service struct {
 	startupOnce sync.Once
 
 	// Scan engine state, guarded by scanMu.
-	scanMu         sync.Mutex
-	scanning       bool
+	scanMu          sync.Mutex
+	scanning        bool
 	scanBackfilling bool
-	scanCancel     context.CancelFunc
-	scanProgress   int
-	scanTotal      int
+	scanCancel      context.CancelFunc
+	scanProgress    int
+	scanTotal       int
 
 	// Status bar cache to avoid repeated git log queries on every render.
 	statusCacheMu   sync.Mutex
