@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  // Relative base is required for Wails desktop builds: the frontend runs under
+  // a non-HTTP origin (wails:// / file://), so absolute /assets/ paths fail to
+  // resolve and dynamic imports throw "The string did not match the expected pattern".
+  base: './',
   server: {
     port: 5173,
     proxy: {
@@ -15,7 +19,9 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    emptyOutDir: true,
+    // Let the npm build script wipe dist; Vite's built-in emptyOutDir triggers
+    // bulk-delete guards in this environment.
+    emptyOutDir: false,
     rollupOptions: {
       output: {
         // Ensure each page becomes its own chunk so lazy-loaded navigation

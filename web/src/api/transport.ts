@@ -1,5 +1,6 @@
 // api/transport.ts — Dual-mode transport:
-//   - Inside the Wails webview, invokes Go methods via window.go.main.App
+//   - Inside the Wails webview, invokes Go methods via window.go.app.App
+//     (package "app" / struct "App" -> go.app.App.MethodName)
 //   - Standalone (npm run dev in a plain browser), falls back to HTTP fetch
 
 import type { ImportCompletedEvent } from './types'
@@ -10,7 +11,7 @@ interface WailsApp {
 
 interface WailsGlobal {
   go?: {
-    main?: {
+    app?: {
       App?: WailsApp
     }
   }
@@ -19,12 +20,12 @@ interface WailsGlobal {
 const isWails = (): boolean => {
   if (typeof window === 'undefined') return false
   const w = window as unknown as WailsGlobal
-  return !!w.go?.main?.App
+  return !!w.go?.app?.App
 }
 
 function wail<T>(method: string, ...args: unknown[]): Promise<T> {
   const w = window as unknown as WailsGlobal
-  const app = w.go?.main?.App
+  const app = w.go?.app?.App
   if (!app) {
     throw new Error('Wails runtime not available')
   }

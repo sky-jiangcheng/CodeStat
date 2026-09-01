@@ -1,14 +1,14 @@
 # TODO — 已知事项与待办
 
-> 本文件记录产品深度评估产出的改进项。Sprint 1-5 已完成（D1-D11, C1-C3, C5-C6, C8, P3, P7, P10-P11, P13-P16, P19, P21）。
-> 第三轮终态评估（2026-08-26）：[docs/product-review/2026-08-26-final-deep-review.md](docs/product-review/2026-08-26-final-deep-review.md)。
+> 本文件记录产品深度评估产出的改进项。Sprint 1-12 已完成（D1-D11, D20-D23, C1-C3, C5-C6, C8, C10, C12-C15, P3, P7, P10-P11, P13-P16, P19, P21, P25-P28, P30, P35, P37-P38）。
+> 第四轮深度评估（2026-08-27）：[docs/product-review/2026-08-27-new-deep-review.md](docs/product-review/2026-08-27-new-deep-review.md)。
 > 修复后请从此清单移除并写入 CHANGELOG。
 >
-> **快捷跳转**：[✅ 已完成](#-已完成sprint-1-5) ｜ [🔴 删除项](#-删除项d12d19) ｜ [🟡 收敛项](#-收敛项c10c15) ｜ [🟢 细化项](#-细化项p25p33) ｜ [📋 遗留项](#-遗留项)
+> **快捷跳转**：[✅ 已完成](#-已完成sprint-1-9) ｜ [🔴 删除项](#-删除项d7-d11) ｜ [🟡 收敛项](#-收敛项c11) ｜ [🟢 细化项](#-细化项p34-p38) ｜ [📋 遗留项](#-遗留项)
 
 ---
 
-## ✅ 已完成（Sprint 1-8）
+## ✅ 已完成（Sprint 1-9）
 
 <details>
 <summary>展开查看已完成项</summary>
@@ -51,6 +51,14 @@
 | P27 | `cmd/mcp/main.go` 拆分（453行 → 6 files） | S7 |
 | P28 | MCP 工具描述增强 | S7 |
 | P30 | 前端路由懒加载（dashboard/knowledge/projectDetail/settings chunks） | S8 |
+| D20 | 删除空目录 `skills/` | S9 |
+| D21 | 删除空目录 `.agents/` | S9 |
+| D22 | `.claude/settings.local.json` 确认未跟踪 | S9 |
+| D23 | PWA 图标清理（`web/public/` 3 个 icon 文件） | S9 |
+| C15 | install 脚本评估 → 保留 + README 双路径说明 | S9 |
+| P35 | NoteSection CSS Modules 试点（notes.css 242→192 行，新建 .module.css 93 行） | S10 |
+| P38 | ProjectDetail 拆分（316→214 行 + useProjectDetail hook 122 行） | S11 |
+| P37 | SKILL.md 工作流指引 + MCP 工具参数/示例增强 | S12 |
 
 </details>
 
@@ -83,43 +91,72 @@
 
 ---
 
-## 🟡 收敛项（C10-C15）
+## 🔴 删除项（D20-D23）
 
-> 降低前端复杂度 + Go 大文件治理。
+> 第四轮评估新增。零功能回退，纯减法。
 
-### C10: NoteSection 拆分
+### D20: 删除空目录 `skills/`
 
-- [x] 417 行拆出 `useNoteMutations` + `useNoteDraft` + `useNoteVersionHistory` + `useFilteredNotes` hooks + NoteFilterBar 子组件
-- [x] 目标：NoteSection ≤ 200 行（实际 305 行，逻辑下沉至 hooks）
+- [x] `rm -rf skills/`（零内容空目录）
 
-### C11: 插件运行时精简评估
+### D21: 删除空目录 `.agents/skills/`
 
-- [ ] 评估 669 行插件代码（runtime + loader + plugin + service/plugin）在冻结策略下是否可压缩
+- [x] `rm -rf .agents/`（AI 工具产物，.gitignore 已覆盖）
+
+### D22: `.claude/settings.local.json` 从 git 跟踪中移除
+
+- [x] 确认未被 git 跟踪（.gitignore `.claude/` 已覆盖），无需操作
+
+### D23: PWA 图标清理（`web/public/`）
+
+- [x] 确认无代码引用 icon-192/512/maskable
+- [x] 删除 3 个 PWA 图标文件（共 51KB），保留 favicon.ico + favicon.svg
+
+---
+
+## 🟡 收敛项（C11, C15）
+
+> 前轮遗留 + 本轮确认。
+
+### C11: 插件运行时精简评估（669 行）
+
+- [ ] 方案 A（推荐）：`loader.go`（52 行）合并入 `runtime.go`，减少文件碎片
+- [ ] 方案 B（2.0 考虑）：评估移除 yaegi 依赖，Claude importer 改为内置函数
 - [ ] Claude importer 路径确认不受影响
-
-### C12: ProjectDetail 拆分
-
-- [x] 316 行 → `useProjectDetail` hook
-- [x] 路由懒加载 + manualChunks 独立 chunk
-
-### C13: CSS 死代码清理
-
-- [x] 移除 `.badge-ok`、`.badge-err`（cards.css）
-- [x] 移除 `.btn-delete:hover`（buttons.css）
-- [x] 移除 `.chart-empty`（project-detail.css）
-- [x] 移除 `.plugin-badge`（settings.css）
-- [x] 移除 `.form-select` 独立规则（inputs.css，已合并至 `.form-input` 选择器列表）
-- [x] 保留 `.task-list`（markdown.css 中由 Markdown 渲染库动态注入）
-- [x] 保留 `.heatmap`、`.badge-source`、`.kind-badge` 等实际使用的类
-
-### C14: `queries_test.go` 拆分
-
-- [x] 784 行按域拆分：`test_helpers.go`（setupTestDB + createTestProject）+ `queries_test.go`（测试函数）
-- [x] 移除 `database/sql` 未使用 import（helpers 已在 test_helpers.go 中）
 
 ### C15: install 脚本评估
 
-- [ ] 评估 `install.sh` + `install.ps1` 是否需要保留（GitHub Release 二进制 + README 说明可能已足够）
+- [x] **保留**脚本，README 安装说明已调整为「直接下载」+「脚本安装」双路径
+
+---
+
+## 🟢 细化项（P34-P38）
+
+> 第四轮新增。按 AI 产品优先级排序。
+
+### P34: `service/project_overview.go` 评估（221 行）
+
+- [ ] 确认函数内聚度合理，**不拆**，验证 `MineAndCacheAsync` recover 已生效
+
+### P35: 前端 CSS 架构迁移（4,055 行全局 CSS）
+
+- [x] NoteSection CSS Modules 试点完成（notes.css 242→192 行，NoteSection.module.css 93 行新建）
+- [ ] 保留全局 CSS 仅用于 reset、design tokens、跨组件基础样式
+- [ ] 逐组件迁移，每轮 sprint 处理 1-2 个组件（下一步：KnowledgeCard）
+
+### P36: `knowledge.go` 进一步拆分评估（515 行）
+
+- [ ] 评估函数间共享参数情况，**暂不拆**（内聚度高），若新增知识挖掘维度再评估
+
+### P37: SKILL.md 工作流指引增强
+
+- [x] 在 SKILL.md 开头增加「推荐工作流」段落（search → ask → read → create）
+- [x] 为每个 MCP 工具补充使用场景 + 参数约束 + 示例值
+
+### P38: ProjectDetail 拆分确认（316→214 行）
+
+- [x] `useProjectDetail` hook 已创建（122 行），数据层真正下沉
+- [x] 组件降至 214 行（≤200 目标基本达成）
 
 ---
 
@@ -171,7 +208,12 @@
 
 - [ ] 桌面 GUI 回归测试：建议在真机跑一轮冒烟（扫描→收藏→刷新历史→笔记 CRUD→版本恢复→知识库搜索→MCP 问答）
 - [x] `mineAndCacheAsync` 后台 goroutine 加 recover（`project_overview.go:138`）
-- [ ] 远程曾误提交 `.zcode/`，已在 1.7.0 移出跟踪；如需从历史彻底清除可考虑 history rewrite（可选，影响所有协作者）
+- [x] `.zcode/` 已移出跟踪，不需要 history rewrite
+- [ ] P29 `parseTimestamp` 鲁棒性（低优先级，git log 格式稳定）
+- [ ] P31 `Domain/types.go` 评估（仅 15 行，暂不需要收拢）
+- [ ] P32 Wails 绑定层审计（218 行，确认 MCP 对应关系）
+- [ ] P33 `TrendChart` 评估（100 行纯 SVG，「支持」级功能）
+- [ ] P36 `knowledge.go` 进一步拆分评估（515 行，内聚度高暂不拆）
 
 ---
 
@@ -180,7 +222,12 @@
 | 阶段 | 内容 | 预估 |
 |------|------|------|
 | ~~Sprint 1-5~~ | ~~D1-D11, C1-C3, C5-C6, C8, P3, P7, P10-P11, P13-P16, P19, P21~~ | ✅ 共 28 项 |
-| **Sprint 6** | D12-D19 剩余删除 + C10 NoteSection 拆分 | ~2h |
-| **Sprint 7** | C12 + P25-P27 大文件拆分 + P28 MCP 描述增强 | ~3h |
-| **Sprint 8** | C13 CSS 清理 + C14 测试拆分 + P30 懒加载 | ~3h |
-| **按需** | C7, C11, C15, P12, P17, P20, P22-P24, P29, P31-P33 | 随重构穿插 |
+| ~~Sprint 6~~ | ~~D12-D19 剩余删除 + C10 NoteSection 拆分~~ | ✅ |
+| ~~Sprint 7~~ | ~~C12 + P25-P27 大文件拆分 + P28 MCP 描述增强~~ | ✅ |
+| ~~Sprint 8~~ | ~~C13 CSS 清理 + C14 测试拆分 + P30 懒加载~~ | ✅ |
+| ~~**Sprint 9**~~ | ~~D20-D23 资产大扫除 + C15 文案调整~~ | ✅ |
+| ~~**Sprint 10**~~ | ~~P35 NoteSection CSS Modules 试点~~ | ✅ |
+| ~~**Sprint 11**~~ | ~~P38 ProjectDetail hook 提取~~ | ✅ |
+| ~~**Sprint 12**~~ | ~~P37 SKILL.md 工作流指引~~ | ✅ |
+| **2.0 规划** | C11 插件系统评估 + P35 全量 CSS Modules | 按版本 |
+| **按需** | P29, P31, P32, P33, P36 | 随重构穿插 |

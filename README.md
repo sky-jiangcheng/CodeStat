@@ -85,8 +85,14 @@
 
 从 [Releases](https://github.com/sky-jiangcheng/gitbuddy/releases) 下载对应平台的最新版本。
 
-| 平台 | 一键安装 |
-|------|---------|
+**方式一：直接下载**
+
+在 Releases 页面下载对应平台的二进制文件（`gitboard` / `gitboard.exe`），解压后直接运行。
+
+**方式二：一键安装脚本**
+
+| 平台 | 命令 |
+|------|------|
 | macOS / Linux | `curl -fsSL https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.sh \| bash` |
 | Windows | `iwr -useb https://raw.githubusercontent.com/sky-jiangcheng/gitbuddy/master/scripts/install.ps1 \| iex` |
 

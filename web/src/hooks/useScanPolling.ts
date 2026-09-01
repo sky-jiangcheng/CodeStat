@@ -20,8 +20,12 @@ export function useScanPolling(onFinish: () => void): ScanPollingState & { start
   const [doneMessage, setDoneMessage] = useState('')
   const timer = useRef<number | null>(null)
   const onFinishRef = useRef(onFinish)
+  // `t` changes identity on every render; keep it in a ref so `poll` stays
+  // stable and the mount-check effect below does not re-fire on each render.
+  const tRef = useRef(t)
   const alive = useRef(true)
   useEffect(() => { onFinishRef.current = onFinish }, [onFinish])
+  useEffect(() => { tRef.current = t }, [t])
   useEffect(() => {
     alive.current = true
     return () => { alive.current = false }
@@ -43,14 +47,14 @@ export function useScanPolling(onFinish: () => void): ScanPollingState & { start
           stop()
           setScanning(false)
           setMessage('')
-          setDoneMessage(t('common.scanDone', { defaultValue: 'Scan complete' }))
+          setDoneMessage(tRef.current('common.scanDone', { defaultValue: 'Scan complete' }))
           onFinishRef.current()
         } else {
           setMessage(s.message)
         }
       } catch { /* keep polling */ }
     }, 2000)
-  }, [stop, t])
+  }, [stop])
 
   // Check whether a scan is already running when the consumer mounts.
   useEffect(() => {

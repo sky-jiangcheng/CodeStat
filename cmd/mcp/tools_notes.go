@@ -1,35 +1,18 @@
-// gitboard-mcp is the GitBuddy MCP server: it exposes the local Git knowledge
-// base (notes, projects, search) to AI agents over the Model Context
-// Protocol on stdio. The database is opened once at startup and every tool
-// call shares the same service instance as the desktop app.
 package main
 
 import (
+	"github.com/mark3labs/mcp-go/server"
 	"context"
 	"fmt"
-	"log"
-	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
-	"github.com/mark3labs/mcp-go/server"
 
-	"gitboard/internal/db"
-	"gitboard/internal/platform"
+	"gitboard/internal/domain"
 	"gitboard/internal/service"
-	"gitboard/internal/version"
 )
 
-func main() {
-	d, err := db.InitDB(platform.GetDbPath())
-	if err != nil {
-		log.Fatalf("database error: %v", err)
-	}
-	defer d.Close()
-	svc := service.New(d, platform.GetGitUserName())
-
-	mcpServer := server.NewMCPServer("gitboard-mcp", version.Version)
-
-	mcpServer.AddTool(mcp.Tool{
+func registerNoteTools(s *server.MCPServer, svc *service.Service) {
+	s.AddTool(mcp.Tool{
 		Name:        "gitboard_notes_list",
 		Description: "List all knowledge notes across projects",
 		InputSchema: mcp.ToolInputSchema{
@@ -49,7 +32,7 @@ func main() {
 		return makeJSONResult("notes_list", notes)
 	})
 
-	mcpServer.AddTool(mcp.Tool{
+	s.AddTool(mcp.Tool{
 		Name:        "gitboard_notes_search",
 		Description: "Search notes and todos by query using FTS5 full-text search",
 		InputSchema: mcp.ToolInputSchema{
@@ -66,10 +49,15 @@ func main() {
 		if query == "" {
 			return makeTextResult("query is required"), nil
 		}
-		return makeJSONResult("notes_search", svc.SearchAll(query))
+		hits := svc.SearchAll(query)
+		type searchResult struct {
+			Total int               `json:"total"`
+			Hits  []domain.SearchHit `json:"hits"`
+		}
+		return makeJSONResult("notes_search", searchResult{Total: len(hits), Hits: hits})
 	})
 
-	mcpServer.AddTool(mcp.Tool{
+	s.AddTool(mcp.Tool{
 		Name:        "gitboard_notes_read",
 		Description: "Read a single note by ID",
 		InputSchema: mcp.ToolInputSchema{
@@ -90,65 +78,9 @@ func main() {
 		return makeJSONResult("note_read", note)
 	})
 
-	mcpServer.AddTool(mcp.Tool{
-		Name:        "gitboard_projects_list",
-		Description: "List all projects",
-		InputSchema: mcp.ToolInputSchema{
-			Type:       "object",
-			Properties: map[string]any{},
-		},
-	}, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return makeJSONResult("projects_list", svc.ListProjects())
-	})
-
-	mcpServer.AddTool(mcp.Tool{
-		Name:        "gitboard_projects_stats",
-		Description: "Get statistics for a specific project (repos, stats)",
-		InputSchema: mcp.ToolInputSchema{
-			Type: "object",
-			Properties: map[string]any{
-				"id": map[string]any{
-					"type":        "number",
-					"description": "Project ID",
-				},
-			},
-		},
-	}, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		id, _ := req.GetArguments()["id"].(float64)
-		summary, err := svc.GetProjectSummary(int64(id))
-		if err != nil {
-			return makeTextResult(fmt.Sprintf("project not found: %v", err)), nil
-		}
-		return makeJSONResult("project_stats", summary)
-	})
-
-	mcpServer.AddTool(mcp.Tool{
-		Name:        "gitboard_ask",
-		Description: "Ask a question against the local knowledge base (notes + todos search)",
-		InputSchema: mcp.ToolInputSchema{
-			Type: "object",
-			Properties: map[string]any{
-				"query": map[string]any{
-					"type":        "string",
-					"description": "Question or search query",
-				},
-			},
-		},
-	}, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		query, _ := req.GetArguments()["query"].(string)
-		if query == "" {
-			return makeTextResult("query is required"), nil
-		}
-		hits := svc.SearchAll(query)
-		if len(hits) == 0 {
-			return makeTextResult("No results found for: " + query), nil
-		}
-		return makeTextResult(strings.Join(service.FormatSearchAnswer(hits, 5), "\n---\n")), nil
-	})
-
-	mcpServer.AddTool(mcp.Tool{
+	s.AddTool(mcp.Tool{
 		Name:        "gitboard_notes_create",
-		Description: "Create a new knowledge note",
+		Description: "Create a new knowledge note. Recommended workflow: read project first, then create with appropriate tags.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]any{
@@ -158,11 +90,11 @@ func main() {
 				},
 				"title": map[string]any{
 					"type":        "string",
-					"description": "Note title",
+					"description": "Note title (1-80 chars, recommended)",
 				},
 				"content": map[string]any{
 					"type":        "string",
-					"description": "Markdown content of the note",
+					"description": "Markdown content of the note (required)",
 				},
 				"category": map[string]any{
 					"type":        "string",
@@ -170,7 +102,7 @@ func main() {
 				},
 				"tags": map[string]any{
 					"type":        "string",
-					"description": "Comma-separated tags",
+					"description": "Comma-separated tags for categorization",
 				},
 			},
 			Required: []string{"project_id", "title", "content"},
@@ -193,31 +125,31 @@ func main() {
 		return makeJSONResult("note_created", note)
 	})
 
-	mcpServer.AddTool(mcp.Tool{
+	s.AddTool(mcp.Tool{
 		Name:        "gitboard_notes_update",
-		Description: "Update an existing note's content and/or metadata",
+		Description: "Update an existing note's content and/or metadata. Pass only the fields you want to change.",
 		InputSchema: mcp.ToolInputSchema{
 			Type: "object",
 			Properties: map[string]any{
 				"id": map[string]any{
 					"type":        "number",
-					"description": "Note ID to update",
+					"description": "Note ID to update (required)",
 				},
 				"content": map[string]any{
 					"type":        "string",
-					"description": "New Markdown content",
+					"description": "New Markdown content (optional, omit to keep existing)",
 				},
 				"title": map[string]any{
 					"type":        "string",
-					"description": "New title",
+					"description": "New title (optional)",
 				},
 				"tags": map[string]any{
 					"type":        "string",
-					"description": "New comma-separated tags",
+					"description": "New comma-separated tags (optional)",
 				},
 				"category": map[string]any{
 					"type":        "string",
-					"description": "New category: knowledge, log, idea, or other",
+					"description": "New category: knowledge, log, idea, or other (optional)",
 				},
 			},
 			Required: []string{"id"},
@@ -246,20 +178,4 @@ func main() {
 		}
 		return makeJSONResult("note_updated", note)
 	})
-
-	mcpServer.AddTool(mcp.Tool{
-		Name:        "gitboard_agent_score",
-		Description: "Check AI-readiness of the local GitBuddy installation (database, notes, search, MCP, llms.txt, SKILL.md, i18n)",
-		InputSchema: mcp.ToolInputSchema{
-			Type:       "object",
-			Properties: map[string]any{},
-		},
-	}, func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		return makeTextResult(runAgentScore(svc)), nil
-	})
-
-	log.Printf("GitBuddy MCP server v%s starting on stdio...", version.Version)
-	if err := server.ServeStdio(mcpServer); err != nil {
-		log.Fatalf("MCP server error: %v", err)
-	}
 }

@@ -132,7 +132,7 @@ function AppRouter({ children }: { children: ReactNode }) {
   // Wails WebViews can reject BrowserRouter's history/location mutations on
   // custom origins. Keep normal browser URLs for the PWA, but use hash URLs
   // in the desktop shell so navigation never throws a DOMException.
-  const wails = typeof window !== 'undefined' && !!(window as unknown as { go?: { main?: { App?: unknown } } }).go?.main?.App
+  const wails = typeof window !== 'undefined' && !!(window as unknown as { go?: { app?: { App?: unknown } } }).go?.app?.App
   const Router = wails ? HashRouter : BrowserRouter
   return <Router>{children}</Router>
 }

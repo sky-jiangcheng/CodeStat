@@ -15,10 +15,10 @@ afterEach(() => {
 })
 
 describe('call routing', () => {
-  it('routes through the Wails binding when window.go.main.App exists', async () => {
+  it('routes through the Wails binding when window.go.app.App exists', async () => {
     const appMethod = vi.fn().mockResolvedValue({ ok: true })
-    ;(window as unknown as { go: { main: { App: { Health: typeof appMethod } } } }).go = {
-      main: { App: { Health: appMethod } },
+    ;(window as unknown as { go: { app: { App: { Health: typeof appMethod } } } }).go = {
+      app: { App: { Health: appMethod } },
     }
     const result = await call<{ ok: boolean }>({ method: 'Health', path: '/health' })
     expect(appMethod).toHaveBeenCalled()
@@ -53,8 +53,8 @@ describe('connection health', () => {
   })
 
   it('marks backend-down when the Wails Health call rejects', async () => {
-    ;(window as unknown as { go: { main: { App: { Health: () => Promise<never> } } } }).go = {
-      main: { App: { Health: () => Promise.reject(new Error('no backend')) } },
+    ;(window as unknown as { go: { app: { App: { Health: () => Promise<never> } } } }).go = {
+      app: { App: { Health: () => Promise.reject(new Error('no backend')) } },
     }
     const kinds: string[] = []
     subscribeConnection(k => kinds.push(k))
@@ -64,8 +64,8 @@ describe('connection health', () => {
   })
 
   it('treats a healthy response as ok', async () => {
-    ;(window as unknown as { go: { main: { App: { Health: () => Promise<{ ok: boolean }> } } } }).go = {
-      main: { App: { Health: () => Promise.resolve({ ok: true }) } },
+    ;(window as unknown as { go: { app: { App: { Health: () => Promise<{ ok: boolean }> } } } }).go = {
+      app: { App: { Health: () => Promise.resolve({ ok: true }) } },
     }
     const ok = await checkHealth()
     expect(ok).toBe(true)
