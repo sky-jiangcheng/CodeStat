@@ -9,6 +9,7 @@ import ScopeToggle from '../components/ScopeToggle'
 import ProjectOverviewSection from './project/ProjectOverviewSection'
 import ErrorBanner from '../components/ErrorBanner'
 import { useProjectDetail } from '../hooks/useProjectDetail'
+import { copyText } from '../utils/clipboard'
 
 function ProjectDetailPage() {
   const { t } = useTranslation()
@@ -32,10 +33,10 @@ function ProjectDetailPage() {
       `grouping: ${project.is_auto_grouped ? t('project.autoGroup') : t('project.manualGroup')}`,
     ]
     if (overview?.readme_excerpt) lines.push('', `## README\n${overview.readme_excerpt}`)
-    if (overview?.tech_stack.length) lines.push('', `## ${t('project.techStack')}\n${overview.tech_stack.map(x => x.name).join(', ')}`)
-    if (overview?.recent_commits.length) lines.push('', `## ${t('project.recentCommits')}\n${overview.recent_commits.slice(0, 5).map(c => `- ${c.time} ${c.message}`).join('\n')}`)
+    if (overview?.tech_stack?.length) lines.push('', `## ${t('project.techStack')}\n${overview.tech_stack?.map(x => x.name).join(', ')}`)
+    if (overview?.recent_commits?.length) lines.push('', `## ${t('project.recentCommits')}\n${overview.recent_commits?.slice(0, 5).map(c => `- ${c.time} ${c.message}`).join('\n')}`)
     try {
-      await navigator.clipboard.writeText(lines.join('\n'))
+      await copyText(lines.join('\n'))
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
@@ -100,7 +101,7 @@ function ProjectDetailPage() {
               {overview.tech_stack?.length ? (
                 <span className="summary-chip">
                   <span className="summary-label">{t('project.techStack')}</span>
-                  {overview.tech_stack.slice(0, 3).map(t => t.name).join('·')}
+                  {overview.tech_stack.slice(0, 3).map((tech) => tech.name).join('·')}
                 </span>
               ) : null}
               {overview.activity?.last_commit_date && (
@@ -213,7 +214,7 @@ function ProjectDetailPage() {
             </div>
           </div>
 
-          <ProjectPanel projectId={Number(id)} autoNewNote={dateParam === 'newNote' || searchParams.get('newNote') === '1'} />
+          <ProjectPanel projectId={Number(id)} autoNewNote={searchParams.get('newNote') === '1'} />
         </div>
       </div>
 

@@ -29,6 +29,11 @@ function getLevel(day: HeatmapDay | null): number {
   return 4
 }
 
+/** Local calendar date as YYYY-MM-DD (never UTC, so cells match the user's day). */
+function toDateStr(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function generateGrid(days: HeatmapDay[], daysToShow: number): (HeatmapDay | null)[][] {
   const dayMap = new Map<string, HeatmapDay>()
   for (const d of days) {
@@ -52,8 +57,7 @@ function generateGrid(days: HeatmapDay[], daysToShow: number): (HeatmapDay | nul
     for (let d = 0; d < DAYS_PER_WEEK; d++) {
       const date = new Date(start)
       date.setDate(date.getDate() + w * 7 + d)
-      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
-      week.push(dayMap.get(dateStr) || null)
+      week.push(dayMap.get(toDateStr(date)) || null)
     }
     grid.push(week)
   }
@@ -77,14 +81,15 @@ export default function Heatmap({ onDayClick, projectId = 0, scope = 'all' }: Pr
 
   const grid = useMemo(() => generateGrid(days, SCOPE_DAYS[scope]), [days, scope])
   const stats = useMemo(() => {
-    // Stats reflect the visible window only.
-    const visible = days.filter(d => {
-      const dt = new Date(`${d.date}T00:00:00`)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-      const diff = (today.getTime() - dt.getTime()) / 86400000
-      return diff >= 0 && diff < SCOPE_DAYS[scope]
-    })
+    // Stats reflect the visible window only. Dates are YYYY-MM-DD, so a
+    // lexicographic range check is exact and avoids per-day Date parsing.
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const cutoff = new Date(today)
+    cutoff.setDate(cutoff.getDate() - (SCOPE_DAYS[scope] - 1))
+    const todayStr = toDateStr(today)
+    const cutoffStr = toDateStr(cutoff)
+    const visible = days.filter(d => d.date >= cutoffStr && d.date <= todayStr)
     return {
       active: visible.filter(d => (d.lines_added || 0) + (d.lines_deleted || 0) > 0).length,
       commits: visible.reduce((sum, d) => sum + (d.commits || 0), 0),

@@ -5,6 +5,7 @@ import {
   type NoteWithProject, type SearchHit,
 } from '../api/client'
 import { parseTags } from '../utils/markdown'
+import { copyText } from '../utils/clipboard'
 import { useDebouncedCallback } from './useDebouncedCallback'
 
 export type KindFilter = 'all' | 'knowledge' | 'other'
@@ -77,7 +78,7 @@ export function useKnowledgePage() {
     try {
       const md = await exportNoteAsMarkdown(id)
       if (!md) return
-      await navigator.clipboard.writeText(md)
+      await copyText(md)
       flashMessage(t('knowledge.copiedMd'))
     } catch (e) {
       flashMessage(t('knowledge.exportFailed') + (e instanceof Error ? e.message : t('common.unknownError')))

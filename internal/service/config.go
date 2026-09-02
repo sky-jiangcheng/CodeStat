@@ -27,7 +27,15 @@ func (s *Service) GetConfig() (*ConfigData, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
-	roots, _ := db.GetScanRoots(s.db)
+	roots, err := db.GetScanRoots(s.db)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load scan roots: %w", err)
+	}
+	// A nil slice serialises to JSON null, which the frontend spreads/filters
+	// directly and would throw. Always emit an empty array instead.
+	if roots == nil {
+		roots = []string{}
+	}
 	return &ConfigData{Config: configs, ScanRoots: roots}, nil
 }
 

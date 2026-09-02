@@ -12,7 +12,7 @@ const OPTIONS: Scope[] = ['week', 'month', 'all']
 export default function ScopeToggle({ scope, onChange }: Props) {
   const { t } = useTranslation()
   return (
-    <div className="range-toggle scope-toggle" role="group" aria-label={t('project.scope')}>
+    <div className="range-toggle" role="group" aria-label={t('project.scope')}>
       {OPTIONS.map((opt) => (
         <button
           key={opt}

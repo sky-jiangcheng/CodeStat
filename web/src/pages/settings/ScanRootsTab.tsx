@@ -17,7 +17,7 @@ export default function ScanRootsTab({ data, onChange, showMessage }: Props) {
     if (!newRoot.trim() || !data) return
     setSaving(true)
     try {
-      const updated = [...data.scan_roots, newRoot.trim()]
+      const updated = [...(data.scan_roots ?? []), newRoot.trim()]
       await updateScanRoots(updated)
       onChange({ ...data, scan_roots: updated })
       setNewRoot('')
@@ -33,7 +33,7 @@ export default function ScanRootsTab({ data, onChange, showMessage }: Props) {
     if (!data) return
     setSaving(true)
     try {
-      const updated = data.scan_roots.filter((r) => r !== path)
+      const updated = (data.scan_roots ?? []).filter((r) => r !== path)
       await updateScanRoots(updated)
       onChange({ ...data, scan_roots: updated })
       showMessage(t('settings.removed'))
@@ -64,7 +64,7 @@ export default function ScanRootsTab({ data, onChange, showMessage }: Props) {
         </div>
       </div>
       <ul className="root-list">
-        {data?.scan_roots.map((root) => (
+        {data?.scan_roots?.map((root) => (
           <li key={root} className="root-item">
             <span className="root-path">{root}</span>
             <button className="btn btn-danger btn-sm" onClick={() => handleRemoveRoot(root)} disabled={saving}>

@@ -16,11 +16,6 @@
   margin-bottom: 10px;
 }
 
-.heatmap-simple .heatmap-title {
-  font-size: 13px;
-  font-weight: 600;
-}
-
 .heatmap-simple .heatmap-stats {
   gap: 12px;
 }
@@ -133,13 +128,6 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 14px;
-}
-
-.heatmap-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
 }
 
 .heatmap-stats {
