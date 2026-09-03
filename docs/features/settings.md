@@ -44,3 +44,4 @@ order: 5
 ## 截图
 
 ![设置 - 扫描目录](../screenshots/settings.png)
+![设置 - 外观](../screenshots/settings-appearance.png)
