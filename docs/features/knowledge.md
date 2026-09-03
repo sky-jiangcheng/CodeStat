@@ -58,4 +58,4 @@ highlight.js 代码高亮、Mermaid 图、KaTeX 数学公式、GFM Callout 与�
 
 ## 截图
 
-![知识库](screenshots/knowledge.png)
+![知识库](../screenshots/knowledge.png)

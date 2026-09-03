@@ -2,9 +2,73 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-版本号 SSOT 为 `internal/version/version.go`，由 `scripts/bump-version.sh` 同步至 `wails.json`、`web/package.json` 与文档站徽章。
+版本号 SSOT 为 `wails.json` 的 `info.productVersion`，由 `scripts/bump-version.sh` 同步至 `web/package.json`、`internal/version/version.go` 与文档站徽章。
 
 ## [Unreleased]
+
+暂无未发布变更。
+
+## [1.7.9] - 2026-09-03
+
+### 修复
+
+- **项目详情页崩溃**：`GetProjectOverview` 的空切片被 `json.Marshal` 序列化为 `null`，前端读 `recent_commits.length` 抛 TypeError 导致整页白屏；后端在响应出口把 `RecentCommits` / `Dependencies` / `TopContributors` / `TechStack` / `Languages` 归一化为 `[]T{}`，前端补 optional chaining，并加回归测试
+- **扫描根目录为空时添加根目录崩溃**：同源问题（`GetConfig` 返回 `scan_roots: null`，且 `db.GetScanRoots` 的错误被 `_` 吞掉）；后端归一化 + 不再吞错，前端 add/remove handler 加 `?? []` 兜底，并加回归测试
+- **复制降级**：`wails://` 非安全上下文下 `navigator.clipboard` 不可用，新增 `utils/clipboard.ts`（优先 async Clipboard API，回退 `execCommand('copy')`），详情页与知识库页复用
+
+### 变更
+
+- **详情页设计成熟度三波改进**：右上操作区重排（Copy AI Context 升为主操作、Quick Note 移入侧栏、项目级别 ± 下沉到 meta 区）；头部新增摘要行（主语言 / 最近提交 / 子仓库数）；仓库列表统计标签由「日期: ±N」改为「作者: ±N」，日期移入 hover；趋势图与热力图共用 `ScopeToggle`（周 / 月 / 全部），无活动自动塌缩为空态；侧栏取消 sticky
+- 热力图统计计算优化：`today` 提出循环，日期改用 `YYYY-MM-DD` 字符串区间比较，避免逐日 `new Date()` 解析
+- 清理 code review 遗留项：删除死代码（`dateParam === 'newNote'` 分支、`.heatmap-title` 死规则、`scope-toggle` 空 class）、消除 `.map(t => ...)` 对 i18n `t` 的遮蔽
+- 新增 14 条中英 i18n 键（scope / mainLanguage / lastCommit / groupLevel / noDataInRange / rangeWeek|Month|All 等），双语对齐
+
+### 文档
+
+- 用真实应用截图替换自动生成的仪表盘 / 知识库配图，新增设置页截图
+- 新增「存储结构优化与 AI 价值」并补全 AI 集成定位
+
+## [1.7.8] - 2026-09-01
+
+### 修复
+
+- 搜索片段截取越界 panic；schema 版本解析静默吞错
+- 收窄笔记版本快照触发条件（不再为无意义变更建快照）；修复首次扫描的新项目没有历史数据
+
+### 变更
+
+- `knowledge` chunk 从 1.83MB 降至 471kB，构建告警清零：`highlight.js` 改用 `lib/common`（37 语言而非全量 190），`mermaid` 改动态 `import()` 按需加载
+- 清理 ESLint 10 + react-hooks v7 报出的 7 处问题
+- 删除未注册的 MCP 工具文件并统一 gofmt 格式
+- 同步 `package-lock.json`，移除 `vite-plugin-pwa` 及其传递依赖
+- 升级 brace-expansion 5.0.7 → 5.0.9，修复 high 级 DoS 漏洞
+
+## [1.7.7] - 2026-09-01
+
+### 变更
+
+- 产品正式更名为 GitBuddy（旧名 GitBoard）：模块与包路径、文档、可执行文件与文档站徽章一并同步
+
+## [1.7.6] - 2026-09-01
+
+### 修复
+
+- 修复 Wails 绑定命名空间取错导致的桌面端 UI 失效（命名空间由 Go 包名决定：`package app` → `go.app.App`，而非 `go.main.App`）
+- code review 的 P0 / P1 / P2 问题全部修复（sprint 6-8 收尾）
+- 恢复被误删的 DMG 资源与 MCP `main.go`
+
+## [1.7.5] - 2026-08-31
+
+### 变更
+
+- UI 改版：蓝色主色调，对比度与视觉层级优化
+
+## [1.7.4] - 2026-08-27
+
+### 新增
+
+- 同步远程待办事项
+- MCP 笔记工具；`docs/features/ai-integration.md` 的 MCP 工具表补齐为 9 个（含 2 个写操作）
 
 ### 变更
 
@@ -12,6 +76,60 @@
 - **错误一致性与可用性（PR2）**：新增 `web/src/components/ErrorBanner.tsx` 作为页面级错误的统一渲染路径（消息 + 重试按钮 + i18n），替换 Dashboard / ProjectDetail / Knowledge / Settings 四页各自内联的 `error-banner` JSX 与重复 catch 样板。ProjectDetail 与 Settings 的重试改为复用与初次加载相同的加载函数，修复旧实现只 setProject / 漏 reset loading 的半状态问题。`NoteSection` 的 create/save/move/delete/pin/restore/diff 等原本 `/* ignore */` 的静默 catch 改走统一的 `run(op, errMsg)` 包装：失败时 setError 并记录最近失败操作供 ErrorBanner 的重试按钮重放；乐观 pin 失败回滚原状态。
 - **TODO 收尾（中优先级）**：补齐 `useConfirmClick` 测试；将 `useApiData`（TTL 缓存 + 请求去重）接入 NoteSection 与 CommandPalette 的「全部项目」下拉列表，共享缓存键 `projects:all`，跨组件只发一次请求；Dashboard 的 projects 拉取现已迁移到 `useApiData`（独立键 `dashProjects`，按 date/starredOnly 作用域，因卡片依赖按日统计），star 切换 `invalidateCache('projects:all')` 使三处组件 starred 状态一致，保留乐观 star 覆盖层避免骨架闪烁；移除 `wails.json` 中从未使用的 `wailsjsdir`；校验 `examples/plugins` 两个示例插件（宿主 SPI 未变，`go build ./...` 通过，预期兼容）；`openapi.json` 契约说明与 `build-docs.mjs` 对 `marked` 的依赖经核实已满足，无额外改动。
 - **桌面端路由（HashRouter）**：Wails WebView 在自定义源下 BrowserRouter 的 history/location 变更会抛 DOMException，故桌面壳改用 `HashRouter`、PWA/浏览器仍用 `BrowserRouter`；`spaFallback` 注释同步说明该约定。
+- sprint 6-8 代码重构与清理：NoteSection hooks 化、大文件拆分、CSS 死代码清理、懒加载、recover 防护
+
+### 维护
+
+- 依赖升级：wails 2.13.0 → 2.14.0、mcp-go 0.57.0 → 0.58.0、highlight.js 11.11.1 → 11.12.0、katex 0.18.3 → 0.18.4、actions/setup-node 5 → 7
+- 从仓库移除 `.omo` 运行态产物
+
+## [1.7.3] - 2026-08-20
+
+### 新增
+
+- 项目上下文主页：快速笔记入口、Copy AI Context、概览空状态引导
+
+### 变更
+
+- 范围冻结 ADR-0006、产品闭环叙事与 CLI/MCP 收敛（#73 #74 #76）
+
+### 修复
+
+- agent-score 的幽灵 CLI 检查替换为 MCP 二进制 + llms.txt 导出检查（#76）；修复 `cliPath` 未定义导致的编译错误
+
+### 测试
+
+- 补齐搜索闭环覆盖：`useApiData` / `useDebouncedCallback` / transport / endpoints（#75）
+
+### 维护
+
+- 加固运行时检查与质量门禁
+
+## [1.7.2] - 2026-08-18
+
+深度代码审查（`docs/code-review/2026-08-18-deep-review.md`）缺陷修复：
+
+### 修复
+
+- **🔴 并发数据库锁**：`InitDB` 限制连接池为单连接（`SetMaxOpenConns(1)` + `SetConnMaxLifetime(0)`）并设置 `PRAGMA busy_timeout=5000`，消除并发 Wails/扫描/插件访问导致的 `database is locked`
+- **🔴 知识缓存静默失效（存量库）**：新增 v10 幂等迁移，为早期版本创建的 `repo_meta` 补齐 `dependencies` / `top_contributors` / `activity` 三列（`createTables` 新建表已含，存量库需此修复才能命中缓存）
+- **🟠 知识源状态误报**：插件导入 `TriggerImport` 的 `lastErr` 改为记录逐文档 upsert 真实错误，知识源 `Enabled` 不再恒为 true
+- **🟠 大仓库挂起**：`DetectContributors` 用 30s 上下文超时包裹 `git shortlog`
+- **🟠 首屏阻塞**：`GetProjects` / `GetProjectStats` 的按需 git 统计刷新移至后台 goroutine，仪表盘/概览首开不再卡顿
+- **🟠 `git_author` 配置生效**：运行时可设置个人作者，覆盖自动检测的 `git user.name`（"我的"统计/热力图/最近提交随之更新）
+- **🟡 健壮性**：`mineAndCache` 记录 `UpsertRepoMeta` 错误而非吞掉；`Mine` 返回非 nil 切片避免 JSON `null`；按语言行数统计 scanner 缓冲放大到 16MB（兼容 minified 文件）；`daily_stats` 新增真实提交数 `commits` 列（此前热力图误用 `COUNT(DISTINCT author)`）
+
+### 维护
+
+- **🟡 `InferRepoMeta` 无超时**：派生仓库展示名时读取 `git config user.name` 改用 30s 上下文超时包裹，避免挂掉的 working tree 阻塞扫描/发现路径
+- **🟡 `refreshProjectStatsForDate` 缺失非零守卫**：与 `refreshRepoStatsRange` 对齐，git 出错返回的全 0 `Result` 不再写入每日统计行（原会令仪表盘显示「0」而非「无数据」，掩盖错误）
+- **版本号对齐**：`internal/version/version.go` 经 `scripts/bump-version.sh` 同步至 `1.7.2`（`wails.json` / `web/package.json` 一并更新），消除应用内报告版本与 tag 长期漂移
+
+## [1.7.1] - 2026-08-18
+
+### 修复
+
+- 修复 ESLint 被 TypeScript 7.0 兼容性阻塞问题：降级 TypeScript 至 6.0.3，修复 react-hooks/refs 违规（4 个 hook），修复 set-state-in-effect 违规（7 个文件），修复 markdown.ts 不必要转义和 seo.ts 缺失依赖
 
 ## [1.7.0] - 2026-08-17
 
@@ -171,7 +289,14 @@
 
 - 首个正式版本：Wails 桌面应用骨架、GitHub Actions 多平台构建发布
 
-[Unreleased]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.2...HEAD
+[Unreleased]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.9...HEAD
+[1.7.9]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.8...v1.7.9
+[1.7.8]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.7...v1.7.8
+[1.7.7]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.6...v1.7.7
+[1.7.6]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.5...v1.7.6
+[1.7.5]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.4...v1.7.5
+[1.7.4]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.3...v1.7.4
+[1.7.3]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.2...v1.7.3
 [1.7.2]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/sky-jiangcheng/GitBuddy/compare/v1.6.3...v1.7.0
@@ -191,28 +316,3 @@
 [1.1.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.1.0
 [1.0.0]: https://github.com/sky-jiangcheng/GitBuddy/releases/tag/v1.0.0
 
-## [1.7.2] - 2026-08-18
-
-深度代码审查（`docs/code-review/2026-08-18-deep-review.md`）缺陷修复：
-
-### 修复
-
-- **🔴 并发数据库锁**：`InitDB` 限制连接池为单连接（`SetMaxOpenConns(1)` + `SetConnMaxLifetime(0)`）并设置 `PRAGMA busy_timeout=5000`，消除并发 Wails/扫描/插件访问导致的 `database is locked`
-- **🔴 知识缓存静默失效（存量库）**：新增 v10 幂等迁移，为早期版本创建的 `repo_meta` 补齐 `dependencies` / `top_contributors` / `activity` 三列（`createTables` 新建表已含，存量库需此修复才能命中缓存）
-- **🟠 知识源状态误报**：插件导入 `TriggerImport` 的 `lastErr` 改为记录逐文档 upsert 真实错误，知识源 `Enabled` 不再恒为 true
-- **🟠 大仓库挂起**：`DetectContributors` 用 30s 上下文超时包裹 `git shortlog`
-- **🟠 首屏阻塞**：`GetProjects` / `GetProjectStats` 的按需 git 统计刷新移至后台 goroutine，仪表盘/概览首开不再卡顿
-- **🟠 `git_author` 配置生效**：运行时可设置个人作者，覆盖自动检测的 `git user.name`（"我的"统计/热力图/最近提交随之更新）
-- **🟡 健壮性**：`mineAndCache` 记录 `UpsertRepoMeta` 错误而非吞掉；`Mine` 返回非 nil 切片避免 JSON `null`；按语言行数统计 scanner 缓冲放大到 16MB（兼容 minified 文件）；`daily_stats` 新增真实提交数 `commits` 列（此前热力图误用 `COUNT(DISTINCT author)`）
-
-### 维护
-
-- **🟡 `InferRepoMeta` 无超时**：派生仓库展示名时读取 `git config user.name` 改用 30s 上下文超时包裹，避免挂掉的 working tree 阻塞扫描/发现路径
-- **🟡 `refreshProjectStatsForDate` 缺失非零守卫**：与 `refreshRepoStatsRange` 对齐，git 出错返回的全 0 `Result` 不再写入每日统计行（原会令仪表盘显示「0」而非「无数据」，掩盖错误）
-- **版本号对齐**：`internal/version/version.go` 经 `scripts/bump-version.sh` 同步至 `1.7.2`（`wails.json` / `web/package.json` 一并更新），消除应用内报告版本与 tag 长期漂移
-
-## [1.7.1] - 2026-08-18
-
-### 修复
-
-- 修复 ESLint 被 TypeScript 7.0 兼容性阻塞问题：降级 TypeScript 至 6.0.3，修复 react-hooks/refs 违规（4 个 hook），修复 set-state-in-effect 违规（7 个文件），修复 markdown.ts 不必要转义和 seo.ts 缺失依赖
