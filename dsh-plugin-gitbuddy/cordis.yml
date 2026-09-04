@@ -1,0 +1,19 @@
+# Cordis patch entry — register the gitbuddy plugin as a temporary overlay.
+#
+# Load with (from the repo root):
+#   pnpm dsh web --patch ./dsh-plugin-gitbuddy/cordis.yml
+#
+# NOTE: dsh resolves `name` against the *profile* directory, so a relative path
+# in the patch file does NOT work for a plugin that lives elsewhere. Point
+# `name` at an absolute path (or, once published, the npm package name):
+#
+#   - insert:
+#     - id: gitbuddy
+#       name: '/absolute/path/to/GitBuddy/dsh-plugin-gitbuddy/src/index.ts'
+#
+# For a permanent install, prefer `pnpm dsh plugin add ./dsh-plugin-gitbuddy`
+# (or `github:sky-jiangcheng/GitBuddy` once the plugin is its own repo), which
+# installs it as an npm package instead of a transient --patch overlay.
+- insert:
+  - id: gitbuddy
+    name: '/REPLACE/WITH/ABSOLUTE/PATH/TO/dsh-plugin-gitbuddy/src/index.ts'

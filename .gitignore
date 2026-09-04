@@ -38,6 +38,8 @@ web/wailsjs/
 # Generated icon assets / 图标产物（由 build/icon.svg 经 scripts/generate-icons.mjs 生成）
 build/icons/
 build/appicon.png
+build/icon.icns
+build/icon.iconset/
 
 # Generated docs HTML (built from docs/**/*.md by scripts/build-docs.mjs)
 docs/**/*.html
